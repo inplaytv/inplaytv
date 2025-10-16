@@ -1,171 +1,255 @@
-# Monorepo Deployment to Vercel
-
-This guide walks you through deploying the Fantasy Golf monorepo to Vercel, one project per app.
+# InPlay TV – Monorepo Deployment to Vercel
 
 ---
 
-## Prerequisites
+## 1. Overview
+
+This repository uses a **monorepo structure** containing three Next.js applications:
+
+- **`apps/web`** – Public marketing website
+- **`apps/app`** – Game client (to be created later)
+- **`apps/dashboard`** – Admin portal (to be created later)
+
+All three apps are built with Next.js and share the same GitHub repository but are deployed as **separate Vercel Projects**.
+
+Each app connects to the same Supabase database instance.
+
+**Deployment order:**
+1. Website (`apps/web`) is deployed first
+2. Game and Dashboard are deployed later when ready
+
+**Domain structure:**
+- Website → `www.yourdomain.com`
+- Game → `app.yourdomain.com`
+- Dashboard → `dashboard.yourdomain.com`
+
+**Shared authentication:**
+- Supabase Auth cookie domain will be set to `.yourdomain.com`
+- This ensures single sign-in works seamlessly across all subdomains
+
+---
+
+## 2. Prerequisites
 
 Before deploying, ensure you have:
 
-- **Node.js 20+** installed
-- **pnpm** package manager
-- **Git** configured locally
-- A **GitHub** account
-- A **Supabase** project created with the following values available:
+- **Node.js 20+** and **pnpm** installed
+- **Git** installed and configured
+- A **GitHub account**
+- A **Supabase project** created with the following values available:
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- A **Vercel** account (free tier works)
+- A **Vercel account** (free tier works)
 
 ---
 
-## Push to GitHub
+## 3. Push Code to GitHub
 
-1. **Initialize Git** (if not already done):
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial deploy"
-   git branch -M main
-   ```
+Run the following commands to push your code to GitHub:
 
-2. **Create a new repository on GitHub** (e.g., `fantasy-golf`)
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/<your-user>/<your-repo>.git
+git push -u origin main
+```
 
-3. **Link and push**:
-   ```bash
-   git remote add origin https://github.com/<your-user>/<your-repo>.git
-   git push -u origin main
-   ```
-
-> **Important:** Ensure `.env.local` and `.env` files are **not committed**. Check that `.gitignore` includes them.
+> **⚠️ Important:** Never commit `.env.local` files or Supabase keys. Ensure your `.gitignore` file includes these patterns.
 
 ---
 
-## Create Vercel Project for the Website
+## 4. Deploy Website to Vercel
+
+Deploy the **`apps/web`** application first.
+
+### Step 1: Create New Vercel Project
 
 1. Go to [vercel.com](https://vercel.com) and sign in
-2. Click **New Project**
-3. **Import** your GitHub repository
-4. Configure the project:
-   - **Root Directory:** `apps/web`
-   - **Framework Preset:** Next.js (auto-detected)
-   - **Build Command:** (leave default)
-   - **Output Directory:** (leave default)
-5. Add **Environment Variables**:
-   - `NEXT_PUBLIC_SUPABASE_URL` → your Supabase project URL
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` → your Supabase anon key
-6. Click **Deploy**
+2. Click **"Add New..."** → **"Project"**
+3. Find your GitHub repository and click **"Import"**
 
-Your website will be live at a Vercel-provided URL (e.g., `your-project.vercel.app`).
+### Step 2: Configure Project Settings
+
+- **Root Directory:** Click "Edit" and select **`apps/web`** ✅
+- **Framework Preset:** Next.js (auto-detected) ✅
+- **Build Command:** Leave as default
+- **Output Directory:** Leave as default
+
+### Step 3: Add Environment Variables
+
+Click **"Environment Variables"** and add:
+
+| Variable Name | Value |
+|---------------|-------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anonymous key |
+
+### Step 4: Deploy
+
+Click **"Deploy"** and wait 2-3 minutes.
+
+Your website will be live at a Vercel-provided URL (e.g., `inplaytv.vercel.app`).
 
 ---
 
-## Map a Custom Domain
+## 5. Add Custom Domain (Optional)
 
-1. In the Vercel project settings, go to **Domains**
-2. Add your domain (e.g., `www.yourdomain.com`)
-3. **If using Vercel DNS:**
-   - Vercel automatically configures DNS records
-4. **If using external DNS:**
-   - Add the CNAME record Vercel provides to your DNS provider
+Once your site is deployed, you can map a custom domain.
+
+### Steps:
+
+1. In the Vercel project, go to **Settings** → **Domains**
+2. Click **"Add Domain"**
+3. Enter your domain (e.g., `www.yourdomain.com`)
+4. **If using Vercel DNS:**
+   - Vercel automatically creates the required DNS records
+5. **If using external DNS provider:**
+   - Add the CNAME record Vercel provides
    - Point `www` to the Vercel target (e.g., `cname.vercel-dns.com`)
-5. **Optional:** Redirect root domain (`yourdomain.com`) to `www.yourdomain.com`
+6. **Optional:** Redirect root domain (`yourdomain.com`) to `www.yourdomain.com`
+
+DNS propagation typically takes 5-60 minutes.
 
 ---
 
-## Share Auth Across Subdomains Later
+## 6. Configure Shared Authentication (When Using Custom Domains)
 
-When you add the game (`app.yourdomain.com`) and dashboard (`dashboard.yourdomain.com`):
+Once you have custom domains set up and are ready to deploy multiple apps, configure Supabase to share authentication across all subdomains.
+
+### Steps:
 
 1. Go to **Supabase Dashboard** → **Authentication** → **Settings**
-2. Set **Cookie Domain** to `.yourdomain.com` (note the leading dot)
-3. Enable **SameSite: Lax** and **Secure Cookies**
+2. Scroll to **"Cookie Domain"**
+3. Set the value to **`.yourdomain.com`** (note the leading dot)
+4. Enable **SameSite: Lax**
+5. Enable **Secure Cookies: On**
 
-This allows authentication to work seamlessly across all subdomains.
+This allows users to stay authenticated when navigating between:
+- `www.yourdomain.com` (Website)
+- `app.yourdomain.com` (Game)
+- `dashboard.yourdomain.com` (Dashboard)
+
+**Important:** Only do this once you have a custom domain. Do not use `.vercel.app` as a cookie domain.
 
 ---
 
-## Preview Deployments
+## 7. Automatic Preview Deployments
 
-- Every **branch** and **pull request** automatically gets a unique Preview URL
+Vercel automatically creates preview deployments for every:
+- **Git branch** you push
+- **Pull request** you create
+
+### How it works:
+
+- Each preview gets a unique URL (e.g., `inplaytv-git-feature-branch.vercel.app`)
+- Previews allow you to test changes before merging to `main`
 - Merging to `main` updates the **Production** deployment
-- Preview URLs allow you to test changes before going live
+- Preview URLs are listed in the **Deployments** tab
 
 ---
 
-## Rollbacks
+## 8. Rollbacks
 
-If a deployment breaks production:
+If a deployment breaks production, you can instantly rollback.
 
-1. Go to the Vercel project → **Deployments**
+### Steps:
+
+1. Go to the Vercel project → **Deployments** tab
 2. Find a previous working deployment
-3. Click **Promote to Production**
+3. Click the **"︙"** menu → **"Promote to Production"**
 
-Vercel instantly rolls back to that build.
-
----
-
-## Add the Game and Dashboard Later
-
-When you're ready to deploy `apps/app` and `apps/dashboard`:
-
-### For the Game App (`apps/app`)
-1. Create a **New Project** in Vercel
-2. Import the **same GitHub repository**
-3. Set **Root Directory** to `apps/app`
-4. Add the same environment variables:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-5. Deploy
-6. Add custom domain: `app.yourdomain.com`
-
-### For the Dashboard (`apps/dashboard`)
-1. Create a **New Project** in Vercel
-2. Import the **same GitHub repository**
-3. Set **Root Directory** to `apps/dashboard`
-4. Add the same environment variables:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-5. Deploy
-6. Add custom domain: `dashboard.yourdomain.com`
+Vercel instantly rolls back to that build with zero downtime.
 
 ---
 
-## Deployment Architecture
+## 9. Deploy Game and Dashboard (Later)
+
+When you're ready to deploy the **`apps/app`** (Game) and **`apps/dashboard`** (Admin Portal), follow the same process.
+
+### For the Game App (`apps/app`):
+
+1. In Vercel, click **"Add New..."** → **"Project"**
+2. Import the **same GitHub repository** (`inplaytv/inplaytv`)
+3. Configure settings:
+   - **Root Directory:** `apps/app` ✅
+   - **Framework:** Next.js (auto-detected)
+4. Add environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+5. Click **"Deploy"**
+6. Add custom domain: **`app.yourdomain.com`**
+
+### For the Dashboard (`apps/dashboard`):
+
+1. In Vercel, click **"Add New..."** → **"Project"**
+2. Import the **same GitHub repository** (`inplaytv/inplaytv`)
+3. Configure settings:
+   - **Root Directory:** `apps/dashboard` ✅
+   - **Framework:** Next.js (auto-detected)
+4. Add environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+5. Click **"Deploy"**
+6. Add custom domain: **`dashboard.yourdomain.com`**
+
+**Result:** Three separate Vercel projects, all deploying from the same GitHub repository, each building from its own `apps/*` folder.
+
+---
+
+## 10. Deployment Architecture
+
+The diagram below shows how the monorepo deploys to multiple Vercel projects:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│ GitHub Repository (fantasy-golf)                    │
-│                                                     │
-│  ├── apps/web                                       │
-│  ├── apps/app                                       │
-│  └── apps/dashboard                                 │
-└─────────────────────────────────────────────────────┘
-           │              │              │
-           ▼              ▼              ▼
-    ┌───────────┐  ┌───────────┐  ┌────────────┐
-    │ Vercel    │  │ Vercel    │  │ Vercel     │
-    │ Project A │  │ Project B │  │ Project C  │
-    │           │  │           │  │            │
-    │ apps/web  │  │ apps/app  │  │ apps/      │
-    │           │  │           │  │ dashboard  │
-    └───────────┘  └───────────┘  └────────────┘
-           │              │              │
-           ▼              ▼              ▼
+┌──────────────────────────────────────────────────────┐
+│  GitHub Repository: inplaytv/inplaytv               │
+│                                                      │
+│  ├── apps/web        (Marketing website)            │
+│  ├── apps/app        (Game client)                  │
+│  └── apps/dashboard  (Admin portal)                 │
+└──────────────────────────────────────────────────────┘
+           │                │                │
+           │                │                │
+           ▼                ▼                ▼
+    ┌───────────┐    ┌───────────┐    ┌────────────┐
+    │  Vercel   │    │  Vercel   │    │  Vercel    │
+    │ Project 1 │    │ Project 2 │    │ Project 3  │
+    │           │    │           │    │            │
+    │ Root Dir: │    │ Root Dir: │    │ Root Dir:  │
+    │ apps/web  │    │ apps/app  │    │ apps/      │
+    │           │    │           │    │ dashboard  │
+    └───────────┘    └───────────┘    └────────────┘
+           │                │                │
+           ▼                ▼                ▼
    www.yourdomain.com  app.yourdomain.com  dashboard.yourdomain.com
 ```
 
-Each Vercel project points to the same GitHub repo but builds from a different **Root Directory**.
+**Key points:**
+- One GitHub repository
+- Three separate Vercel projects
+- Each project builds from a different **Root Directory**
+- All projects share the same Supabase database
+- Shared auth via `.yourdomain.com` cookie domain
 
 ---
 
-## Summary
+## Summary Checklist
 
-✅ Push code to GitHub  
-✅ Create a Vercel project per app  
-✅ Set Root Directory to the app folder  
-✅ Add environment variables  
-✅ Map custom domains  
-✅ Share auth across subdomains via `.yourdomain.com` cookie domain  
+✅ **Code on GitHub**  
+✅ **Vercel project created for `apps/web`**  
+✅ **Root Directory set to `apps/web`**  
+✅ **Environment variables added**  
+✅ **Custom domain mapped** (optional)  
+✅ **Supabase cookie domain set to `.yourdomain.com`** (when using custom domains)  
+✅ **Preview deployments automatic** on every branch/PR  
+✅ **Production deploys on merge to `main`**  
 
-Every commit to `main` triggers a production deployment. Preview deployments happen automatically on branches and pull requests.
+---
+
+## Need Help?
+
+- **Vercel Docs:** [vercel.com/docs](https://vercel.com/docs)
+- **Supabase Auth Docs:** [supabase.com/docs/guides/auth](https://supabase.com/docs/guides/auth)
+- **Monorepo Guide:** [vercel.com/docs/monorepos](https://vercel.com/docs/monorepos)
