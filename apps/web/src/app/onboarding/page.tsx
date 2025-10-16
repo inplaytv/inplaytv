@@ -204,8 +204,8 @@ export default function OnboardingPage() {
       <div style={styles.card}>
         <h1 style={styles.title}>Complete Your Profile</h1>
         <p style={styles.subtitle}>
-          Welcome! Let's set up your account with a display name and password. 
-          You'll use your password to sign in going forward.
+          Welcome! Let&apos;s set up your account with a display name and password. 
+          You&apos;ll use your password to sign in going forward.
         </p>
 
         <form onSubmit={handleSubmit} style={styles.form}>
