@@ -1,0 +1,222 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background Image Test - Golf Website</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .image-test {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            height: 300px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .image-test::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: blur(1px) brightness(0.6) contrast(1.1);
+            opacity: 0.8;
+            z-index: 0;
+        }
+        
+        .image-test.teal::before {
+            background-image: url('images/backgrounds/golf-course-teal.jpg');
+            filter: blur(1px) brightness(0.6) contrast(1.1) hue-rotate(0deg);
+        }
+        
+        .image-test.green::before {
+            background-image: url('images/backgrounds/golf-course-green.jpg');
+            filter: blur(1px) brightness(0.6) contrast(1.1) hue-rotate(15deg);
+        }
+        
+        .image-test.blue::before {
+            background-image: url('images/backgrounds/golf-course-blue.jpg');
+            filter: blur(1px) brightness(0.6) contrast(1.1) hue-rotate(-20deg);
+        }
+        
+        .image-content {
+            position: relative;
+            z-index: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: rgba(20, 184, 166, 0.2);
+            color: #14b8a6;
+            border: 1px solid #14b8a6;
+        }
+        
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+        
+        .theme-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .file-name {
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .back-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #14b8a6, #0891b2);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            margin-top: 30px;
+            transition: transform 0.2s ease;
+        }
+        
+        .back-link:hover {
+            transform: translateY(-2px);
+        }
+        
+        .info-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🖼️ Background Image Test</h1>
+        
+        <div class="info-box">
+            <h3>📁 Expected Files:</h3>
+            <ul>
+                <li><code>golf-course-teal.jpg</code> - For teal theme</li>
+                <li><code>golf-course-green.jpg</code> - For green theme</li>
+                <li><code>golf-course-blue.jpg</code> - For blue theme</li>
+            </ul>
+            <p><strong>Note:</strong> File extensions must match exactly (.jpeg vs .jpg)</p>
+        </div>
+        
+        <div class="image-grid">
+            <div class="image-test teal">
+                <div class="image-content">
+                    <div class="theme-title">Teal Theme</div>
+                    <div class="file-name">golf-course-teal.jpg</div>
+                    <div class="status" id="status-teal">⏳ Testing...</div>
+                </div>
+            </div>
+            
+            <div class="image-test green">
+                <div class="image-content">
+                    <div class="theme-title">Green Theme</div>
+                    <div class="file-name">golf-course-green.jpg</div>
+                    <div class="status" id="status-green">⏳ Testing...</div>
+                </div>
+            </div>
+            
+            <div class="image-test blue">
+                <div class="image-content">
+                    <div class="theme-title">Blue Theme</div>
+                    <div class="file-name">golf-course-blue.jpg</div>
+                    <div class="status" id="status-blue">⏳ Testing...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-box">
+            <h3>🔧 If Images Don't Show:</h3>
+            <ol>
+                <li>Check file names match exactly (case-sensitive)</li>
+                <li>Ensure files are in <code>images/backgrounds/</code> folder</li>
+                <li>Try hard refresh (Ctrl + F5)</li>
+                <li>Check file extensions (.jpg vs .jpeg)</li>
+            </ol>
+        </div>
+        
+        <a href="index.html" class="back-link">← Back to Main Site</a>
+    </div>
+
+    <script>
+        // Test each background image
+        function testImage(imagePath, statusId, theme) {
+            const img = new Image();
+            const statusElement = document.getElementById(statusId);
+            
+            img.onload = () => {
+                statusElement.textContent = '✅ Image loaded!';
+                statusElement.className = 'status success';
+                console.log(`✅ ${theme} image loaded successfully: ${imagePath}`);
+            };
+            
+            img.onerror = () => {
+                statusElement.textContent = '❌ Image not found';
+                statusElement.className = 'status error';
+                console.error(`❌ ${theme} image failed to load: ${imagePath}`);
+            };
+            
+            img.src = imagePath;
+        }
+        
+        // Test all images when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🧪 Testing background images...');
+            testImage('images/backgrounds/golf-course-teal.jpg', 'status-teal', 'teal');
+            testImage('images/backgrounds/golf-course-green.jpg', 'status-green', 'green');
+            testImage('images/backgrounds/golf-course-blue.jpg', 'status-blue', 'blue');
+        });
+    </script>
+</body>
+</html>

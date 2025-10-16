@@ -1,0 +1,11 @@
+Place your hero section background image here.
+
+Recommended filename: hero-bg.jpg
+Recommended size: 1920x1080px or larger
+Format: JPG (optimized for web, < 500KB)
+
+After adding, the image will be accessible at:
+/backgrounds/hero-bg.jpg
+
+Usage example in CSS:
+background: url('/backgrounds/hero-bg.jpg') center/cover no-repeat;

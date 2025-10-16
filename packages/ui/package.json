@@ -1,0 +1,15 @@
+{
+  "name": "@project/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "scripts": {
+    "lint": "echo \"No lint configured yet\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@project/config": "workspace:*",
+    "typescript": "^5.3.0"
+  }
+}

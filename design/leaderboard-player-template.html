@@ -1,0 +1,191 @@
+<!-- ===== LEADERBOARD PLAYER TEMPLATE ===== -->
+<!-- Use this template when adding new players to the leaderboard -->
+
+<div class="leaderboard-row" onclick="togglePlayerDropdown('player-X')">
+    <div class="rank-cell">
+        <div class="rank-badge">X</div> <!-- Replace X with rank number -->
+    </div>
+    <div class="player-cell">
+        <img src="PLAYER_PHOTO_URL" alt="PLAYER_NAME" class="player-photo">
+        <div class="player-info">
+            <span class="player-name">PLAYER_NAME</span>
+            <span class="player-country">
+                <img src="COUNTRY_FLAG_URL" alt="COUNTRY_CODE"> COUNTRY_CODE
+            </span>
+        </div>
+    </div>
+    <div class="score-cell good-score">SCORE_TO_PAR</div> <!-- e.g., -12 -->
+    <div class="round-cell">R1_SCORE</div>
+    <div class="round-cell">R2_SCORE</div>
+    <div class="round-cell current-round">R3_SCORE</div>
+    <div class="round-cell">--</div>
+    <div class="total-cell">TOTAL_SCORE</div> <!-- e.g., 199 -->
+    <div class="change-cell positive"> <!-- positive/negative/neutral -->
+        <i class="fas fa-arrow-up"></i> <!-- fa-arrow-up/fa-arrow-down -->
+        +2 <!-- Change amount -->
+    </div>
+    <div class="fantasy-pts-cell">FANTASY_POINTS</div> <!-- e.g., 347 -->
+    <div class="dropdown-arrow">
+        <i class="fas fa-chevron-down"></i>
+    </div>
+</div>
+
+<div class="player-dropdown" id="player-X"> <!-- Replace X with player number -->
+    <div class="dropdown-content">
+        <div class="dropdown-stats">
+            <div class="stat-group">
+                <span class="stat-label">Bogey Free Round</span>
+                <span class="stat-value">+5 pts</span>
+            </div>
+            <div class="stat-group">
+                <span class="stat-label">3 Consecutive Birdies</span>
+                <span class="stat-value">+5 pts</span>
+            </div>
+            <div class="stat-group">
+                <span class="stat-label">Under 70 Strokes</span>
+                <span class="stat-value">+3 pts</span>
+            </div>
+            <div class="stat-group">
+                <span class="stat-label">Total Score</span>
+                <span class="stat-value">SCORE_SUMMARY</span> <!-- e.g., -12 (64/72) -->
+            </div>
+            <div class="stat-group fantasy-points">
+                <span class="stat-label">Fantasy Points</span>
+                <span class="stat-value">FANTASY_TOTAL</span> <!-- e.g., 66 -->
+            </div>
+        </div>
+        <div class="dropdown-scorecard">
+            <div class="hole-scorecard">
+                <div class="scorecard-section">
+                    <h4 class="scorecard-title">Complete 18-Hole Scorecard</h4>
+                    <div class="holes-grid full-18">
+                        <!-- HOLE HEADER ROW -->
+                        <div class="hole-header">
+                            <div class="hole-cell">Hole</div>
+                            <div class="hole-cell">1</div>
+                            <div class="hole-cell">2</div>
+                            <div class="hole-cell">3</div>
+                            <div class="hole-cell">4</div>
+                            <div class="hole-cell">5</div>
+                            <div class="hole-cell">6</div>
+                            <div class="hole-cell">7</div>
+                            <div class="hole-cell">8</div>
+                            <div class="hole-cell">9</div>
+                            <div class="hole-cell out-cell">OUT</div>
+                            <div class="hole-cell">10</div>
+                            <div class="hole-cell">11</div>
+                            <div class="hole-cell">12</div>
+                            <div class="hole-cell">13</div>
+                            <div class="hole-cell">14</div>
+                            <div class="hole-cell">15</div>
+                            <div class="hole-cell">16</div>
+                            <div class="hole-cell">17</div>
+                            <div class="hole-cell">18</div>
+                            <div class="hole-cell in-cell">IN</div>
+                            <div class="hole-cell total-cell">TOTAL</div>
+                        </div>
+                        
+                        <!-- PAR ROW -->
+                        <div class="hole-row par-row">
+                            <div class="hole-cell row-label">Par</div>
+                            <div class="hole-cell">4</div> <!-- Hole 1 par -->
+                            <div class="hole-cell">5</div> <!-- Hole 2 par -->
+                            <div class="hole-cell">4</div> <!-- Hole 3 par -->
+                            <div class="hole-cell">3</div> <!-- Hole 4 par -->
+                            <div class="hole-cell">4</div> <!-- Hole 5 par -->
+                            <div class="hole-cell">3</div> <!-- Hole 6 par -->
+                            <div class="hole-cell">4</div> <!-- Hole 7 par -->
+                            <div class="hole-cell">5</div> <!-- Hole 8 par -->
+                            <div class="hole-cell">4</div> <!-- Hole 9 par -->
+                            <div class="hole-cell out-cell">36</div> <!-- Front 9 total -->
+                            <div class="hole-cell">4</div> <!-- Hole 10 par -->
+                            <div class="hole-cell">4</div> <!-- Hole 11 par -->
+                            <div class="hole-cell">3</div> <!-- Hole 12 par -->
+                            <div class="hole-cell">5</div> <!-- Hole 13 par -->
+                            <div class="hole-cell">4</div> <!-- Hole 14 par -->
+                            <div class="hole-cell">5</div> <!-- Hole 15 par -->
+                            <div class="hole-cell">3</div> <!-- Hole 16 par -->
+                            <div class="hole-cell">4</div> <!-- Hole 17 par -->
+                            <div class="hole-cell">4</div> <!-- Hole 18 par -->
+                            <div class="hole-cell in-cell">36</div> <!-- Back 9 total -->
+                            <div class="hole-cell total-cell">72</div> <!-- Course total -->
+                        </div>
+                        
+                        <!-- SCORE ROW -->
+                        <div class="hole-row score-row">
+                            <div class="hole-cell row-label">Score</div>
+                            <div class="hole-cell birdie">3</div> <!-- Hole 1 score (use birdie/eagle/par classes) -->
+                            <div class="hole-cell">5</div> <!-- Hole 2 score -->
+                            <div class="hole-cell birdie">3</div> <!-- Hole 3 score -->
+                            <div class="hole-cell">3</div> <!-- Hole 4 score -->
+                            <div class="hole-cell birdie">3</div> <!-- Hole 5 score -->
+                            <div class="hole-cell">3</div> <!-- Hole 6 score -->
+                            <div class="hole-cell">4</div> <!-- Hole 7 score -->
+                            <div class="hole-cell eagle">3</div> <!-- Hole 8 score -->
+                            <div class="hole-cell">4</div> <!-- Hole 9 score -->
+                            <div class="hole-cell out-cell">FRONT_9_TOTAL</div> <!-- e.g., 31 -->
+                            <div class="hole-cell">4</div> <!-- Hole 10 score -->
+                            <div class="hole-cell birdie">3</div> <!-- Hole 11 score -->
+                            <div class="hole-cell">3</div> <!-- Hole 12 score -->
+                            <div class="hole-cell birdie">4</div> <!-- Hole 13 score -->
+                            <div class="hole-cell">4</div> <!-- Hole 14 score -->
+                            <div class="hole-cell eagle">3</div> <!-- Hole 15 score -->
+                            <div class="hole-cell">3</div> <!-- Hole 16 score -->
+                            <div class="hole-cell birdie">3</div> <!-- Hole 17 score -->
+                            <div class="hole-cell">4</div> <!-- Hole 18 score -->
+                            <div class="hole-cell in-cell">BACK_9_TOTAL</div> <!-- e.g., 33 -->
+                            <div class="hole-cell total-cell ROUND_TOTAL">ROUND_TOTAL</div> <!-- e.g., 64 -->
+                        </div>
+                        
+                        <!-- FANTASY ROW -->
+                        <div class="hole-row fantasy-row">
+                            <div class="hole-cell row-label">Fantasy</div>
+                            <div class="hole-cell">2.5</div> <!-- Hole 1 fantasy points -->
+                            <div class="hole-cell">1.0</div> <!-- Hole 2 fantasy points -->
+                            <div class="hole-cell">2.5</div> <!-- Hole 3 fantasy points -->
+                            <div class="hole-cell">1.0</div> <!-- Hole 4 fantasy points -->
+                            <div class="hole-cell">2.5</div> <!-- Hole 5 fantasy points -->
+                            <div class="hole-cell">1.0</div> <!-- Hole 6 fantasy points -->
+                            <div class="hole-cell">1.0</div> <!-- Hole 7 fantasy points -->
+                            <div class="hole-cell">4.0</div> <!-- Hole 8 fantasy points -->
+                            <div class="hole-cell">1.0</div> <!-- Hole 9 fantasy points -->
+                            <div class="hole-cell out-cell">FRONT_9_FANTASY</div> <!-- e.g., 16.5 -->
+                            <div class="hole-cell">1.0</div> <!-- Hole 10 fantasy points -->
+                            <div class="hole-cell">2.5</div> <!-- Hole 11 fantasy points -->
+                            <div class="hole-cell">1.0</div> <!-- Hole 12 fantasy points -->
+                            <div class="hole-cell">2.5</div> <!-- Hole 13 fantasy points -->
+                            <div class="hole-cell">1.0</div> <!-- Hole 14 fantasy points -->
+                            <div class="hole-cell">4.0</div> <!-- Hole 15 fantasy points -->
+                            <div class="hole-cell">1.0</div> <!-- Hole 16 fantasy points -->
+                            <div class="hole-cell">2.5</div> <!-- Hole 17 fantasy points -->
+                            <div class="hole-cell">1.0</div> <!-- Hole 18 fantasy points -->
+                            <div class="hole-cell in-cell">BACK_9_FANTASY</div> <!-- e.g., 16.5 -->
+                            <div class="hole-cell total-cell">TOTAL_FANTASY</div> <!-- e.g., 33.0 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== SCORE CLASSES FOR REFERENCE ===== -->
+<!--
+Score Cell Classes:
+- birdie: For scores 1 under par (green)
+- eagle: For scores 2+ under par (gold)  
+- par: For par scores (default)
+- bogey: For scores 1+ over par (red)
+
+Change Cell Classes:
+- positive: Green with fa-arrow-up
+- negative: Red with fa-arrow-down  
+- neutral: Gray with "E"
+
+Fantasy Points Guide:
+- Par: 1.0 points
+- Birdie: 2.5 points
+- Eagle: 4.0 points
+- Hole-in-one: 8.0 points
+- Bogey: 0.5 points
+-->

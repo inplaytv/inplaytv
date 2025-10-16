@@ -1,0 +1,294 @@
+Great. Let’s keep this lean and staged so you do not end up with a forest of files. We will start with the main website, Supabase auth, and the database. Then we can add the game app and the admin later.
+
+Below are two things:
+
+A short step-by-step you can follow in VS Code.
+
+A single “agent prompt” you can paste into Codex to scaffold the skeleton without it inventing extras.
+
+I will keep names simple and avoid over-engineering.
+
+1) Steps in VS Code
+Stage 0. Prep
+
+Make sure you have Node 20+, pnpm, and Git installed.
+
+Keep your existing HTML mockups. Put them in a folder called design/ for reference.
+
+# from your empty project folder
+git init
+pnpm -v          # should print a version
+node -v          # ideally v20.x
+mkdir design
+# move your current HTML mockups into ./design
+
+Stage 1. Create a minimal Turborepo with one app to start
+
+We will begin with only the main website app. We will add app/ and dashboard/ later.
+
+pnpm dlx create-turbo@latest .
+
+# When asked, choose:
+# - "Use TypeScript": yes
+# - "Package manager": pnpm
+# - Templates: choose the minimal (or empty) option if offered
+
+
+Tidy the structure so it looks like this:
+
+.
+├─ apps/
+│  └─ web/            # main site + auth (Next.js)
+├─ packages/
+│  ├─ ui/             # shared UI, tiny for now
+│  └─ config/         # eslint, tsconfig bases
+├─ design/            # your static HTML mockups
+├─ package.json
+├─ turbo.json
+└─ pnpm-workspace.yaml
+
+
+If the generator did not create apps/web, add a Next app:
+
+pnpm dlx create-next-app@latest apps/web \
+  --ts --eslint --app --src-dir --import-alias "@/*" --no-tailwind --use-pnpm
+
+
+We will add Tailwind later if you want, but not required to start.
+
+Stage 2. Supabase project and env
+
+Create a new Supabase project.
+
+In Supabase, enable Email OTP for now. You can add Google/Apple later.
+
+Get these values from your Supabase settings:
+
+SUPABASE_URL
+
+SUPABASE_ANON_KEY
+
+SUPABASE_SERVICE_ROLE_KEY (only for backend jobs, do not put in the web app)
+
+In apps/web, add .env.local:
+
+NEXT_PUBLIC_SUPABASE_URL=YOUR_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
+
+
+Do not commit .env.local.
+
+Stage 3. Minimal database tables
+
+Paste this in Supabase SQL editor to create a profile table that mirrors the auth user. Keep it tiny.
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  username text unique,
+  created_at timestamptz default now()
+);
+
+alter table public.profiles enable row level security;
+
+create policy "read own profile"
+on public.profiles for select using (auth.uid() = id);
+
+create policy "insert own profile"
+on public.profiles for insert with check (auth.uid() = id);
+
+create policy "update own profile"
+on public.profiles for update using (auth.uid() = id);
+
+
+We will add tournaments, golfers, entries later.
+
+Stage 4. Wire Supabase Auth to the website
+
+Install helpers:
+
+cd apps/web
+pnpm add @supabase/ssr @supabase/supabase-js
+
+
+Create a small Supabase client and session helper:
+
+apps/web/src/lib/supabaseClient.ts
+
+import { createBrowserClient } from "@supabase/ssr";
+
+export const createClient = () =>
+  createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+
+apps/web/src/app/layout.tsx keep it simple with a header and sign in/out links later.
+
+apps/web/src/app/(auth)/login/page.tsx
+
+"use client";
+import { useState } from "react";
+import { createClient } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const supabase = createClient();
+  const router = useRouter();
+
+  async function handleEmailLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    setLoading(false);
+    if (!error) alert("Check your email for a sign-in link");
+  }
+
+  return (
+    <main style={{ maxWidth: 420, margin: "40px auto" }}>
+      <h1>Sign in</h1>
+      <form onSubmit={handleEmailLogin}>
+        <input
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+          style={{ width: "100%", padding: 10, marginBottom: 10 }}
+        />
+        <button disabled={loading} type="submit">
+          {loading ? "Sending..." : "Send magic link"}
+        </button>
+      </form>
+    </main>
+  );
+}
+
+
+apps/web/src/app/page.tsx (home, public)
+
+export default function Home() {
+  return (
+    <main style={{ padding: 24 }}>
+      <h1>Your Golf Competition</h1>
+      <p>Public marketing page. Add hero, FAQs, pricing later.</p>
+    </main>
+  );
+}
+
+
+apps/web/src/app/account/page.tsx (protected example)
+
+"use client";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
+
+export default function Account() {
+  const supabase = createClient();
+  const router = useRouter();
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) router.replace("/login");
+      else setEmail(data.user.email);
+    });
+  }, [router, supabase]);
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    router.replace("/");
+  }
+
+  return (
+    <main style={{ padding: 24 }}>
+      <h1>My Account</h1>
+      <p>Signed in as {email}</p>
+      <button onClick={signOut}>Sign out</button>
+    </main>
+  );
+}
+
+
+That is enough to prove auth works end-to-end.
+
+Stage 5. Bring your HTML mockups in gradually
+
+Do not copy everything. Start by recreating the header, footer, and one marketing section in app/page.tsx.
+
+Keep the original HTML in design/ as a visual reference. We will re-implement the bits you need in React components inside apps/web/src/components.
+
+Stage 6. Commit and run
+# from repo root
+pnpm install
+pnpm dev --filter web
+
+
+Open http://localhost:3000
+ and test the login flow with your email.
+
+Stage 7. Deploy the website to Vercel
+
+Create a Vercel project pointing to the repo.
+
+Set the Project Root to apps/web.
+
+Add env vars:
+
+NEXT_PUBLIC_SUPABASE_URL
+
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+Deploy. Map www.yourdomain.com to this project.
+
+Only after this is live, we will add app.yourdomain.com and dashboard.yourdomain.com as separate Vercel projects.
+
+2) Paste-once “Agent Prompt” for Codex
+
+Paste this as a single instruction so it scaffolds exactly what we need and nothing more.
+
+You are setting up a lean monorepo for a fantasy golf project. Do NOT add extra files beyond what is asked. Keep names exactly as written. Use TypeScript. Use Next.js App Router. Use pnpm workspaces. Do not add Tailwind yet. Do not add testing libraries yet.
+
+Create this structure:
+- apps/web  → Next.js app for the public marketing site and authentication
+- packages/ui → shared UI (empty placeholder for now)
+- packages/config → shared tsconfig and eslint base
+
+Configure:
+- pnpm-workspace.yaml at repo root including apps/* and packages/*
+- turbo.json with minimal pipeline: build, dev, lint, typecheck
+- Root package.json with scripts:
+  - "dev:web": "turbo run dev --filter=web"
+  - "build": "turbo run build"
+  - "lint": "turbo run lint"
+  - "typecheck": "turbo run typecheck"
+
+In apps/web:
+- Create a Next.js 14 app with app router, src directory, alias "@/*".
+- Add @supabase/ssr and @supabase/supabase-js as deps.
+- Create src/lib/supabaseClient.ts with a minimal browser client using NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.
+- Pages:
+  - app/page.tsx with a simple heading "Your Golf Competition"
+  - app/(auth)/login/page.tsx with an email magic-link login using Supabase auth.signInWithOtp
+  - app/account/page.tsx protected page that redirects to /login if no user, shows email, and a Sign out button
+- No CSS frameworks. Use inline styles only for now.
+- No server actions yet.
+- Add .env.local.example containing NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.
+
+In packages/ui and packages/config:
+- Add a minimal tsconfig base and eslint config stubs, referenced by apps/web.
+
+Do not create additional example components. Do not add Tailwind. Do not add Playwright or Jest. Keep everything minimal.
+
+What comes next
+
+Once this is live and auth works, we add a second app apps/app for the game client and a third apps/dashboard for admin. Each will be its own Vercel project with its own subdomain.
+
+Then we add the first real DB tables for tournaments, golfers, entries and picks, with simple row level security.
+
+After that, realtime leaderboard and payments.
+
+If you want, I can give you the exact DB schema for tournaments and picks next, plus the minimal “Create Entry and Pick Golfers” page for apps/app.

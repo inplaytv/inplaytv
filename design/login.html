@@ -1,0 +1,1026 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - InPlay TV</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-container"></div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <div class="nav-brand">
+                    <i class="fas fa-golf-ball"></i>
+                    <span>InPlay TV</span>
+                </div>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="tournaments.html" class="nav-link">Tournaments</a>
+                <a href="scorecards.html" class="nav-link">Team Builder</a>
+                <a href="index.html" class="nav-link">Scorecards</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboards</a>
+                
+                <a href="register.html" class="nav-link">Sign Up</a>
+            </div>
+            
+            <!-- Mobile Hamburger Menu -->
+            <button class="hamburger-menu" onclick="toggleMobileMenu()" aria-label="Toggle navigation menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+        
+        <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-content">
+                <div class="mobile-nav-links">
+                    <a href="home.html" class="mobile-nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                    <a href="tournaments.html" class="mobile-nav-link">
+                        <i class="fas fa-trophy"></i>
+                        <span>Tournaments</span>
+                    </a>
+                    <a href="scorecards.html" class="mobile-nav-link">
+                        <i class="fas fa-users"></i>
+                        <span>Team Builder</span>
+                    </a>
+                    <a href="index.html" class="mobile-nav-link">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Scorecards</span>
+                    </a>
+                    <a href="leaderboard.html" class="mobile-nav-link">
+                        <i class="fas fa-medal"></i>
+                        <span>Leaderboards</span>
+                    </a>
+                    
+                    <a href="register.html" class="mobile-nav-link">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Sign Up</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="auth-container">
+        <div class="auth-card glass-card">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <i class="fas fa-golf-ball"></i>
+                    <h1>Welcome Back</h1>
+                </div>
+                <p class="auth-subtitle">Sign in to your InPlay TV account</p>
+            </div>
+
+            <form class="auth-form" id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            class="form-input" 
+                            placeholder="Enter your email"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="form-input" 
+                            placeholder="Enter your password"
+                            required
+                        >
+                        <button type="button" class="password-toggle" onclick="togglePassword('password')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="checkbox-wrapper">
+                        <input type="checkbox" name="remember" id="remember">
+                        <span class="checkbox-custom"></span>
+                        <span class="checkbox-label">Remember me</span>
+                    </label>
+                    <a href="#" class="forgot-password" onclick="showForgotPassword()">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="auth-button primary">
+                    <span class="button-text">Sign In</span>
+                    <i class="fas fa-arrow-right button-icon"></i>
+                </button>
+
+                <div class="auth-divider">
+                    <span>or</span>
+                </div>
+
+                <div class="social-auth">
+                    <button type="button" class="social-button google" onclick="signInWithGoogle()">
+                        <i class="fab fa-google"></i>
+                        <span>Continue with Google</span>
+                    </button>
+                    <button type="button" class="social-button facebook" onclick="signInWithFacebook()">
+                        <i class="fab fa-facebook-f"></i>
+                        <span>Continue with Facebook</span>
+                    </button>
+                </div>
+
+                <div class="auth-footer">
+                    <p>Don't have an account? <a href="register.html" class="auth-link">Sign up here</a></p>
+                </div>
+            </form>
+        </div>
+
+        <!-- Forgot Password Modal -->
+        <div class="modal-overlay" id="forgotPasswordModal" onclick="closeForgotPassword()">
+            <div class="modal-content glass-card" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>Reset Password</h3>
+                    <button class="modal-close" onclick="closeForgotPassword()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Enter your email address and we'll send you a link to reset your password.</p>
+                    <form id="forgotPasswordForm" onsubmit="handleForgotPassword(event)">
+                        <div class="form-group">
+                            <label for="resetEmail" class="form-label">Email Address</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-envelope input-icon"></i>
+                                <input 
+                                    type="email" 
+                                    id="resetEmail" 
+                                    name="resetEmail" 
+                                    class="form-input" 
+                                    placeholder="Enter your email"
+                                    required
+                                >
+                            </div>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" class="auth-button secondary" onclick="closeForgotPassword()">
+                                Cancel
+                            </button>
+                            <button type="submit" class="auth-button primary">
+                                Send Reset Link
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        /* Authentication Page Styles */
+        .auth-container {
+            min-height: calc(100vh - 90px); /* Adjust height for body padding */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            /* Removed padding-top since body now has universal padding */
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .auth-logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .auth-logo i {
+            font-size: 48px;
+            color: var(--primary-color);
+        }
+
+        .auth-logo h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+            margin: 0;
+        }
+
+        .auth-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: white;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 16px;
+            z-index: 2;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 3px rgba(0, 245, 212, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 2;
+        }
+
+        .password-toggle:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            display: none;
+        }
+
+        .checkbox-custom {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-wrapper input[type="checkbox"]:checked + .checkbox-custom {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .checkbox-wrapper input[type="checkbox"]:checked + .checkbox-custom::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .checkbox-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        .forgot-password {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .forgot-password:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
+        }
+
+        .auth-button {
+            width: 100%;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .auth-button.primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .auth-button.primary:hover {
+            background: linear-gradient(135deg, var(--primary-dark), #00b892);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 245, 212, 0.4);
+        }
+
+        .auth-button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            flex: 1;
+        }
+
+        .auth-button.secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .auth-divider {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .auth-divider span {
+            color: rgba(255, 255, 255, 0.6);
+            padding: 0 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .social-auth {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .social-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .social-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .social-button.google:hover {
+            border-color: #db4437;
+        }
+
+        .social-button.facebook:hover {
+            border-color: #4267B2;
+        }
+
+        .auth-footer {
+            text-align: center;
+        }
+
+        .auth-footer p {
+            color: rgba(255, 255, 255, 0.7);
+            margin: 0;
+        }
+
+        .auth-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-link:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            width: 90%;
+            max-width: 400px;
+            padding: 30px;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: white;
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .modal-close:hover {
+            color: white;
+        }
+
+        .modal-body p {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        /* Mobile Navigation Styles */
+        .hamburger-menu {
+            display: none;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 30px;
+            height: 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 1001;
+        }
+
+        .hamburger-line {
+            width: 100%;
+            height: 3px;
+            background: white;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+            transform-origin: center;
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(1) {
+            transform: rotate(45deg) translate(6px, 6px);
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(3) {
+            transform: rotate(-45deg) translate(6px, -6px);
+        }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(20, 20, 40, 0.98);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-nav.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-nav-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 80px 20px 30px;
+        }
+
+        .mobile-nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mobile-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 18px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-nav-link:hover, .mobile-nav-link.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-color: var(--primary-color);
+            transform: translateX(5px);
+        }
+
+        .mobile-nav-link i {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hamburger-menu {
+                display: flex;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .mobile-nav {
+                display: block;
+            }
+            
+            .nav-container {
+                justify-content: space-between;
+            }
+            
+            .auth-container {
+                padding: 15px;
+                /* Removed padding-top since body now has universal padding */
+            }
+            
+            .auth-card {
+                padding: 30px 25px;
+            }
+            
+            .auth-logo h1 {
+                font-size: 24px;
+            }
+            
+            .auth-logo i {
+                font-size: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            /* Removed auth-container padding-top since body now has universal padding */
+            
+            .auth-card {
+                padding: 25px 20px;
+            }
+            
+            .form-input {
+                padding: 12px 12px 12px 40px;
+            }
+            
+            .auth-button {
+                padding: 12px 15px;
+            }
+            
+            .social-auth {
+                flex-direction: column;
+            }
+            
+            .modal-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <script>
+        // Theme initialization - Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedTheme();
+        });
+
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('golfProTheme') || 'teal';
+            document.body.setAttribute('data-theme', savedTheme);
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        // Mobile Navigation Toggle
+        function toggleMobileMenu() {
+            const hamburger = document.querySelector('.hamburger-menu');
+            const mobileNav = document.getElementById('mobileNav');
+            
+            if (hamburger && mobileNav) {
+                hamburger.classList.toggle('active');
+                mobileNav.classList.toggle('active');
+                document.body.style.overflow = mobileNav.classList.contains('active') ? 'hidden' : '';
+            }
+        }
+
+        // Close mobile menu when clicking on a link
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+            mobileNavLinks.forEach(link => {
+                link.addEventListener('click', toggleMobileMenu);
+            });
+        });
+
+        // Password Toggle
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const toggle = input.nextElementSibling;
+            const icon = toggle.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Login Form Handler
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const email = formData.get('email');
+            const password = formData.get('password');
+            const remember = formData.get('remember');
+            
+            // Basic validation
+            if (!email || !password) {
+                showNotification('Please fill in all fields', 'error');
+                return;
+            }
+            
+            // Check if user exists
+            const users = JSON.parse(localStorage.getItem('golfProUsers') || '[]');
+            const user = users.find(u => u.email === email && u.password === password);
+            
+            if (user) {
+                // Store session
+                const sessionData = {
+                    userId: user.id,
+                    email: user.email,
+                    name: user.name,
+                    loginTime: new Date().toISOString(),
+                    remember: !!remember
+                };
+                
+                if (remember) {
+                    localStorage.setItem('golfProSession', JSON.stringify(sessionData));
+                } else {
+                    sessionStorage.setItem('golfProSession', JSON.stringify(sessionData));
+                }
+                
+                showNotification('Login successful! Redirecting...', 'success');
+                
+                // Redirect to dashboard
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            } else {
+                showNotification('Invalid email or password', 'error');
+            }
+        }
+
+        // Forgot Password Functions
+        function showForgotPassword() {
+            document.getElementById('forgotPasswordModal').classList.add('active');
+        }
+
+        function closeForgotPassword() {
+            document.getElementById('forgotPasswordModal').classList.remove('active');
+        }
+
+        function handleForgotPassword(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('resetEmail').value;
+            
+            if (!email) {
+                showNotification('Please enter your email address', 'error');
+                return;
+            }
+            
+            // Check if email exists
+            const users = JSON.parse(localStorage.getItem('golfProUsers') || '[]');
+            const userExists = users.some(u => u.email === email);
+            
+            if (userExists) {
+                showNotification('Password reset link sent to your email!', 'success');
+                closeForgotPassword();
+                document.getElementById('forgotPasswordForm').reset();
+            } else {
+                showNotification('No account found with this email address', 'error');
+            }
+        }
+
+        // Social Login Functions
+        function signInWithGoogle() {
+            showNotification('Google sign-in would be implemented here', 'info');
+        }
+
+        function signInWithFacebook() {
+            showNotification('Facebook sign-in would be implemented here', 'info');
+        }
+
+        // Notification System
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas ${getNotificationIcon(type)}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        function getNotificationIcon(type) {
+            switch (type) {
+                case 'success': return 'fa-check-circle';
+                case 'error': return 'fa-exclamation-circle';
+                case 'warning': return 'fa-exclamation-triangle';
+                default: return 'fa-info-circle';
+            }
+        }
+
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            const session = localStorage.getItem('golfProSession') || sessionStorage.getItem('golfProSession');
+            if (session) {
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+
+    <!-- Add notification styles -->
+    <style>
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: rgba(20, 20, 40, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px 20px;
+            z-index: 3000;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            max-width: 350px;
+        }
+
+        .notification.success {
+            border-color: var(--primary-color);
+            background: rgba(0, 245, 212, 0.1);
+        }
+
+        .notification.error {
+            border-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .notification.warning {
+            border-color: #ffd93d;
+            background: rgba(255, 217, 61, 0.1);
+        }
+
+        .notification.info {
+            border-color: #4dabf7;
+            background: rgba(77, 171, 247, 0.1);
+        }
+
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .notification.success .notification-content i {
+            color: var(--primary-color);
+        }
+
+        .notification.error .notification-content i {
+            color: #ff6b6b;
+        }
+
+        .notification.warning .notification-content i {
+            color: #ffd93d;
+        }
+
+        .notification.info .notification-content i {
+            color: #4dabf7;
+        }
+
+        /* Light/Dark Mode Text Color Fixes */
+        body:not(.dark-mode) .auth-logo h1 {
+            color: #1f2937 !important; /* Dark text for light mode */
+        }
+        
+        body:not(.dark-mode) .auth-subtitle {
+            color: rgba(31, 41, 55, 0.7) !important; /* Dark text for light mode */
+        }
+
+        body:not(.dark-mode) .form-group label {
+            color: #374151 !important; /* Dark text for light mode */
+        }
+
+        body:not(.dark-mode) .form-group input {
+            color: #111827 !important; /* Dark text for light mode */
+            background-color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        body:not(.dark-mode) .btn-primary {
+            background: linear-gradient(135deg, #0891b2, #0e7490) !important;
+            color: white !important;
+        }
+
+        body:not(.dark-mode) .auth-links a {
+            color: #0891b2 !important; /* Teal links for light mode */
+        }
+
+        body:not(.dark-mode) .auth-links a:hover {
+            color: #0e7490 !important;
+        }
+
+        /* Ensure dark mode keeps white text */
+        body.dark-mode .auth-logo h1 {
+            color: white !important;
+        }
+
+        body.dark-mode .auth-subtitle {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        body.dark-mode .form-group label {
+            color: white !important;
+        }
+
+        body.dark-mode .form-group input {
+            color: white !important;
+            background-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        body.dark-mode .auth-links a {
+            color: #0891b2 !important;
+        }
+    </style>
+
+    <script>
+        // Dark Mode Initialization for Login Page
+        function initializeDarkMode() {
+            const darkMode = localStorage.getItem('darkMode');
+            const body = document.body;
+            
+            if (darkMode === 'enabled') {
+                body.classList.add('dark-mode');
+                console.log('Login page: Applied dark mode');
+            } else {
+                body.classList.remove('dark-mode');
+                console.log('Login page: Applied light mode');
+            }
+        }
+
+        // Initialize dark mode when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDarkMode();
+        });
+    </script>
+</body>
+</html>

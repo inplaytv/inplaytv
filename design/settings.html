@@ -1,0 +1,1523 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - InPlay TV</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-container"></div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <div class="nav-brand">
+                    <i class="fas fa-golf-ball"></i>
+                    <span>InPlay TV</span>
+                </div>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="tournaments.html" class="nav-link">Tournaments</a>
+                <a href="scorecards.html" class="nav-link">Team Builder</a>
+                <a href="index.html" class="nav-link">Scorecards</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboards</a>
+                
+            </div>
+            
+            <div class="nav-user" onclick="toggleUserDropdown()">
+                <div class="user-balance">
+                    <span class="balance-amount">£2,450</span>
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="user-avatar">
+                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="User" id="navAvatarImg">
+                    <i class="fas fa-chevron-down user-dropdown-arrow"></i>
+                </div>
+                
+                <!-- User Dropdown Menu -->
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="user-dropdown-header">
+                        <div class="dropdown-user-avatar">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face" alt="User" id="dropdownAvatarImg">
+                        </div>
+                        <div class="dropdown-user-info">
+                            <div class="dropdown-user-name" id="dropdownUserName">John Smith</div>
+                            <div class="dropdown-user-email" id="dropdownUserEmail">john.smith@example.com</div>
+                        </div>
+                    </div>
+                    <div class="user-dropdown-divider"></div>
+                    <div class="user-dropdown-menu">
+                        <a href="profile.html" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="settings.html" class="dropdown-item active">
+                            <i class="fas fa-cog"></i>
+                            <span>Account Settings</span>
+                        </a>
+                        <div class="dropdown-item dropdown-toggle-item" onclick="handleRowClick()">
+                            <div class="dropdown-toggle-content">
+                                <i class="fas fa-moon"></i>
+                                <span>Dark Mode</span>
+                            </div>
+                            <label class="dropdown-toggle-switch" onclick="event.stopPropagation();">
+                                <input type="checkbox" id="darkModeToggle" onclick="toggleDarkMode()">
+                                <span class="dropdown-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <a href="#" class="dropdown-item" onclick="showTransactionHistory()">
+                            <i class="fas fa-receipt"></i>
+                            <span>Transaction History</span>
+                        </a>
+                        <a href="#" class="dropdown-item" onclick="showNotifications()">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
+                        </a>
+                        <div class="user-dropdown-divider"></div>
+                        <a href="#" class="dropdown-item" onclick="showHelp()">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Help & Support</span>
+                        </a>
+                        <a href="#" class="dropdown-item logout" onclick="handleLogout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sign Out</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Hamburger Menu -->
+            <button class="hamburger-menu" onclick="toggleMobileMenu()" aria-label="Toggle navigation menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+        
+        <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-content">
+                <div class="mobile-nav-links">
+                    <a href="home.html" class="mobile-nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                    <a href="tournaments.html" class="mobile-nav-link">
+                        <i class="fas fa-trophy"></i>
+                        <span>Tournaments</span>
+                    </a>
+                    <a href="scorecards.html" class="mobile-nav-link">
+                        <i class="fas fa-users"></i>
+                        <span>Team Builder</span>
+                    </a>
+                    <a href="index.html" class="mobile-nav-link">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Scorecards</span>
+                    </a>
+                    <a href="leaderboard.html" class="mobile-nav-link">
+                        <i class="fas fa-medal"></i>
+                        <span>Leaderboards</span>
+                    </a>
+                    
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="settings-container">
+        <!-- Settings Header -->
+        <section class="settings-header glass-card">
+            <div class="settings-header-content">
+                <div class="settings-icon">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div class="settings-info">
+                    <h1>Account Settings</h1>
+                    <p>Manage your account preferences and customize your experience</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Content -->
+        <div class="settings-content">
+            <!-- Left Column -->
+            <div class="settings-left">
+                <!-- Theme Customization -->
+                <section class="settings-section glass-card">
+                    <div class="section-header">
+                        <h2>
+                            <i class="fas fa-palette"></i>
+                            Theme & Appearance
+                        </h2>
+                    </div>
+                    
+                    <div class="theme-options">
+                        <div class="theme-item">
+                            <div class="theme-info">
+                                <h3>Colour Theme</h3>
+                                <p>Choose your preferred colour scheme</p>
+                            </div>
+                            <div class="theme-selector">
+                                <button class="theme-toggle teal active" data-theme="teal" onclick="changeTheme('teal')" title="Teal Theme">
+                                    <div class="theme-color"></div>
+                                    <span>Teal</span>
+                                </button>
+                                <button class="theme-toggle green" data-theme="green" onclick="changeTheme('green')" title="Green Theme">
+                                    <div class="theme-color"></div>
+                                    <span>Green</span>
+                                </button>
+                                <button class="theme-toggle blue" data-theme="blue" onclick="changeTheme('blue')" title="Blue Theme">
+                                    <div class="theme-color"></div>
+                                    <span>Blue</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="theme-item">
+                            <div class="theme-info">
+                                <h3>Dark Mode</h3>
+                                <p>Toggle between light and dark interface</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="settingsPageToggle" onclick="toggleDarkMode()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- General Settings -->
+                <section class="settings-section glass-card">
+                    <div class="section-header">
+                        <h2>
+                            <i class="fas fa-sliders-h"></i>
+                            General Settings
+                        </h2>
+                    </div>
+                    
+                    <div class="setting-options">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h3>Language</h3>
+                                <p>Choose your preferred language</p>
+                            </div>
+                            <select class="setting-select">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h3>Time Zone</h3>
+                                <p>Set your local time zone</p>
+                            </div>
+                            <select class="setting-select">
+                                <option value="GMT">GMT (London)</option>
+                                <option value="EST">EST (New York)</option>
+                                <option value="PST">PST (Los Angeles)</option>
+                                <option value="CET">CET (Berlin)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h3>Currency</h3>
+                                <p>Display currency preference</p>
+                            </div>
+                            <select class="setting-select">
+                                <option value="GBP">£ British Pound</option>
+                                <option value="USD">$ US Dollar</option>
+                                <option value="EUR">€ Euro</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Privacy Settings -->
+                <section class="settings-section glass-card">
+                    <div class="section-header">
+                        <h2>
+                            <i class="fas fa-shield-alt"></i>
+                            Privacy & Security
+                        </h2>
+                    </div>
+                    
+                    <div class="privacy-options">
+                        <div class="privacy-item">
+                            <div class="privacy-info">
+                                <h3>Profile Visibility</h3>
+                                <p>Control who can see your profile information</p>
+                            </div>
+                            <select class="setting-select">
+                                <option value="public">Public</option>
+                                <option value="friends">Friends Only</option>
+                                <option value="private">Private</option>
+                            </select>
+                        </div>
+                        
+                        <div class="privacy-item">
+                            <div class="privacy-info">
+                                <h3>Activity Status</h3>
+                                <p>Show when you're online to other users</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked onchange="toggleActivityStatus()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="privacy-item">
+                            <div class="privacy-info">
+                                <h3>Data Analytics</h3>
+                                <p>Help improve our service with usage analytics</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked onchange="toggleAnalytics()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Column -->
+            <div class="settings-right">
+                <!-- Notification Preferences -->
+                <section class="settings-section glass-card">
+                    <div class="section-header">
+                        <h2>
+                            <i class="fas fa-bell"></i>
+                            Notifications
+                        </h2>
+                    </div>
+                    
+                    <div class="notification-options">
+                        <div class="notification-category">
+                            <h3>Tournament Updates</h3>
+                            <div class="notification-item">
+                                <span>New tournament announcements</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked onchange="toggleNotification('tournaments')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="notification-item">
+                                <span>Live score updates</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked onchange="toggleNotification('scores')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="notification-item">
+                                <span>Tournament results</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked onchange="toggleNotification('results')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="notification-category">
+                            <h3>Account Activity</h3>
+                            <div class="notification-item">
+                                <span>Login alerts</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked onchange="toggleNotification('login')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="notification-item">
+                                <span>Payment confirmations</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked onchange="toggleNotification('payments')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="notification-item">
+                                <span>Security alerts</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked onchange="toggleNotification('security')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="notification-category">
+                            <h3>Marketing</h3>
+                            <div class="notification-item">
+                                <span>Promotional offers</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" onchange="toggleNotification('promos')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="notification-item">
+                                <span>Newsletter updates</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" onchange="toggleNotification('newsletter')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Account Management -->
+                <section class="settings-section glass-card">
+                    <div class="section-header">
+                        <h2>
+                            <i class="fas fa-user-cog"></i>
+                            Account Management
+                        </h2>
+                    </div>
+                    
+                    <div class="account-actions">
+                        <div class="action-item">
+                            <div class="action-info">
+                                <h3>Download Data</h3>
+                                <p>Get a copy of your account data</p>
+                            </div>
+                            <button class="btn secondary" onclick="downloadData()">
+                                <i class="fas fa-download"></i>
+                                Download
+                            </button>
+                        </div>
+                        
+                        <div class="action-item">
+                            <div class="action-info">
+                                <h3>Export Settings</h3>
+                                <p>Save your preferences to a file</p>
+                            </div>
+                            <button class="btn secondary" onclick="exportSettings()">
+                                <i class="fas fa-file-export"></i>
+                                Export
+                            </button>
+                        </div>
+                        
+                        <div class="action-item danger">
+                            <div class="action-info">
+                                <h3>Delete Account</h3>
+                                <p>Permanently delete your account and all data</p>
+                            </div>
+                            <button class="btn danger" onclick="showDeleteAccount()">
+                                <i class="fas fa-trash-alt"></i>
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Support & Help -->
+                <section class="settings-section glass-card">
+                    <div class="section-header">
+                        <h2>
+                            <i class="fas fa-question-circle"></i>
+                            Support & Help
+                        </h2>
+                    </div>
+                    
+                    <div class="support-options">
+                        <a href="#" class="support-link" onclick="contactSupport()">
+                            <i class="fas fa-headset"></i>
+                            <div>
+                                <h3>Contact Support</h3>
+                                <p>Get help from our support team</p>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        
+                        <a href="#" class="support-link" onclick="showFAQ()">
+                            <i class="fas fa-book"></i>
+                            <div>
+                                <h3>FAQ & Documentation</h3>
+                                <p>Find answers to common questions</p>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        
+                        <a href="#" class="support-link" onclick="reportBug()">
+                            <i class="fas fa-bug"></i>
+                            <div>
+                                <h3>Report a Bug</h3>
+                                <p>Help us improve by reporting issues</p>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Delete Account Confirmation Modal -->
+        <div class="modal-overlay" id="deleteAccountModal" onclick="closeDeleteAccount()">
+            <div class="modal-content glass-card" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>Delete Account</h3>
+                    <button class="modal-close" onclick="closeDeleteAccount()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="warning-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h4>Are you sure you want to delete your account?</h4>
+                    <p>This action cannot be undone. All your data, including tournament history, preferences, and account information will be permanently deleted.</p>
+                    
+                    <div class="confirm-input">
+                        <label for="confirmDelete">Type "DELETE" to confirm:</label>
+                        <input type="text" id="confirmDelete" placeholder="DELETE" oninput="checkDeleteConfirmation()">
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn secondary" onclick="closeDeleteAccount()">Cancel</button>
+                        <button type="button" class="btn danger" id="confirmDeleteButton" disabled onclick="deleteAccount()">
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        /* Settings Page Styles */
+        .settings-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .settings-header {
+            margin-bottom: 2rem;
+            padding: 2rem;
+        }
+
+        .settings-header-content {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .settings-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .settings-info h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .settings-info p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        /* Settings Content Layout */
+        .settings-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .settings-section {
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-header h2 {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0;
+        }
+
+        .section-header i {
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        /* Theme Selector */
+        .theme-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .theme-item:last-child {
+            border-bottom: none;
+        }
+
+        .theme-info h3 {
+            color: white;
+            margin: 0 0 0.25rem 0;
+            font-size: 1rem;
+        }
+
+        .theme-info p {
+            color: rgba(255, 255, 255, 0.6);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .theme-selector {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .theme-toggle {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 60px;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .theme-toggle.active {
+            border-color: var(--primary-color);
+            background: rgba(0, 245, 212, 0.1);
+        }
+
+        .theme-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .theme-toggle.teal .theme-color {
+            background: var(--primary-color);
+        }
+
+        .theme-toggle.green .theme-color {
+            background: #22c55e;
+        }
+
+        .theme-toggle.blue .theme-color {
+            background: #3b82f6;
+        }
+
+        .theme-toggle span {
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Setting Items */
+        .setting-item, .privacy-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .setting-item:last-child, .privacy-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-info h3, .privacy-info h3 {
+            color: white;
+            margin: 0 0 0.25rem 0;
+            font-size: 1rem;
+        }
+
+        .setting-info p, .privacy-info p {
+            color: rgba(255, 255, 255, 0.6);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .setting-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .setting-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .setting-select option {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Notification Options */
+        .notification-category {
+            margin-bottom: 1.5rem;
+        }
+
+        .notification-category h3 {
+            color: var(--primary-color);
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 1rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .notification-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+
+        /* Account Actions */
+        .action-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .action-item:last-child {
+            border-bottom: none;
+        }
+
+        .action-item.danger {
+            border-color: rgba(255, 107, 107, 0.2);
+        }
+
+        .action-info h3 {
+            color: white;
+            margin: 0 0 0.25rem 0;
+            font-size: 1rem;
+        }
+
+        .action-info p {
+            color: rgba(255, 255, 255, 0.6);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .btn.danger:hover {
+            background: linear-gradient(135deg, #ee5a52, #dc4c47);
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Support Links */
+        .support-link {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .support-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .support-link:last-child {
+            margin-bottom: 0;
+        }
+
+        .support-link > i:first-child {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            width: 24px;
+            text-align: center;
+        }
+
+        .support-link > div {
+            flex: 1;
+        }
+
+        .support-link h3 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1rem;
+        }
+
+        .support-link p {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+
+        .support-link > i:last-child {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            width: 90%;
+            max-width: 500px;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h3 {
+            color: white;
+            margin: 0;
+            font-size: 1.25rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .modal-close:hover {
+            color: white;
+        }
+
+        .warning-icon {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .warning-icon i {
+            font-size: 3rem;
+            color: #ff6b6b;
+        }
+
+        .modal-body h4 {
+            color: white;
+            text-align: center;
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+        }
+
+        .modal-body p {
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+        }
+
+        .confirm-input {
+            margin-bottom: 1.5rem;
+        }
+
+        .confirm-input label {
+            display: block;
+            color: white;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .confirm-input input {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .confirm-input input:focus {
+            outline: none;
+            border-color: #ff6b6b;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .hamburger-menu {
+                display: flex;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .mobile-nav {
+                display: block;
+            }
+            
+            .nav-container {
+                justify-content: space-between;
+            }
+
+            .settings-content {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-header-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+            }
+
+            .theme-selector {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .theme-toggle {
+                min-width: 80px;
+            }
+
+            .modal-actions {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .settings-container {
+                padding: 1rem;
+            }
+
+            .settings-header {
+                padding: 1.5rem;
+            }
+
+            .settings-section {
+                padding: 1rem;
+            }
+
+            .settings-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .settings-info h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Hamburger Menu Styles */
+        .hamburger-menu {
+            display: none;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 30px;
+            height: 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 1001;
+        }
+
+        .hamburger-line {
+            width: 100%;
+            height: 3px;
+            background: white;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+            transform-origin: center;
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(1) {
+            transform: rotate(45deg) translate(6px, 6px);
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(3) {
+            transform: rotate(-45deg) translate(6px, -6px);
+        }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(20, 20, 40, 0.98);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-nav.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-nav-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 80px 20px 30px;
+        }
+
+        .mobile-nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mobile-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 18px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-nav-link:hover, .mobile-nav-link.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-color: var(--primary-color);
+            transform: translateX(5px);
+        }
+
+        .mobile-nav-link i {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+    </style>
+
+    <script>
+        // Initialize settings page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in
+            const session = localStorage.getItem('golfProSession') || sessionStorage.getItem('golfProSession');
+            // Temporarily commented out authentication check for development
+            // if (!session) {
+            //     window.location.href = 'login.html';
+            //     return;
+            // }
+            
+            loadUserData();
+            loadCurrentTheme();
+        });
+
+        // Load user data
+        function loadUserData() {
+            const session = JSON.parse(localStorage.getItem('golfProSession') || sessionStorage.getItem('golfProSession') || '{}');
+            const users = JSON.parse(localStorage.getItem('golfProUsers') || '[]');
+            const user = users.find(u => u.id === session.userId);
+
+            if (user) {
+                document.getElementById('dropdownUserName').textContent = `${user.firstName} ${user.lastName}`;
+                document.getElementById('dropdownUserEmail').textContent = user.email;
+            }
+        }
+
+        // Load current theme
+        function loadCurrentTheme() {
+            const savedTheme = localStorage.getItem('golfProTheme') || 'teal';
+            
+            // Apply the saved theme to the page
+            document.body.setAttribute('data-theme', savedTheme);
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            // Update theme toggles to reflect current theme
+            document.querySelectorAll('.theme-toggle').forEach(toggle => {
+                toggle.classList.remove('active');
+                if (toggle.getAttribute('data-theme') === savedTheme) {
+                    toggle.classList.add('active');
+                }
+            });
+        }
+
+        // Theme changing function
+        function changeTheme(theme) {
+            // Update document body theme (this will apply site-wide via CSS)
+            document.body.setAttribute('data-theme', theme);
+            
+            // Update HTML root element theme as well for global coverage
+            document.documentElement.setAttribute('data-theme', theme);
+            
+            // Update page theme toggles
+            document.querySelectorAll('.theme-toggle').forEach(toggle => {
+                toggle.classList.remove('active');
+                if (toggle.getAttribute('data-theme') === theme) {
+                    toggle.classList.add('active');
+                }
+            });
+            
+            // Save theme preference
+            localStorage.setItem('golfProTheme', theme);
+            
+            showNotification(`Colour theme changed to ${theme.charAt(0).toUpperCase() + theme.slice(1)}`, 'success');
+        }
+
+        // Mobile Navigation Toggle
+        function toggleMobileMenu() {
+            const hamburger = document.querySelector('.hamburger-menu');
+            const mobileNav = document.getElementById('mobileNav');
+            
+            if (hamburger && mobileNav) {
+                hamburger.classList.toggle('active');
+                mobileNav.classList.toggle('active');
+                document.body.style.overflow = mobileNav.classList.contains('active') ? 'hidden' : '';
+            }
+        }
+
+        // User Dropdown Functions
+        function toggleUserDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('active');
+                
+                if (dropdown.classList.contains('active')) {
+                    document.addEventListener('click', closeDropdownOnClickOutside);
+                } else {
+                    document.removeEventListener('click', closeDropdownOnClickOutside);
+                }
+            }
+        }
+
+        function closeDropdownOnClickOutside(event) {
+            const dropdown = document.getElementById('userDropdown');
+            const navUser = document.querySelector('.nav-user');
+            
+            if (dropdown && !navUser.contains(event.target)) {
+                dropdown.classList.remove('active');
+                document.removeEventListener('click', closeDropdownOnClickOutside);
+            }
+        }
+
+        // Settings Functions
+        function toggleActivityStatus() {
+            showNotification('Activity status preferences updated', 'info');
+        }
+
+        function toggleAnalytics() {
+            showNotification('Analytics preferences updated', 'info');
+        }
+
+        function toggleNotification(type) {
+            showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} notification preferences updated`, 'info');
+        }
+
+        function downloadData() {
+            showNotification('Data download initiated. You will receive an email when ready.', 'info');
+        }
+
+        function exportSettings() {
+            const settings = {
+                theme: document.body.getAttribute('data-theme') || 'teal',
+                notifications: {},
+                privacy: {},
+                general: {}
+            };
+            
+            const dataStr = JSON.stringify(settings, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'golfpro-settings.json';
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            showNotification('Settings exported successfully', 'success');
+        }
+
+        function contactSupport() {
+            showNotification('Redirecting to support portal...', 'info');
+        }
+
+        function showFAQ() {
+            showNotification('Opening FAQ documentation...', 'info');
+        }
+
+        function reportBug() {
+            showNotification('Opening bug report form...', 'info');
+        }
+
+        // Delete Account Functions
+        function showDeleteAccount() {
+            document.getElementById('deleteAccountModal').classList.add('active');
+        }
+
+        function closeDeleteAccount() {
+            document.getElementById('deleteAccountModal').classList.remove('active');
+            document.getElementById('confirmDelete').value = '';
+            document.getElementById('confirmDeleteButton').disabled = true;
+        }
+
+        function checkDeleteConfirmation() {
+            const input = document.getElementById('confirmDelete').value;
+            const button = document.getElementById('confirmDeleteButton');
+            button.disabled = input !== 'DELETE';
+        }
+
+        function deleteAccount() {
+            showNotification('Account deletion process initiated. You will receive confirmation via email.', 'warning');
+            closeDeleteAccount();
+        }
+
+        // User Menu Functions
+        function showTransactionHistory() {
+            showNotification('Transaction History feature coming soon!', 'info');
+        }
+
+        function showNotifications() {
+            showNotification('Notifications feature coming soon!', 'info');
+        }
+
+        function handleLogout() {
+            if (confirm('Are you sure you want to sign out?')) {
+                localStorage.removeItem('golfProSession');
+                sessionStorage.removeItem('golfProSession');
+                showNotification('Logged out successfully! Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            }
+        }
+
+        // Notification System
+        function showNotification(message, type = 'info') {
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas ${getNotificationIcon(type)}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        function getNotificationIcon(type) {
+            switch (type) {
+                case 'success': return 'fa-check-circle';
+                case 'error': return 'fa-exclamation-circle';
+                case 'warning': return 'fa-exclamation-triangle';
+                default: return 'fa-info-circle';
+            }
+        }
+
+        // Dark Mode Toggle Functions
+        function toggleDarkMode() {
+            try {
+                const body = document.body;
+                
+                // Toggle the class
+                if (body.classList.contains('dark-mode')) {
+                    body.classList.remove('dark-mode');
+                    console.log('Switched to LIGHT mode');
+                } else {
+                    body.classList.add('dark-mode');
+                    console.log('Switched to DARK mode');
+                }
+                
+                // Update checkboxes
+                const toggle = document.getElementById('darkModeToggle');
+                const settingsToggle = document.getElementById('settingsPageToggle');
+                const isDarkMode = body.classList.contains('dark-mode');
+                
+                if (toggle) {
+                    toggle.checked = isDarkMode;
+                }
+                if (settingsToggle) {
+                    settingsToggle.checked = isDarkMode;
+                }
+                
+                // Save preference
+                localStorage.setItem('darkMode', body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
+                
+                console.log('Body classes:', body.className);
+            } catch (error) {
+                console.error('Toggle error:', error);
+            }
+        }
+
+        function handleRowClick(event) {
+            toggleDarkMode();
+        }
+
+        // Initialize dark mode on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('PAGE LOADED - DARK MODE INIT');
+            const savedDarkMode = localStorage.getItem('darkMode');
+            const toggle = document.getElementById('darkModeToggle');
+            const settingsToggle = document.getElementById('settingsPageToggle');
+            
+            console.log('Saved dark mode:', savedDarkMode);
+            console.log('Toggle element found:', !!toggle);
+            console.log('Settings toggle found:', !!settingsToggle);
+            
+            if (savedDarkMode === 'enabled') {
+                document.body.classList.add('dark-mode');
+                if (toggle) {
+                    toggle.checked = true;
+                }
+                if (settingsToggle) {
+                    settingsToggle.checked = true;
+                }
+                console.log('Applied DARK mode on load');
+            } else {
+                document.body.classList.remove('dark-mode');
+                if (toggle) {
+                    toggle.checked = false;
+                }
+                if (settingsToggle) {
+                    settingsToggle.checked = false;
+                }
+                if (savedDarkMode === null) {
+                    localStorage.setItem('darkMode', 'disabled');
+                }
+                console.log('Applied LIGHT mode on load');
+            }
+        });
+    </script>
+
+    <!-- Notification styles -->
+    <style>
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: rgba(20, 20, 40, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px 20px;
+            z-index: 3000;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            max-width: 350px;
+        }
+
+        .notification.success {
+            border-color: var(--primary-color);
+            background: rgba(var(--primary-rgb), 0.1);
+        }
+
+        .notification.error {
+            border-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .notification.warning {
+            border-color: #ffd93d;
+            background: rgba(255, 217, 61, 0.1);
+        }
+
+        .notification.info {
+            border-color: #4dabf7;
+            background: rgba(77, 171, 247, 0.1);
+        }
+
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .notification.success .notification-content i {
+            color: var(--primary-color);
+        }
+
+        .notification.error .notification-content i {
+            color: #ff6b6b;
+        }
+
+        .notification.warning .notification-content i {
+            color: #ffd93d;
+        }
+
+        .notification.info .notification-content i {
+            color: #4dabf7;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,217 @@
+Short answer: yes—splitting into sub-domains is a good idea. Put the public marketing site and auth at www.yourdomain.com, the game app at app.yourdomain.com, and internal ops at dashboard.yourdomain.com. Add an api.yourdomain.com (or Vercel serverless routes) for clean boundaries. This gives you isolation, clearer deploys, and easier rollbacks without taking everything down if one part misbehaves.
+
+Here’s a solid, simple stack that fits Vercel + Supabase and your goals:
+
+Overall architecture
+
+Monorepo with Turborepo + pnpm: one repo, three apps, shared UI and types.
+
+apps/web → marketing site + sign-up/login (Next.js)
+
+apps/app → the game client (Next.js)
+
+apps/dashboard → internal admin (Next.js)
+
+packages/ui, packages/types, packages/config → shared bits
+
+Backend: use Supabase (Postgres + Auth + Storage + Realtime) as your primary backend. For custom logic, add an apps/api Next.js app on Vercel with serverless/edge API routes for things like scoring jobs, payouts, and webhooks.
+
+Realtime: Supabase Realtime channels for leaderboards and scorecard updates. If you outgrow it, you can slot in Ably/Pusher later.
+
+Auth: Supabase Auth across all sub-domains with a top-level cookie domain .yourdomain.com so users sign in once and it works on app and dashboard too.
+
+Payments/prizes: Stripe (Cards + Apple/Google Pay). Use Stripe webhooks in api for entry fees, refunds, and prize payouts.
+
+Observability: Vercel Analytics + Log Drains, plus Sentry for errors.
+
+Why this split works
+
+Fault isolation: rolling out a risky feature in app won’t break marketing or the dashboard.
+
+Security: tighter role-based access by app; dashboard can be locked down behind org roles.
+
+Performance: different caching profiles (aggressive cache on web, realtime on app).
+
+Cleaner CI/CD: per-app environments and rollbacks.
+
+Initial setup checklist (do this once, in order)
+
+Domain and DNS
+
+Add your root domain to Vercel.
+
+Create CNAMEs: www, app, dashboard, api to their respective Vercel projects.
+
+Monorepo scaffold
+
+Create Turborepo with three Next.js 14+ apps and shared packages.
+
+Add ESLint, Prettier, TypeScript project references, and a base UI kit in packages/ui.
+
+Supabase project
+
+Create project, set Auth providers you want (email OTP + Google/Apple to start).
+
+In Auth settings, add redirect URLs for each subdomain.
+
+Set JWT cookie to use parent domain .yourdomain.com and SameSite=Lax.
+
+Env config
+
+In each Vercel Project, add NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and for the API app add SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, webhook secrets, etc.
+
+Auth wiring
+
+Use @supabase/ssr helpers or @supabase/auth-helpers-nextjs in web, app, and dashboard.
+
+Server components should read the Supabase session; client components use the provided hooks.
+
+Database schema (first pass)
+
+Core tables: users (mirror auth.uid), profiles, tournaments, golfers, entries, picks, scorecards, scores_live, leaderboards, transactions, payouts, audit_logs.
+
+Add row-level security (RLS): users can only see their entries/picks; public read for tournament/golfer catalogue; admin policies for dashboard.
+
+Realtime
+
+Enable Realtime on scores_live and leaderboards. Subscribe in the game app to update UI instantly.
+
+API routes
+
+POST /webhooks/stripe for payments.
+
+POST /admin/score-ingest for ingesting official scores.
+
+POST /jobs/settle-tournament to compute winners and payouts.
+
+Frontends
+
+web: marketing pages, pricing, FAQs, sign-up/login, legal.
+
+app: lobby, tournament page, player selection, entry confirmation, live scoreboard, my scorecards.
+
+dashboard: tournaments CRUD, golfer sync, scoring controls, refunds/payouts, user support tools.
+
+Security hardening
+
+RLS everywhere; never use service role key in frontends.
+
+Rate-limit API endpoints; add basic WAF rules in Vercel.
+
+CSP, HTTPS only, secrets in Vercel envs, no secrets in client bundle.
+
+Analytics and logging
+
+Vercel Analytics, Sentry, Stripe dashboard, Supabase logs.
+
+Compliance quick wins
+
+Privacy Policy, Terms, age gate if offering money prizes, cookie banner.
+
+Keep prize mechanics as “skill-based fantasy” and get UK legal guidance before live cash contests.
+
+Minimal starter schema (trimmed)
+
+-- Users and profiles
+create table public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  username text unique,
+  created_at timestamptz default now()
+);
+alter table public.profiles enable row level security;
+create policy "profile is self" on public.profiles
+  for select using (auth.uid() = id);
+
+-- Catalogue
+create table public.tournaments (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  start_at timestamptz not null,
+  end_at timestamptz not null,
+  status text check (status in ('upcoming','live','settled')) default 'upcoming'
+);
+
+create table public.golfers (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  tour text,
+  ext_ref text
+);
+
+-- Entries and picks
+create table public.entries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id),
+  tournament_id uuid not null references public.tournaments(id),
+  created_at timestamptz default now(),
+  unique(user_id, tournament_id) -- one entry per event to start
+);
+alter table public.entries enable row level security;
+create policy "entry is owner" on public.entries
+  for select using (auth.uid() = user_id);
+
+create table public.picks (
+  id uuid primary key default gen_random_uuid(),
+  entry_id uuid not null references public.entries(id) on delete cascade,
+  golfer_id uuid not null references public.golfers(id),
+  slot smallint not null
+);
+alter table public.picks enable row level security;
+create policy "picks via entry" on public.picks
+  for select using (exists (select 1 from public.entries e where e.id = entry_id and e.user_id = auth.uid()));
+
+-- Live scoring and leaderboard
+create table public.scores_live (
+  id bigserial primary key,
+  tournament_id uuid not null references public.tournaments(id),
+  golfer_id uuid not null references public.golfers(id),
+  hole smallint,
+  score_relative integer, -- e.g. -5
+  updated_at timestamptz default now()
+);
+
+create table public.leaderboards (
+  tournament_id uuid primary key references public.tournaments(id) on delete cascade,
+  json jsonb not null, -- precomputed ranks for fast reads
+  updated_at timestamptz default now()
+);
+
+
+Cookie and SSO across sub-domains
+
+In Supabase Auth settings, set cookie domain to .yourdomain.com.
+
+Set redirect URLs for https://www., https://app., https://dashboard..
+
+Use SameSite=Lax and secure cookies. That way a single sign-in works across all three.
+
+Deployment model on Vercel
+
+Create four Vercel Projects from the monorepo, each with its own “Root Directory”: apps/web, apps/app, apps/dashboard, apps/api.
+
+Connect each to its sub-domain.
+
+Use Preview envs per Git branch; Production on main.
+
+Promote with Vercel’s instant rollback if needed.
+
+Your very next steps this week
+
+Reserve domain in Vercel and wire sub-domains.
+
+Spin up Supabase project and paste the schema above.
+
+Scaffold the Turborepo and three Next apps plus one API app.
+
+Wire Supabase Auth in web and prove SSO into app.
+
+Build minimal “create entry and pick golfers” flow in app.
+
+Add a fake “scores_live” publisher in api and a Realtime subscription in app so the leaderboard updates.
+
+Set up Stripe in api with a test “entry fee” product and a webhook that marks an entry as paid.
+
+A note on money prizes in the UK
+Cash contests can fall under gambling regulation. Many UK fantasy sites operate as skill-based contests, but the line is nuanced. Before taking payments tied to prizes, get quick legal advice to ensure you’re compliant with the UK Gambling Commission, plus do standard KYC/AML checks if needed. Also cover GDPR and age verification.
+
+If you want, I can generate the Turborepo folder structure, base next.config.ts, a shared Supabase client, and starter pages for web, app, and dashboard so you can drop it straight into Git and deploy to Vercel.

@@ -1,0 +1,107 @@
+<!--
+  InPlayTV Magic Link Email Template
+  
+  Instructions for Supabase Setup:
+  1. Log into your Supabase Dashboard
+  2. Navigate to Authentication → Email Templates
+  3. Select "Magic Link" template
+  4. Copy and paste this HTML into the template editor
+  5. Save changes
+  
+  Template variables available:
+  - {{ .ConfirmationURL }} - The magic link URL
+  - {{ .Token }} - The verification token
+  - {{ .TokenHash }} - The hashed token
+  - {{ .SiteURL }} - Your site URL
+  - {{ .CurrentYear }} - Current year (for copyright)
+  
+  Note: Test the template by sending yourself a magic link from /login or /signup
+-->
+
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in to InPlayTV</title>
+  </head>
+  <body style="background: #0b1020; color: #ffffff; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; padding: 24px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; margin: 0 auto; background: #121a34; border-radius: 12px; padding: 32px; border: 1px solid rgba(255, 255, 255, 0.1);">
+      
+      <!-- Logo / Brand -->
+      <tr>
+        <td align="center" style="padding-bottom: 24px;">
+          <div style="font-size: 28px; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            InPlayTV
+          </div>
+        </td>
+      </tr>
+      
+      <!-- Heading -->
+      <tr>
+        <td style="font-size: 20px; font-weight: 600; padding-bottom: 12px; color: #ffffff;">
+          Sign in to InPlayTV
+        </td>
+      </tr>
+      
+      <!-- Description -->
+      <tr>
+        <td style="font-size: 15px; color: #c8cee9; padding-bottom: 24px; line-height: 1.5;">
+          Click the button below to sign in to your account. This link will expire in 1 hour for security.
+        </td>
+      </tr>
+      
+      <!-- CTA Button -->
+      <tr>
+        <td align="center" style="padding-bottom: 24px;">
+          <a href="{{ .ConfirmationURL }}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+            Sign in to InPlayTV
+          </a>
+        </td>
+      </tr>
+      
+      <!-- Divider -->
+      <tr>
+        <td style="padding: 16px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);"></td>
+      </tr>
+      
+      <!-- Alternative Link -->
+      <tr>
+        <td style="font-size: 13px; color: #9aa3c7; padding-top: 20px; padding-bottom: 8px;">
+          If the button doesn't work, copy and paste this link into your browser:
+        </td>
+      </tr>
+      <tr>
+        <td style="font-size: 12px; word-break: break-all; color: #c8cee9; background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+          {{ .ConfirmationURL }}
+        </td>
+      </tr>
+      
+      <!-- Security Notice -->
+      <tr>
+        <td style="font-size: 13px; color: #6f78a5; padding-top: 24px; line-height: 1.5;">
+          <strong style="color: #9aa3c7;">Security Notice:</strong><br>
+          If you didn't request this sign-in link, you can safely ignore this email. Someone may have entered your email address by mistake.
+        </td>
+      </tr>
+      
+      <!-- Footer Spacing -->
+      <tr>
+        <td style="padding-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.1);"></td>
+      </tr>
+      
+      <!-- Footer Info -->
+      <tr>
+        <td style="font-size: 12px; color: #6f78a5; padding-top: 16px; text-align: center;">
+          © {{ .CurrentYear }} InPlayTV - Premium Fantasy Golf Competitions
+        </td>
+      </tr>
+      <tr>
+        <td style="font-size: 12px; color: #6f78a5; padding-top: 8px; text-align: center;">
+          Bringing golf fans together for the ultimate fantasy experience
+        </td>
+      </tr>
+      
+    </table>
+  </body>
+</html>

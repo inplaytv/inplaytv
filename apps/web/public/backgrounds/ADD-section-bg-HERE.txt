@@ -1,0 +1,12 @@
+Place your section background images here.
+
+Recommended filename: section-bg.jpg
+Recommended size: 1920x1080px or larger
+Format: JPG (optimized for web, < 500KB)
+
+After adding, the image will be accessible at:
+/backgrounds/section-bg.jpg
+
+Usage example in CSS:
+background: url('/backgrounds/section-bg.jpg') center/cover no-repeat;
+opacity: 0.2;

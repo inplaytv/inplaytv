@@ -1,0 +1,838 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InPlay TV - Premium Golf Fantasy</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-container">
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <div class="nav-brand">
+                    <i class="fas fa-golf-ball"></i>
+                    <span>InPlay TV</span>
+                </div>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links">
+                <a href="home.html" class="nav-link active">Home</a>
+                <a href="tournaments.html" class="nav-link">Tournaments</a>
+                <a href="scorecards.html" class="nav-link">Team Builder</a>
+                <a href="index.html" class="nav-link">Scorecards</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboards</a>
+                
+            </div>
+            
+            <!-- User Dropdown -->
+            <div class="nav-right">
+                <a href="login.html" class="login-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Login
+                </a>
+            </div>
+            
+            <!-- Mobile Hamburger Menu -->
+            <button class="hamburger-menu" onclick="toggleMobileMenu()" aria-label="Toggle navigation menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+        
+        <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-content">
+                <div class="mobile-nav-links">
+                    <a href="home.html" class="mobile-nav-link active">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                    <a href="tournaments.html" class="mobile-nav-link">
+                        <i class="fas fa-trophy"></i>
+                        <span>Tournaments</span>
+                    </a>
+                    <a href="index.html" class="mobile-nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Scorecards</span>
+                    </a>
+                    <a href="leaderboard.html" class="mobile-nav-link">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Leaderboards</span>
+                    </a>
+                    <a href="scorecards.html" class="mobile-nav-link">
+                        <i class="fas fa-golf-ball"></i>
+                        <span>Team Builder</span>
+                    </a>
+                </div>
+                
+                <!-- Mobile User Section -->
+                <div class="mobile-nav-user">
+                    <div class="mobile-user-info">
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face" alt="User Avatar" class="mobile-user-avatar">
+                        <div class="mobile-user-details">
+                            <div class="mobile-user-balance">£2,847</div>
+                            <div class="mobile-user-label">Available Balance</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <i class="fas fa-star"></i>
+                    <span>Premium Golf Fantasy</span>
+                </div>
+                <h1 class="hero-title">
+                    Experience Golf Like 
+                    <span class="hero-highlight">Never Before</span>
+                </h1>
+                <p class="hero-description">
+                    Join thousands of golf enthusiasts in the ultimate fantasy golf experience. 
+                    Build your dream team, compete in live tournaments, and win real prizes.
+                </p>
+                <div class="hero-buttons">
+                    <a href="tournaments.html" class="hero-btn primary">
+                        <i class="fas fa-trophy"></i>
+                        <span>Join Tournament</span>
+                    </a>
+                    <a href="index.html" class="hero-btn secondary">
+                        <i class="fas fa-chart-line"></i>
+                        <span>View Dashboard</span>
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">50K+</div>
+                        <div class="stat-label">Active Players</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">£2.5M</div>
+                        <div class="stat-label">Prizes Won</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">150+</div>
+                        <div class="stat-label">Tournaments</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="golf-scene">
+                    <div class="golf-ball-floating">
+                        <i class="fas fa-golf-ball"></i>
+                    </div>
+                    <div class="trophy-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="golf-flag">
+                        <i class="fas fa-flag"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Smart Scroll Arrow -->
+    <div class="scroll-arrow-container">
+        <div class="scroll-arrow" onclick="scrollToFeatures()">
+            <div class="scroll-text">Discover More</div>
+            <div class="arrow-icon">
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <section class="features-section" id="features-section">
+        <div class="features-container">
+            <div class="section-header">
+                <h2 class="section-title">Why Choose InPlay TV?</h2>
+                <p class="section-description">Discover what makes us the premier destination for golf fantasy sports</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 class="feature-title">Live Scoring</h3>
+                    <p class="feature-description">Real-time updates and live scoring keep you connected to every shot, every hole, every tournament.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="feature-title">Community</h3>
+                    <p class="feature-description">Join a thriving community of golf enthusiasts and compete with players from around the world.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Mobile First</h3>
+                    <p class="feature-description">Perfectly optimized for mobile devices, play anywhere, anytime with our responsive design.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Secure & Fair</h3>
+                    <p class="feature-description">Bank-level security and transparent scoring ensure fair play and protect your investments.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h3 class="feature-title">Advanced Analytics</h3>
+                    <p class="feature-description">Deep player statistics and performance analytics help you make informed decisions.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-gift"></i>
+                    </div>
+                    <h3 class="feature-title">Big Prizes</h3>
+                    <p class="feature-description">Compete for substantial cash prizes and exclusive rewards in daily and weekly tournaments.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works-section">
+        <div class="how-it-works-container">
+            <div class="section-header">
+                <h2 class="section-title">How It Works</h2>
+                <p class="section-description">Get started in three simple steps</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Choose Tournament</h3>
+                        <p class="step-description">Browse live tournaments and select the one that matches your style and budget.</p>
+                    </div>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Build Your Team</h3>
+                        <p class="step-description">Draft your fantasy golf team within the salary cap using our player selection tools.</p>
+                    </div>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Watch & Win</h3>
+                        <p class="step-description">Follow live scoring and watch your team compete for real cash prizes.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-container">
+            <div class="cta-content">
+                <h2 class="cta-title">Ready to Start Winning?</h2>
+                <p class="cta-description">Join thousands of players competing for over £100,000 in weekly prizes</p>
+                <div class="cta-buttons">
+                    <a href="register.html" class="cta-btn primary">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Sign Up Free</span>
+                    </a>
+                    <a href="tournaments.html" class="cta-btn secondary">
+                        <i class="fas fa-eye"></i>
+                        <span>Browse Tournaments</span>
+                    </a>
+                </div>
+            </div>
+            <div class="cta-visual">
+                <div class="prize-display">
+                    <div class="prize-amount">£100,000+</div>
+                    <div class="prize-label">Weekly Prizes</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <style>
+        /* Homepage Specific Styles */
+        .hero-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.4));
+        }
+
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .hero-content {
+            z-index: 2;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(var(--primary-rgb), 0.1);
+            border: 1px solid var(--primary-color);
+            border-radius: 50px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--primary-color);
+            margin-bottom: 24px;
+        }
+
+        .hero-title {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            color: white;
+        }
+
+        .hero-highlight {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-description {
+            font-size: 1.25rem;
+            line-height: 1.6;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 40px;
+            max-width: 500px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 60px;
+        }
+
+        .hero-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .hero-btn.primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: #000;
+            box-shadow: 0 8px 32px rgba(var(--primary-rgb), 0.3);
+        }
+
+        .hero-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(var(--primary-rgb), 0.4);
+        }
+
+        .hero-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-btn.secondary:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 40px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .hero-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .golf-scene {
+            position: relative;
+            width: 300px;
+            height: 300px;
+        }
+
+        .golf-ball-floating {
+            position: absolute;
+            top: 20%;
+            left: 20%;
+            font-size: 3rem;
+            color: var(--primary-color);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .trophy-icon {
+            position: absolute;
+            top: 50%;
+            right: 10%;
+            font-size: 4rem;
+            color: #ffd700;
+            animation: float 3s ease-in-out infinite 1s;
+        }
+
+        .golf-flag {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            animation: float 3s ease-in-out infinite 2s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* Smart Scroll Arrow */
+        .scroll-arrow-container {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .scroll-arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 50px;
+            border: 1px solid rgba(var(--primary-rgb), 0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            animation: bounce 2s infinite;
+        }
+
+        .scroll-arrow:hover {
+            background: rgba(var(--primary-rgb), 0.1);
+            border-color: var(--primary-color);
+            transform: translateY(-5px);
+        }
+
+        .scroll-text {
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .arrow-icon {
+            font-size: 20px;
+            color: var(--primary-color);
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 120px 0;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .section-title {
+            font-size: 3rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 16px;
+        }
+
+        .section-description {
+            font-size: 1.25rem;
+            color: rgba(255,255,255,0.8);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 32px;
+        }
+
+        .feature-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            background: rgba(255,255,255,0.1);
+            border-color: var(--primary-color);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 24px;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 16px;
+        }
+
+        .feature-description {
+            color: rgba(255,255,255,0.8);
+            line-height: 1.6;
+        }
+
+        /* How It Works Section */
+        .how-it-works-section {
+            padding: 120px 0;
+            background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.1), rgba(0,0,0,0.5));
+        }
+
+        .how-it-works-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .step-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+            text-align: left;
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .step-description {
+            color: rgba(255,255,255,0.8);
+            line-height: 1.6;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 120px 0;
+            background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(0,0,0,0.6));
+        }
+
+        .cta-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .cta-title {
+            font-size: 3rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 24px;
+        }
+
+        .cta-description {
+            font-size: 1.25rem;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 40px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+        }
+
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .cta-btn.primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: #000;
+            box-shadow: 0 8px 32px rgba(var(--primary-rgb), 0.3);
+        }
+
+        .cta-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(var(--primary-rgb), 0.4);
+        }
+
+        .cta-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .cta-btn.secondary:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .cta-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .prize-display {
+            text-align: center;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid var(--primary-color);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+        }
+
+        .prize-amount {
+            font-size: 4rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .prize-label {
+            font-size: 1.25rem;
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .hero-container,
+            .cta-container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+                text-align: center;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .cta-title {
+                font-size: 2rem;
+            }
+
+            .hero-buttons,
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .hero-stats {
+                justify-content: center;
+                gap: 20px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .steps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .step-card {
+                text-align: center;
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+
+    <script>
+        // Load saved theme
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('selectedTheme') || 'teal';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        // User dropdown functionality
+        function toggleUserDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Mobile menu functionality
+        function toggleMobileMenu() {
+            const mobileNav = document.getElementById('mobileNav');
+            const hamburger = document.querySelector('.hamburger-menu');
+            
+            mobileNav.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        // Placeholder functions for dropdown items
+        function showTransactionHistory() {
+            console.log('Transaction History clicked');
+        }
+
+        function showNotifications() {
+            console.log('Notifications clicked');
+        }
+
+        function showHelp() {
+            console.log('Help clicked');
+        }
+
+        function handleLogout() {
+            console.log('Logout clicked');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            const userDropdown = document.getElementById('userDropdown');
+            const navUser = document.querySelector('.nav-user');
+            
+            if (!navUser.contains(event.target)) {
+                userDropdown.classList.remove('show');
+            }
+        });
+
+        // Smooth scroll to features section
+        function scrollToFeatures() {
+            const featuresSection = document.getElementById('features-section');
+            if (featuresSection) {
+                featuresSection.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        }
+
+        // Initialize theme and dark mode on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedTheme();
+            
+            // Initialize dark mode from localStorage
+            const darkMode = localStorage.getItem('darkMode');
+            if (darkMode === 'enabled') {
+                document.body.classList.add('dark-mode');
+                console.log('Applied DARK mode on home page');
+            } else {
+                document.body.classList.remove('dark-mode');
+                console.log('Applied LIGHT mode on home page');
+            }
+        });
+    </script>
+</body>
+</html>

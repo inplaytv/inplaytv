@@ -1,0 +1,531 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InPlay TV - Exclusive Tournaments</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-container">
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <div class="nav-brand">
+                    <i class="fas fa-golf-ball"></i>
+                    <span>InPlay TV</span>
+                </div>
+            </div>
+            <!-- Desktop Navigation -->
+            <div class="nav-links">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="tournaments.html" class="nav-link active">Tournaments</a>
+                <a href="scorecards.html" class="nav-link">Team Builder</a>
+                <a href="index.html" class="nav-link">Scorecards</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboards</a>
+                
+            </div>
+            
+            <div class="nav-user" onclick="toggleUserDropdown()">
+                <div class="user-balance">
+                    <span class="balance-amount">£2,450</span>
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="user-avatar">
+                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="User" id="navAvatarImg">
+                    <i class="fas fa-chevron-down user-dropdown-arrow"></i>
+                </div>
+                
+                <!-- User Dropdown Menu -->
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="user-dropdown-header">
+                        <div class="dropdown-user-avatar">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face" alt="User" id="dropdownAvatarImg">
+                        </div>
+                        <div class="dropdown-user-info">
+                            <div class="dropdown-user-name" id="dropdownUserName">John Smith</div>
+                            <div class="dropdown-user-email" id="dropdownUserEmail">john.smith@example.com</div>
+                        </div>
+                    </div>
+                    <div class="user-dropdown-divider"></div>
+                    <div class="user-dropdown-menu">
+                        <a href="profile.html" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="settings.html" class="dropdown-item">
+                            <i class="fas fa-cog"></i>
+                            <span>Account Settings</span>
+                        </a>
+                        <div class="dropdown-item dropdown-toggle-item" onclick="handleRowClick()">
+                            <div class="dropdown-toggle-content">
+                                <i class="fas fa-moon"></i>
+                                <span>Dark Mode</span>
+                            </div>
+                            <label class="dropdown-toggle-switch" onclick="event.stopPropagation();">
+                                <input type="checkbox" id="darkModeToggle">
+                                <span class="dropdown-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <a href="#" class="dropdown-item" onclick="showTransactionHistory()">
+                            <i class="fas fa-receipt"></i>
+                            <span>Transaction History</span>
+                        </a>
+                        <a href="#" class="dropdown-item" onclick="showNotifications()">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
+                        </a>
+                        <div class="user-dropdown-divider"></div>
+                        <a href="#" class="dropdown-item" onclick="showHelp()">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Help & Support</span>
+                        </a>
+                        <a href="#" class="dropdown-item logout" onclick="handleLogout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sign Out</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Hamburger Menu -->
+            <button class="hamburger-menu" onclick="toggleMobileMenu()" aria-label="Toggle navigation menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+        
+        <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-content">
+                <div class="mobile-nav-links">
+                    <a href="home.html" class="mobile-nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                    <a href="tournaments.html" class="mobile-nav-link active">
+                        <i class="fas fa-trophy"></i>
+                        <span>Tournaments</span>
+                    </a>
+                    <a href="scorecards.html" class="mobile-nav-link">
+                        <i class="fas fa-users"></i>
+                        <span>Team Builder</span>
+                    </a>
+                    <a href="index.html" class="mobile-nav-link">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Scorecards</span>
+                    </a>
+                    <a href="leaderboard.html" class="mobile-nav-link">
+                        <i class="fas fa-medal"></i>
+                        <span>Leaderboards</span>
+                    </a>
+                    
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="tournaments-container">
+        <div class="page-header">
+            <div class="header-content">
+                <h1 class="page-title">Exclusive Tournament Selection</h1>
+                <p class="page-subtitle">Ultra-exclusive fantasy golf competitions</p>
+            </div>
+            <div class="header-stats glass-card">
+                <div class="header-stat">
+                    <div class="stat-value">6</div>
+                    <div class="stat-label">Exclusive Tournaments</div>
+                </div>
+                <div class="header-stat">
+                    <div class="stat-value">£50.2M</div>
+                    <div class="stat-label">Total Prize Pool</div>
+                </div>
+                <div class="header-stat">
+                    <div class="stat-value">2</div>
+                    <div class="stat-label">My Entries</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-filters">
+            <div class="filter-buttons">
+                <a href="tournaments.html" class="filter-btn">Full Course</a>
+                <a href="tournaments-elite.html" class="filter-btn">Beat The Cut</a>
+                <a href="tournaments-exclusive.html" class="filter-btn active">Round: 1</a>
+                <a href="tournaments-executive.html" class="filter-btn">Round: 2</a>
+                <a href="tournaments-platinum.html" class="filter-btn">Round: 3</a>
+                <a href="tournaments-gold.html" class="filter-btn">Round: 4</a>
+            </div>
+            <div class="sort-options">
+                <select class="sort-select">
+                    <option>Sort by Prize Pool</option>
+                    <option>Sort by Entry Fee</option>
+                    <option>Sort by Start Time</option>
+                    <option>Sort by Entries</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Exclusive Tournaments Section -->
+        <div class="featured-tournaments-section">
+            <div class="featured-tournament-card featured glass-card">
+                <div class="tournament-top-section">
+                    <div class="course-info">
+                        <div class="course-title">EXCLUSIVE INVITATIONAL</div>
+                        <div class="course-subtitle">VIP Competition</div>
+                    </div>
+                    <div class="tournament-badges">
+                        <div class="tournament-badge featured-badge">
+                            <i class="fas fa-gem"></i>
+                            EXCLUSIVE
+                        </div>
+                    </div>
+                </div>
+                <div class="tournament-header">
+                    <div class="tournament-image">
+                        <img src="https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=300&h=180&fit=crop" alt="Exclusive Tournament">
+                    </div>
+                    <div class="tournament-info">
+                        <h3 class="tournament-name">Exclusive Players Invitational</h3>
+                        <p class="tournament-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            TPC Sawgrass
+                        </p>
+                        <p class="tournament-date">
+                            <i class="fas fa-calendar"></i>
+                            March 6-9, 2025
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="tournament-stats-grid">
+                    <div class="tournament-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div class="stat-details">
+                            <span class="stat-value">£10.0M</span>
+                            <span class="stat-label">Prize Pool</span>
+                        </div>
+                    </div>
+                    <div class="tournament-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-details">
+                            <span class="stat-value">1,000</span>
+                            <span class="stat-label">Max Entries</span>
+                        </div>
+                    </div>
+                    <div class="tournament-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <div class="stat-details">
+                            <span class="stat-value">£2,500</span>
+                            <span class="stat-label">Entry Fee</span>
+                        </div>
+                    </div>
+                    <div class="tournament-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-medal"></i>
+                        </div>
+                        <div class="stat-details">
+                            <span class="stat-value">£2.5M</span>
+                            <span class="stat-label">1st Place</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tournament-actions">
+                    <a href="scorecards.html" class="action-btn primary">
+                        <i class="fas fa-users"></i>
+                        Build Your Team
+                    </a>
+                    <a href="index.html" class="action-btn secondary">
+                        <i class="fas fa-list"></i>
+                        INPLAY LEADERBOARD LIST
+                    </a>
+                </div>
+            </div>
+
+            <div class="featured-tournament-card featured glass-card">
+                <div class="tournament-top-section">
+                    <div class="course-info">
+                        <div class="course-title">BEAT THE CUT</div>
+                        <div class="course-subtitle">36 Holes Competition</div>
+                    </div>
+                    <div class="tournament-badges">
+                        <div class="tournament-badge featured-badge">
+                            <i class="fas fa-gem"></i>
+                            EXCLUSIVE
+                        </div>
+                    </div>
+                </div>
+                <div class="tournament-header">
+                    <div class="tournament-image">
+                        <img src="https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=300&h=180&fit=crop" alt="PGA Championship">
+                        <div class="tournament-overlay">
+                            <div class="tournament-status upcoming">
+                                <i class="fas fa-clock"></i>
+                                STARTS SOON
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tournament-info">
+                        <h3 class="tournament-name">PGA Championship Exclusive</h3>
+                        <p class="tournament-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Kiawah Island Golf Resort
+                        </p>
+                        <p class="tournament-date">
+                            <i class="fas fa-calendar"></i>
+                            May 15-18, 2025
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="tournament-stats-grid">
+                    <div class="tournament-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div class="stat-details">
+                            <span class="stat-value">£15.0M</span>
+                            <span class="stat-label">Prize Pool</span>
+                        </div>
+                    </div>
+                    <div class="tournament-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-details">
+                            <span class="stat-value">1,500</span>
+                            <span class="stat-label">Entries</span>
+                        </div>
+                    </div>
+                    <div class="tournament-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <div class="stat-details">
+                            <span class="stat-value">£500</span>
+                            <span class="stat-label">Entry Fee</span>
+                        </div>
+                    </div>
+                    <div class="tournament-stat">
+                        <div class="stat-icon">
+                            <i class="fas fa-medal"></i>
+                        </div>
+                        <div class="stat-details">
+                            <span class="stat-value">£3.5M</span>
+                            <span class="stat-label">1st Place</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tournament-actions">
+                    <a href="scorecards.html" class="action-btn premium">
+                        <i class="fas fa-users"></i>
+                        Build Your Team
+                    </a>
+                    <a href="index.html" class="action-btn secondary">
+                        <i class="fas fa-list"></i>
+                        INPLAY LEADERBOARD LIST
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Theme initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedTheme();
+            initializePage();
+        });
+
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('golfProTheme') || 'teal';
+            document.body.setAttribute('data-theme', savedTheme);
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        function toggleMobileMenu() {
+            const hamburger = document.querySelector('.hamburger-menu');
+            const mobileNav = document.getElementById('mobileNav');
+            
+            if (hamburger && mobileNav) {
+                hamburger.classList.toggle('active');
+                mobileNav.classList.toggle('active');
+                document.body.style.overflow = mobileNav.classList.contains('active') ? 'hidden' : '';
+            }
+        }
+
+        function toggleUserDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('active');
+                
+                if (dropdown.classList.contains('active')) {
+                    document.addEventListener('click', closeDropdownOnClickOutside);
+                } else {
+                    document.removeEventListener('click', closeDropdownOnClickOutside);
+                }
+            }
+        }
+
+        function closeDropdownOnClickOutside(event) {
+            const dropdown = document.getElementById('userDropdown');
+            const navUser = document.querySelector('.nav-user');
+            
+            if (dropdown && !navUser.contains(event.target)) {
+                dropdown.classList.remove('active');
+                document.removeEventListener('click', closeDropdownOnClickOutside);
+            }
+        }
+
+        function showTransactionHistory() {
+            showNotification('Transaction History feature coming soon!', 'info');
+        }
+
+        function showNotifications() {
+            showNotification('Notifications feature coming soon!', 'info');
+        }
+
+        function showHelp() {
+            showNotification('Help & Support feature coming soon!', 'info');
+        }
+
+        function handleLogout() {
+            if (confirm('Are you sure you want to sign out?')) {
+                localStorage.removeItem('golfProSession');
+                sessionStorage.removeItem('golfProSession');
+                showNotification('Logged out successfully! Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas ${getNotificationIcon(type)}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        function getNotificationIcon(type) {
+            switch (type) {
+                case 'success': return 'fa-check-circle';
+                case 'error': return 'fa-exclamation-circle';
+                case 'warning': return 'fa-exclamation-triangle';
+                default: return 'fa-info-circle';
+            }
+        }
+
+        function initializePage() {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+
+            const tournamentCards = document.querySelectorAll('.tournament-card');
+            tournamentCards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-10px) scale(1.02)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+        }
+
+        // Dark Mode Toggle Functions
+        function toggleDarkMode() {
+            const body = document.body;
+            const isDarkMode = body.classList.toggle('dark-mode');
+            
+            // Save preference to localStorage
+            localStorage.setItem('darkMode', isDarkMode ? 'enabled' : 'disabled');
+            
+            // Update toggle state
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            if (darkModeToggle) {
+                darkModeToggle.checked = isDarkMode;
+            }
+            
+            console.log('Dark mode toggled:', isDarkMode);
+        }
+
+        function initializeDarkMode() {
+            // Check for saved dark mode preference or default to light mode
+            const darkMode = localStorage.getItem('darkMode');
+            const body = document.body;
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            
+            if (darkMode === 'enabled') {
+                body.classList.add('dark-mode');
+                if (darkModeToggle) darkModeToggle.checked = true;
+            } else {
+                body.classList.remove('dark-mode');
+                if (darkModeToggle) darkModeToggle.checked = false;
+            }
+            
+            console.log('Dark mode initialized:', darkMode);
+        }
+
+        function handleRowClick(event) {
+            // Don't toggle if the click came from the checkbox itself to avoid double-triggering
+            if (event && event.target && event.target.type === 'checkbox') {
+                return;
+            }
+            
+            // Manually check/uncheck the checkbox and trigger its change event
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            if (darkModeToggle) {
+                darkModeToggle.checked = !darkModeToggle.checked;
+                darkModeToggle.dispatchEvent(new Event('change'));
+            }
+        }
+
+        // Initialize dark mode when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDarkMode();
+            
+            // Add event listener to toggle
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            if (darkModeToggle) {
+                darkModeToggle.addEventListener('change', function() {
+                    toggleDarkMode();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+

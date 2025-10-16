@@ -1,0 +1,27 @@
+# Golf Course Background Setup
+
+This folder should contain your golf course background images.
+
+## Quick Start:
+1. Add 1-3 golf course images to this folder
+2. Name them:
+   - `golf-course-teal.jpg` (for teal theme)
+   - `golf-course-green.jpg` (for green theme) 
+   - `golf-course-blue.jpg` (for blue theme)
+
+## Or use any names and update the CSS:
+- Edit `styles.css` 
+- Find the `background-image` lines
+- Change the filenames to match yours
+
+## Image Sources:
+You can find great golf course images at:
+- Unsplash.com (free high-quality photos)
+- Your local golf courses
+- Golf photography websites
+- Stock photo sites
+
+## Current Status:
+🔄 **No images detected** - Add your images here to see backgrounds!
+
+Once you add images, they will automatically appear as blurred, darkened backgrounds that enhance the golf theme while keeping text readable.

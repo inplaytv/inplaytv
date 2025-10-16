@@ -1,0 +1,1949 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InPlay TV - Scorecards</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-container">
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <div class="nav-brand">
+                    <i class="fas fa-golf-ball"></i>
+                    <span>InPlay TV</span>
+                </div>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="tournaments.html" class="nav-link">Tournaments</a>
+                <a href="scorecards.html" class="nav-link">Team Builder</a>
+                <a href="#" class="nav-link active">Scorecards</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboards</a>
+                
+            </div>
+            
+            <div class="nav-user" onclick="toggleUserDropdown()">
+                <div class="user-balance">
+                    <span class="balance-amount">£2,450</span>
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="user-avatar">
+                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="User">
+                    <i class="fas fa-chevron-down user-dropdown-arrow"></i>
+                </div>
+                
+                <!-- User Dropdown Menu -->
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="user-dropdown-header">
+                        <div class="dropdown-user-avatar">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face" alt="User">
+                        </div>
+                        <div class="dropdown-user-info">
+                            <div class="dropdown-user-name">John Smith</div>
+                            <div class="dropdown-user-email">john.smith@example.com</div>
+                        </div>
+                    </div>
+                    <div class="user-dropdown-divider"></div>
+                    <div class="user-dropdown-menu">
+                        <a href="profile.html" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="settings.html" class="dropdown-item">
+                            <i class="fas fa-cog"></i>
+                            <span>Account Settings</span>
+                        </a>
+                        <div class="dropdown-item dropdown-toggle-item" onclick="handleRowClick()">
+                            <div class="dropdown-toggle-content">
+                                <i class="fas fa-moon"></i>
+                                <span>Dark Mode</span>
+                            </div>
+                            <label class="dropdown-toggle-switch" onclick="event.stopPropagation();">
+                                <input type="checkbox" id="darkModeToggle">
+                                <span class="dropdown-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <a href="#" class="dropdown-item" onclick="showTransactionHistory()">
+                            <i class="fas fa-receipt"></i>
+                            <span>Transaction History</span>
+                        </a>
+                        <a href="#" class="dropdown-item" onclick="showNotifications()">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
+                        </a>
+                        <div class="user-dropdown-divider"></div>
+                        <a href="#" class="dropdown-item" onclick="showHelp()">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Help & Support</span>
+                        </a>
+                        <a href="#" class="dropdown-item logout" onclick="handleLogout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sign Out</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Hamburger Menu -->
+            <button class="hamburger-menu" onclick="toggleMobileMenu()" aria-label="Toggle navigation menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+        
+        <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-content">
+                <div class="mobile-nav-links">
+                    <a href="home.html" class="mobile-nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                    <a href="tournaments.html" class="mobile-nav-link">
+                        <i class="fas fa-trophy"></i>
+                        <span>Tournaments</span>
+                    </a>
+                    <a href="scorecards.html" class="mobile-nav-link">
+                        <i class="fas fa-users"></i>
+                        <span>Team Builder</span>
+                    </a>
+                    <a href="#" class="mobile-nav-link active">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Scorecards</span>
+                    </a>
+                    <a href="leaderboard.html" class="mobile-nav-link">
+                        <i class="fas fa-medal"></i>
+                        <span>Leaderboards</span>
+                    </a>
+                    
+                    <a href="#" class="mobile-nav-link">
+                        <i class="fas fa-user"></i>
+                        <span>Profile</span>
+                    </a>
+                </div>
+                <div class="mobile-nav-user">
+                    <div class="mobile-user-info">
+                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="User" class="mobile-user-avatar">
+                        <div class="mobile-user-details">
+                            <span class="mobile-user-balance">£2,450</span>
+                            <span class="mobile-user-label">Account Balance</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-container">
+        <!-- Left Panel: Tournament Overview -->
+        <section class="left-panel">
+            <div class="tournament-header glass-card">
+                <!-- Top Row: Tournament Name on Left, Countdown Timer on Right -->
+                <div class="tournament-top-section">
+                    <div class="tournament-info">
+                        <h1 class="tournament-title">Masters Tournament 2025</h1>
+                        <p class="tournament-subtitle">Round 3 £ Augusta National</p>
+                    </div>
+                    <div class="tournament-timer">
+                        <div class="timer-block">
+                            <span class="timer-number" id="hours">02</span>
+                            <span class="timer-label">HRS</span>
+                        </div>
+                        <div class="timer-separator">:</div>
+                        <div class="timer-block">
+                            <span class="timer-number" id="minutes">34</span>
+                            <span class="timer-label">MIN</span>
+                        </div>
+                        <div class="timer-separator">:</div>
+                        <div class="timer-block">
+                            <span class="timer-number" id="seconds">15</span>
+                            <span class="timer-label">SEC</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bottom Row: Tournament Dropdown on Left, LIVE on Right -->
+                <div class="tournament-bottom-row">
+                    <div class="tournament-dropdown">
+                        <select class="tournament-select">
+                            <option value="masters2025">Masters Tournament 2025</option>
+                            <option value="pga2025">PGA Championship 2025</option>
+                            <option value="usopen2025">US Open 2025</option>
+                            <option value="theopen2025">The Open Championship 2025</option>
+                            <option value="playerschamp2025">The Players Championship 2025</option>
+                            <option value="fedexcup2025">FedEx Cup Playoffs 2025</option>
+                            <option value="rydercup2025">Ryder Cup 2025</option>
+                        </select>
+                    </div>
+                    <span class="live-badge">
+                        <i class="fas fa-circle pulse"></i>
+                        LIVE
+                    </span>
+                </div>
+            </div>
+
+            <div class="leaderboard-section">
+                <div class="section-header">
+                    <h2>Live InPlay Leaderboard</h2>
+                    <button class="view-all-btn">
+                        <span>View All</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <div class="leaderboard glass-card">
+                    <div class="leaderboard-item rank-1">
+                        <div class="rank-badge gold">1</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">FREEFLO2026</span>
+                                <span class="player-country">USA</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-12</span>
+                            <span class="score-change up">
+                                <i class="fas fa-arrow-up"></i>
+                                2
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item rank-2">
+                        <div class="rank-badge silver">2</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">TigerWoods</span>
+                                <span class="player-country">NIR</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-10</span>
+                            <span class="score-change up">
+                                <i class="fas fa-arrow-up"></i>
+                                1
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item rank-3">
+                        <div class="rank-badge bronze">3</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">GreenMaster_Pro</span>
+                                <span class="player-country">ESP</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-9</span>
+                            <span class="score-change down">
+                                <i class="fas fa-arrow-down"></i>
+                                1
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">4</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">FairwaySniper</span>
+                                <span class="player-country">NOR</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-8</span>
+                            <span class="score-change">E</span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">5</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">ChipShot_Legend</span>
+                                <span class="player-country">USA</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-7</span>
+                            <span class="score-change up">
+                                <i class="fas fa-arrow-up"></i>
+                                3
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">6</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">PuttMaster_Elite</span>
+                                <span class="player-country">USA</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-6</span>
+                            <span class="score-change down">
+                                <i class="fas fa-arrow-down"></i>
+                                2
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">7</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">DriveBot_Alpha</span>
+                                <span class="player-country">AUS</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-5</span>
+                            <span class="score-change up">
+                                <i class="fas fa-arrow-up"></i>
+                                1
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">8</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">SwingKing_Pro</span>
+                                <span class="player-country">GBR</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-4</span>
+                            <span class="score-change">E</span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">9</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">IronShot_Master</span>
+                                <span class="player-country">CAN</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-4</span>
+                            <span class="score-change down">
+                                <i class="fas fa-arrow-down"></i>
+                                1
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">10</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">TeeTime_Legend</span>
+                                <span class="player-country">JPN</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-3</span>
+                            <span class="score-change up">
+                                <i class="fas fa-arrow-up"></i>
+                                2
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">11</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">RoughRider_99</span>
+                                <span class="player-country">RSA</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-3</span>
+                            <span class="score-change">E</span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">12</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">Wedge_Wizard</span>
+                                <span class="player-country">GER</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-2</span>
+                            <span class="score-change up">
+                                <i class="fas fa-arrow-up"></i>
+                                3
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">13</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">BunkerBuster_X</span>
+                                <span class="player-country">SWE</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-2</span>
+                            <span class="score-change down">
+                                <i class="fas fa-arrow-down"></i>
+                                1
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">14</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">GolfGenius_42</span>
+                                <span class="player-country">FRA</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-1</span>
+                            <span class="score-change">E</span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">15</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">SandSaver_Elite</span>
+                                <span class="player-country">ITA</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">-1</span>
+                            <span class="score-change up">
+                                <i class="fas fa-arrow-up"></i>
+                                1
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">16</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">ClubHero_2024</span>
+                                <span class="player-country">NED</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">E</span>
+                            <span class="score-change down">
+                                <i class="fas fa-arrow-down"></i>
+                                2
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">17</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">ParMachine_GT</span>
+                                <span class="player-country">BEL</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">E</span>
+                            <span class="score-change">E</span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">18</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">GolfNinja_Zen</span>
+                                <span class="player-country">KOR</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">+1</span>
+                            <span class="score-change up">
+                                <i class="fas fa-arrow-up"></i>
+                                1
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">19</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">LinksMaster_87</span>
+                                <span class="player-country">SCO</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">+1</span>
+                            <span class="score-change down">
+                                <i class="fas fa-arrow-down"></i>
+                                1
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">20</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">DoglegDancer</span>
+                                <span class="player-country">IRE</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">+2</span>
+                            <span class="score-change">E</span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">21</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">HazardHunter_X</span>
+                                <span class="player-country">ARG</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">+2</span>
+                            <span class="score-change down">
+                                <i class="fas fa-arrow-down"></i>
+                                3
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">22</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">FlagStick_Pro</span>
+                                <span class="player-country">BRA</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">+3</span>
+                            <span class="score-change up">
+                                <i class="fas fa-arrow-up"></i>
+                                1
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">23</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">AlbatrossAce_21</span>
+                                <span class="player-country">MEX</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">+3</span>
+                            <span class="score-change">E</span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">24</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">SliceSlayer_99</span>
+                                <span class="player-country">CHI</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">+4</span>
+                            <span class="score-change down">
+                                <i class="fas fa-arrow-down"></i>
+                                2
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">25</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">GreenSeeker_101</span>
+                                <span class="player-country">THA</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">+5</span>
+                            <span class="score-change up">
+                                <i class="fas fa-arrow-up"></i>
+                                1
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item">
+                        <div class="rank-badge">26</div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <span class="player-name">CourseConqueror</span>
+                                <span class="player-country">DEN</span>
+                            </div>
+                        </div>
+                        <div class="player-score">
+                            <span class="score">+6</span>
+                            <span class="score-change down">
+                                <i class="fas fa-arrow-down"></i>
+                                1
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: My Scorecard -->
+        <section class="right-panel">
+            <div class="scorecard-header glass-card" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; padding: 20px;">
+                <div style="flex: 1;">
+                    <h2 style="margin: 0; font-size: 24px;">Scorecards</h2>
+                    <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.7;">Your fantasy golf entries for this tournament</p>
+                </div>
+                <button class="new-scorecard-btn" onclick="createNewScorecard()">
+                    <i class="fas fa-plus"></i>
+                    Create New Lineup
+                </button>
+            </div>
+
+            <!-- Tab Navigation positioned above stats container -->
+            <div class="tab-navigation-container" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                <button class="tab-nav-btn" id="prevTab" onclick="navigateTabs(-1)" style="opacity: 0.5;" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="current-tab-display">
+                    <div id="currentTabName" class="current-tab-name" style="display: inline;"><span id="lineupName">Lineup 1</span>: <span id="lineupInfo">£43,000 £ Complete</span></div>
+                </div>
+                
+                <button class="tab-nav-btn" id="nextTab" onclick="navigateTabs(1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <div class="scorecard-container">
+                <div class="scorecard-scroll">
+                    <!-- Empty state - will be populated by submitted entries -->
+                    <div id="empty-state" class="empty-state" style="text-align: center; padding: 40px 20px; opacity: 0.6;">
+                        <i class="fas fa-clipboard-list" style="font-size: 48px; color: #666; margin-bottom: 15px;"></i>
+                        <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #999;">No Active Lineups</div>
+                        <div style="font-size: 14px; color: #777; margin-bottom: 20px;">Create your first fantasy lineup to see your players here</div>
+                        <a href="scorecards.html" style="background: var(--primary-color); color: #000; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">
+                            <i class="fas fa-plus" style="margin-right: 6px;"></i>Create Lineup
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+    
+    <style>
+        /* Mobile Navigation Styles */
+        .hamburger-menu {
+            display: none;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 30px;
+            height: 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 1001;
+        }
+
+        .hamburger-line {
+            width: 100%;
+            height: 3px;
+            background: white;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+            transform-origin: center;
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(1) {
+            transform: rotate(45deg) translate(6px, 6px);
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(3) {
+            transform: rotate(-45deg) translate(6px, -6px);
+        }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(20, 20, 40, 0.98);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-nav.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-nav-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            padding: 80px 20px 30px;
+        }
+
+        .mobile-nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mobile-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 18px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-nav-link:hover, .mobile-nav-link.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-color: var(--primary-color);
+            transform: translateX(5px);
+        }
+
+        .mobile-nav-link i {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .mobile-nav-user {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 20px;
+        }
+
+        .mobile-user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+        }
+
+        .mobile-user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .mobile-user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mobile-user-balance {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .mobile-user-label {
+            font-size: 12px;
+            opacity: 0.7;
+            color: white;
+        }
+
+        /* Dashboard responsive padding - removed since body now has universal padding */
+        
+        @media (max-width: 768px) {
+            /* Show hamburger menu */
+            .hamburger-menu {
+                display: flex;
+            }
+            
+            /* Hide desktop navigation */
+            .nav-links {
+                display: none;
+            }
+            
+            /* Show mobile navigation */
+            .mobile-nav {
+                display: block;
+            }
+            
+            /* Adjust nav container */
+            .nav-container {
+                justify-content: space-between;
+            }
+            
+            /* Optimize nav-user for mobile */
+            .nav-user .user-balance span {
+                display: none;
+            }
+            
+            .nav-user .user-balance {
+                gap: 0;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            /* Removed main-container padding-top since body now has universal padding */
+            
+            /* Further mobile optimizations */
+            .nav-brand span {
+                font-size: 16px;
+            }
+            
+            .user-avatar {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .user-avatar img {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .mobile-nav-content {
+                padding: 70px 15px 20px;
+            }
+            
+            .mobile-nav-link {
+                padding: 15px 16px;
+                font-size: 15px;
+            }
+        }
+        
+        /* Match scorecard container styling */
+        .scorecard-scroll .player-card {
+            background: rgba(255,255,255,0.05) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 12px !important;
+            margin-bottom: 10px !important;
+            min-height: 70px !important;
+            max-height: 70px !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            position: relative !important;
+            z-index: 10 !important;
+        }
+        
+        .scorecard-scroll .player-card-header {
+            background: transparent !important;
+            border-radius: 0 !important;
+            padding: 10px 15px !important;
+            height: 70px !important;
+            box-sizing: border-box !important;
+            position: relative !important;
+            z-index: 11 !important;
+        }
+        
+        .scorecard-scroll .player-card-stats {
+            display: none !important;
+        }
+
+        /* Fix overlay issues - ensure all elements are properly positioned */
+        .right-panel {
+            position: relative !important;
+            z-index: 50 !important;
+            overflow: visible !important;
+        }
+        
+        /* Ensure tournament stats don't overlap */
+        .tournament-stats {
+            position: relative !important;
+            z-index: 51 !important;
+        }
+        
+        /* Ensure tab navigation doesn't overlap */
+        .tab-navigation-container {
+            position: relative !important;
+            z-index: 52 !important;
+        }
+        
+        /* Align live leaderboard with first player in scorecard */
+        .leaderboard-section {
+            margin-top: -20px !important; /* Move leaderboard up slightly to align with scorecard content */
+            flex: 1 !important; /* Allow section to expand to fill available space */
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        
+        /* Ensure proper spacing after the tournament header */
+        .tournament-header {
+            margin-bottom: 20px !important; /* Maintain proper spacing to prevent overlap */
+            display: flex !important;
+            flex-direction: column !important;
+            position: relative !important;
+            z-index: 5 !important;
+        }
+        
+        .tournament-top-section {
+            order: 1 !important;
+        }
+        
+        /* Ensure leaderboard section doesn't go behind tournament header */
+        .leaderboard-section {
+            position: relative !important;
+            z-index: 10 !important;
+        }
+        
+        /* Make leaderboard scrollable and align with right panel */
+        .leaderboard {
+            max-height: 600px !important;
+            overflow-y: auto !important;
+            height: 600px !important;
+        }
+        
+        /* Ensure left panel matches right panel height */
+        .left-panel {
+            height: 100% !important;
+        }
+        
+        /* Match scorecard container height */
+        .scorecard-container {
+            height: 600px !important;
+        }
+        
+        /* Style the scrollbar for leaderboard */
+        .leaderboard::-webkit-scrollbar {
+            width: 6px !important;
+        }
+        
+        .leaderboard::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-radius: 3px !important;
+        }
+        
+        .leaderboard::-webkit-scrollbar-thumb {
+            background: var(--primary-color) !important;
+            border-radius: 3px !important;
+        }
+        
+        /* Tournament Header Layout Styles */
+        .tournament-top-section {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+            margin-bottom: 15px !important;
+            order: -1 !important; /* Ensure this appears first */
+        }
+        
+        .tournament-bottom-row {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+        
+        /* Force right alignment with highest specificity */
+        .tournament-top-section .tournament-timer {
+            margin-left: auto !important;
+            flex-shrink: 0 !important;
+        }
+        
+        .tournament-bottom-row .live-badge {
+            margin-left: auto !important;
+            flex-shrink: 0 !important;
+        }
+        
+        /* Ensure containers use proper flexbox */
+        .tournament-top-section {
+            width: 100% !important;
+        }
+        
+        .tournament-bottom-row {
+            width: 100% !important;
+        }
+        
+        .tournament-info {
+            flex: none !important;
+        }
+        
+        .tournament-title {
+            margin: 0 !important;
+            font-size: 1.5rem !important;
+        }
+        
+        .tournament-subtitle {
+            margin: 4px 0 0 0 !important;
+            font-size: 0.9rem !important;
+            opacity: 0.8 !important;
+        }
+        
+        .live-badge {
+            flex-shrink: 0 !important;
+            margin-left: 0 !important; /* Reset any conflicting margin */
+        }
+        
+        .tournament-dropdown {
+            flex-shrink: 0 !important;
+        }
+        
+        .tournament-select {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 8px !important;
+            color: white !important;
+            padding: 8px 12px !important;
+            font-size: 0.85rem !important;
+            min-width: 280px !important;
+            cursor: pointer !important;
+        }
+        
+        .tournament-select:focus {
+            outline: none !important;
+            border-color: var(--primary-color) !important;
+        }
+        
+        .tournament-select option {
+            background: rgba(20, 20, 40, 0.95) !important;
+            color: white !important;
+        }
+        
+        .tournament-timer {
+            flex-shrink: 0 !important;
+            margin-left: 0 !important; /* Reset any conflicting margin */
+        }
+        
+        .scorecard-container {
+            position: relative !important;
+            z-index: 100 !important;
+            overflow: visible !important;
+            background: transparent !important;
+        }
+        
+        .scorecard-scroll {
+            position: relative !important;
+            z-index: 101 !important;
+            overflow-y: auto !important;
+            background: transparent !important;
+        }
+        
+        /* Ensure all player cards are always visible and on top */
+        .scorecard-scroll .player-card {
+            position: relative !important;
+            z-index: 102 !important;
+            margin-top: 0 !important;
+            background: rgba(255,255,255,0.05) !important;
+            transform: translateZ(0) !important; /* Force hardware acceleration */
+        }
+        
+        .scorecard-scroll .player-card:first-child {
+            margin-top: 0 !important;
+            position: relative !important;
+            z-index: 105 !important;
+            transform: translateZ(0) !important; /* Force hardware acceleration */
+        }
+        
+        /* Override any potentially conflicting glass-card styles */
+        .scorecard-container .glass-card {
+            z-index: 90 !important;
+        }
+        
+        /* Ensure no pseudo-elements are overlapping */
+        .scorecard-container::before,
+        .scorecard-container::after,
+        .scorecard-scroll::before,
+        .scorecard-scroll::after {
+            z-index: -1 !important;
+        }
+        
+        /* Remove any blue animation lines from player cards */
+        .scorecard-scroll .player-card::after,
+        .scorecard-scroll .player-card::before,
+        .scorecard-scroll .player-card-header::after,
+        .scorecard-scroll .player-card-header::before {
+            display: none !important;
+        }
+        
+        .scorecard-scroll .player-card {
+            border-bottom: none !important;
+            animation: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        
+        .scorecard-scroll .player-card:hover {
+            border-bottom: none !important;
+            animation: none !important;
+            outline: none !important;
+        }
+        
+        .scorecard-scroll .player-card:focus {
+            border-bottom: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* Remove any potential progress bars or loading animations - but preserve captain animations */
+        .scorecard-scroll .player-card *:not(.captain-shimmer):not([style*="pulse"]):not([style*="ffd700"]) {
+            animation: none !important;
+            border-bottom: none !important;
+        }
+        
+        /* Override any theme-specific blue colors */
+        .scorecard-scroll .player-card:hover {
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+        
+        /* Remove blue scrollbar and any progress indicators */
+        .scorecard-container,
+        .scorecard-scroll {
+            scrollbar-width: none !important; /* Firefox */
+            -ms-overflow-style: none !important; /* IE and Edge */
+        }
+        
+        .scorecard-container::-webkit-scrollbar,
+        .scorecard-scroll::-webkit-scrollbar {
+            display: none !important; /* Chrome, Safari, Opera */
+        }
+        
+        /* Remove any potential loading bars or progress indicators */
+        .scorecard-container::after,
+        .scorecard-scroll::after {
+            content: none !important;
+            display: none !important;
+        }
+        
+        /* Override any blue linear gradients that might appear - but allow captain shimmer */
+        .scorecard-container *:not(.captain-shimmer),
+        .scorecard-scroll *:not(.captain-shimmer) {
+            background-image: none !important;
+        }
+        
+        /* Disable all possible progress bars and loading indicators */
+        .scorecard-container,
+        .scorecard-scroll {
+            position: relative !important;
+            overflow: hidden !important;
+        }
+        
+        .scorecard-container::before,
+        .scorecard-scroll::before {
+            content: "" !important;
+            position: absolute !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            height: 4px !important;
+            background: transparent !important;
+            z-index: 1000 !important;
+        }
+        
+        /* Block any blue progress elements - but preserve captain animations */
+        [style*="blue"]:not(.captain-shimmer):not([style*="ffd700"]),
+        [style*="progress"],
+        [class*="progress"],
+        [class*="loading"] {
+            display: none !important;
+        }
+        
+        /* Ensure captain animations work properly */
+        .captain-shimmer {
+            display: block !important;
+            background-image: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent) !important;
+            animation: shimmer 3s infinite !important;
+        }
+
+        /* Clean Tab Navigation Styles */
+        .tab-navigation-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        /* Enhanced Tab Navigation Styles */
+        .tab-nav-btn {
+            transition: all 0.3s ease;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tab-nav-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
+        }
+
+        .tab-nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .current-tab-display {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 12px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Create New Button Styles */
+        .new-scorecard-btn {
+            padding: 10px 18px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            margin-left: 20px;
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .new-scorecard-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+            background: linear-gradient(135deg, #5b52f5, #8b44ff);
+        }
+
+        /* Tab Navigation Styles */
+        .tab-nav-btn {
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            width: 44px;
+            height: 44px;
+            justify-content: center;
+        }
+
+        .current-tab-display-info {
+            flex: 1;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .current-tab-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .current-tab-info {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+        
+        /* Captain Special Effects */
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+    </style>
+    
+    <script>
+        // Theme initialization - Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedTheme();
+        });
+
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('golfProTheme') || 'teal';
+            document.body.setAttribute('data-theme', savedTheme);
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        // Simple Submitted Lineups Display System
+        let submittedEntries = [];
+        let activeEntryIndex = 0;
+
+        function renderScorecardTabs() {
+            // Load submitted entries
+            submittedEntries = JSON.parse(localStorage.getItem('dfsEntries') || '[]');
+            
+            if (submittedEntries.length === 0) {
+                updateTabDisplay('No Lineups', 'Create your first lineup');
+                updateNavigationButtons();
+                return;
+            }
+            
+            // Ensure activeEntryIndex is within bounds
+            if (activeEntryIndex >= submittedEntries.length) {
+                activeEntryIndex = 0;
+            }
+            
+            updateTabDisplay();
+            updateNavigationButtons();
+        }
+
+        function updateTabDisplay(customName = null, customInfo = null) {
+            const lineupNameElement = document.getElementById('lineupName');
+            const lineupInfoElement = document.getElementById('lineupInfo');
+            
+            if (!lineupNameElement || !lineupInfoElement) {
+                console.error('Tab display elements not found');
+                return;
+            }
+            
+            if (customName) {
+                lineupNameElement.textContent = customName;
+                lineupInfoElement.textContent = customInfo || '';
+                return;
+            }
+            
+            if (submittedEntries.length > 0 && submittedEntries[activeEntryIndex]) {
+                const entry = submittedEntries[activeEntryIndex];
+                if (entry.players && Array.isArray(entry.players)) {
+                    const totalSalary = entry.players.reduce((sum, p) => sum + (p.salary || 0), 0);
+                    const entryDate = entry.submittedAt ? new Date(entry.submittedAt).toLocaleDateString() : 'Unknown';
+                    
+                    lineupNameElement.textContent = `Lineup ${activeEntryIndex + 1}`;
+                    lineupInfoElement.textContent = `£${totalSalary.toLocaleString()} £ ${entryDate}`;
+                } else {
+                    lineupNameElement.textContent = `Lineup ${activeEntryIndex + 1}`;
+                    lineupInfoElement.textContent = 'Invalid data';
+                }
+            }
+        }
+
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevTab');
+            const nextBtn = document.getElementById('nextTab');
+            
+            if (!prevBtn || !nextBtn) {
+                console.error('Navigation buttons not found');
+                return;
+            }
+            
+            const hasMultipleEntries = submittedEntries.length > 1;
+            const isFirstEntry = activeEntryIndex === 0;
+            const isLastEntry = activeEntryIndex === submittedEntries.length - 1;
+            
+            // Previous button
+            prevBtn.disabled = !hasMultipleEntries || isFirstEntry;
+            prevBtn.style.opacity = prevBtn.disabled ? '0.3' : '1';
+            
+            // Next button
+            nextBtn.disabled = !hasMultipleEntries || isLastEntry;
+            nextBtn.style.opacity = nextBtn.disabled ? '0.3' : '1';
+        }
+
+        function navigateTabs(direction) {
+            if (!submittedEntries.length) {
+                console.log('No entries to navigate');
+                return;
+            }
+            
+            const newIndex = activeEntryIndex + direction;
+            
+            if (newIndex >= 0 && newIndex < submittedEntries.length) {
+                activeEntryIndex = newIndex;
+                updateTabDisplay();
+                updateNavigationButtons();
+                displaySubmittedEntry(submittedEntries[activeEntryIndex]);
+            } else {
+                console.log('Navigation out of bounds:', newIndex);
+            }
+        }
+
+        function switchToEntry(index) {
+            if (index >= 0 && index < submittedEntries.length) {
+                activeEntryIndex = index;
+                updateTabDisplay();
+                updateNavigationButtons();
+                displaySubmittedEntry(submittedEntries[index]);
+            }
+        }
+
+        function createNewScorecard() {
+            // Redirect to the team builder page
+            window.location.href = 'scorecards.html';
+        }
+
+
+
+        function displaySubmittedEntry(entry) {
+            const container = document.querySelector('.scorecard-container');
+            if (!container) {
+                console.error('Scorecard container not found');
+                return;
+            }
+            
+            // Validate entry data
+            if (!entry || !entry.players || !Array.isArray(entry.players) || entry.players.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="text-align: center; padding: 40px; opacity: 0.7;">
+                        <i class="fas fa-golf-ball" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5;"></i>
+                        <h3>No lineup data</h3>
+                        <p>This entry appears to be empty or invalid</p>
+                    </div>
+                `;
+                updateStats([]);
+                return;
+            }
+            
+            try {
+                const playersHTML = entry.players.map((player, index) => {
+                    if (!player || typeof player !== 'object') {
+                        console.warn('Invalid player data at index:', index);
+                        return '<div class="player-card-error">Invalid player data</div>';
+                    }
+                    return createPlayerCardHTML(player, index);
+                }).join('');
+                
+                container.innerHTML = `<div class="scorecard-scroll">${playersHTML}</div>`;
+                updateStats(entry.players);
+            } catch (error) {
+                console.error('Error displaying entry:', error);
+                container.innerHTML = '<div class="error-state">Error loading lineup</div>';
+            }
+        }
+
+        function createPlayerCardHTML(player, index) {
+            // Validate player data
+            if (!player || typeof player !== 'object') {
+                return '<div class="player-card-error">Invalid player data</div>';
+            }
+            
+            const name = player.name || 'Unknown Player';
+            const country = player.country || 'USA';
+            const salary = player.salary || 0;
+            const avatar = player.avatar || 'https://via.placeholder.com/40x40?text=?';
+            const captainBadge = player.isCaptain ? '<span style="background: #ffd700; color: #000; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; margin-left: 8px; box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4); animation: pulse 2s infinite;"><i class="fas fa-crown" style="margin-right: 4px;"></i>CAPTAIN</span>' : '';
+            
+            // Special styling for captain cards
+            const cardStyle = player.isCaptain ? 
+                'background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05)); border: 2px solid #ffd700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); position: relative; overflow: hidden;' : 
+                '';
+            const shimmerEffect = player.isCaptain ? 
+                '<div class="captain-shimmer" style="position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent); animation: shimmer 3s infinite; pointer-events: none;"></div>' : 
+                '';
+            
+            // Generate random fantasy points for now (between 8-15)
+            const fantasyPoints = Math.floor(Math.random() * 8) + 8;
+            
+            return `
+                <div class="player-card" style="${cardStyle} position: relative; z-index: 10;">
+                    ${shimmerEffect}
+                    <div class="player-card-header" style="padding: 10px 15px; display: flex; align-items: center; gap: 12px; position: relative; z-index: 11;">
+                        <img src="${avatar}" alt="${name}" class="card-avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" onerror="this.src='https://via.placeholder.com/40x40?text=${name.charAt(0)}'">
+                        <div class="card-player-info" style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span class="card-player-name" style="font-size: 16px; font-weight: 600;">${name}${captainBadge}</span>
+                                <span class="card-player-country" style="font-size: 12px; opacity: 0.7; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px;">${country}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div style="font-weight: 600; color: var(--primary-color); font-size: 14px;">£${salary.toLocaleString()}</div>
+                                <div style="font-weight: 600; color: #4CAF50; font-size: 14px;">
+                                    <i class="fas fa-star" style="margin-right: 4px; font-size: 12px;"></i>
+                                    ${fantasyPoints} pts
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+
+
+        function updateStats(players = []) {
+            const statsContainer = document.querySelector('.tournament-stats');
+            if (!statsContainer) {
+                console.warn('Stats container not found');
+                return;
+            }
+            
+            // Optimize calculations with validation
+            const validPlayers = players.filter(p => p && typeof p === 'object');
+            const totalSalary = validPlayers.reduce((sum, player) => sum + (player.salary || 0), 0);
+            const remaining = Math.max(0, 50000 - totalSalary);
+            const captains = validPlayers.filter(player => Boolean(player.isCaptain)).length;
+            
+            // Update stats with optimized DOM manipulation
+            statsContainer.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${validPlayers.length}</div>
+                    <div class="stat-label">Players</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">£${totalSalary.toLocaleString()}</div>
+                    <div class="stat-label">Total Salary</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color: ${remaining < 0 ? '#ff6b6b' : 'inherit'}">£${remaining.toLocaleString()}</div>
+                    <div class="stat-label">Remaining</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${captains}</div>
+                    <div class="stat-label">Captain${captains !== 1 ? 's' : ''}</div>
+                </div>
+            `;
+        }
+
+        // Initialize dashboard on page load
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
+        
+        function initializeDashboard() {
+            try {
+                // Load and display submitted entries
+                const entries = JSON.parse(localStorage.getItem('dfsEntries') || '[]');
+                submittedEntries = entries;
+                
+                // Initialize tabs and display
+                renderScorecardTabs();
+                
+                if (entries.length > 0) {
+                    activeEntryIndex = 0;
+                    displaySubmittedEntry(entries[0]);
+                } else {
+                    showEmptyState();
+                }
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                showErrorState();
+            }
+        }
+        
+        function showEmptyState() {
+            const container = document.querySelector('.scorecard-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="empty-state" style="text-align: center; padding: 40px; opacity: 0.7;">
+                        <i class="fas fa-golf-ball" style="font-size: 48px; margin-bottom: 20px; opacity: 0.5;"></i>
+                        <h3>No lineups submitted yet</h3>
+                        <p>Create and submit lineups from the team builder to see them here</p>
+                        <button onclick="window.location.href='scorecards.html'" class="cta-button" style="margin-top: 20px; padding: 10px 20px; background: linear-gradient(135deg, #4f46e5, #7c3aed); border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: 600;">
+                            Go to Team Builder
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        function showErrorState() {
+            const container = document.querySelector('.scorecard-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="error-state" style="text-align: center; padding: 40px; opacity: 0.7;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 20px; color: #ff6b6b;"></i>
+                        <h3>Error Loading Data</h3>
+                        <p>There was an error loading your lineups. Please refresh the page.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function loadSubmittedEntries() {
+            const entries = JSON.parse(localStorage.getItem('dfsEntries') || '[]');
+            const scorecardScroll = document.querySelector('.scorecard-scroll');
+            const emptyState = document.getElementById('empty-state');
+            
+            if (entries.length > 0) {
+                // Hide empty state and show submitted lineup
+                if (emptyState) emptyState.style.display = 'none';
+                
+                // Get the most recent entry (latest submitted)
+                const latestEntry = entries[entries.length - 1];
+                
+                // Create player cards for each player in the lineup
+                latestEntry.players.forEach(player => {
+                    const playerCard = createPlayerCard(player);
+                    scorecardScroll.appendChild(playerCard);
+                });
+                
+                console.log('Loaded entry:', latestEntry);
+            } else {
+                // Show empty state when no entries exist
+                if (emptyState) emptyState.style.display = 'block';
+            }
+        }
+        
+        // Mobile Navigation Toggle
+        function toggleMobileMenu() {
+            const hamburger = document.querySelector('.hamburger-menu');
+            const mobileNav = document.getElementById('mobileNav');
+            
+            if (hamburger && mobileNav) {
+                hamburger.classList.toggle('active');
+                mobileNav.classList.toggle('active');
+                
+                // Prevent body scroll when menu is open
+                document.body.style.overflow = mobileNav.classList.contains('active') ? 'hidden' : '';
+            }
+        }
+        
+        // Close mobile menu when clicking on a link
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+            mobileNavLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    // Only close if it's not the current page
+                    if (!this.classList.contains('active')) {
+                        toggleMobileMenu();
+                    }
+                });
+            });
+            
+            // Close mobile menu when clicking outside
+            const mobileNav = document.getElementById('mobileNav');
+            if (mobileNav) {
+                mobileNav.addEventListener('click', function(e) {
+                    if (e.target === mobileNav) {
+                        toggleMobileMenu();
+                    }
+                });
+            }
+        });
+
+        // User Dropdown Functions
+        function toggleUserDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('active');
+                
+                // Close dropdown when clicking outside
+                if (dropdown.classList.contains('active')) {
+                    document.addEventListener('click', closeDropdownOnClickOutside);
+                } else {
+                    document.removeEventListener('click', closeDropdownOnClickOutside);
+                }
+            }
+        }
+
+        function closeDropdownOnClickOutside(event) {
+            const dropdown = document.getElementById('userDropdown');
+            const navUser = document.querySelector('.nav-user');
+            
+            if (dropdown && !navUser.contains(event.target)) {
+                dropdown.classList.remove('active');
+                document.removeEventListener('click', closeDropdownOnClickOutside);
+            }
+        }
+
+        // User Menu Functions
+        function showTransactionHistory() {
+            showNotification('Transaction History feature coming soon!', 'info');
+        }
+
+        function showNotifications() {
+            showNotification('Notifications feature coming soon!', 'info');
+        }
+
+        function showHelp() {
+            showNotification('Help & Support feature coming soon!', 'info');
+        }
+
+        function handleLogout() {
+            if (confirm('Are you sure you want to sign out?')) {
+                // Clear session data
+                localStorage.removeItem('golfProSession');
+                sessionStorage.removeItem('golfProSession');
+                
+                showNotification('Logged out successfully! Redirecting...', 'success');
+                
+                // Redirect to login page
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            }
+        }
+
+        // Notification System
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas ${getNotificationIcon(type)}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        function getNotificationIcon(type) {
+            switch (type) {
+                case 'success': return 'fa-check-circle';
+                case 'error': return 'fa-exclamation-circle';
+                case 'warning': return 'fa-exclamation-triangle';
+                default: return 'fa-info-circle';
+            }
+        }
+    </script>
+
+    <!-- Add notification styles -->
+    <style>
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: rgba(20, 20, 40, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px 20px;
+            z-index: 3000;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            max-width: 350px;
+        }
+
+        .notification.success {
+            border-color: var(--primary-color);
+            background: rgba(var(--primary-rgb), 0.1);
+        }
+
+        .notification.error {
+            border-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .notification.warning {
+            border-color: #ffd93d;
+            background: rgba(255, 217, 61, 0.1);
+        }
+
+        .notification.info {
+            border-color: #4dabf7;
+            background: rgba(77, 171, 247, 0.1);
+        }
+
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .notification.success .notification-content i {
+            color: var(--primary-color);
+        }
+
+        .notification.error .notification-content i {
+            color: #ff6b6b;
+        }
+
+        .notification.warning .notification-content i {
+            color: #ffd93d;
+        }
+
+        .notification.info .notification-content i {
+            color: #4dabf7;
+        }
+    </style>
+
+    <script>
+        // Tournament dropdown functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const tournamentSelect = document.querySelector('.tournament-select');
+            const tournamentTitle = document.querySelector('.tournament-title');
+            const tournamentSubtitle = document.querySelector('.tournament-subtitle');
+            
+            if (tournamentSelect && tournamentTitle && tournamentSubtitle) {
+                tournamentSelect.addEventListener('change', function() {
+                    const selectedValue = this.value;
+                    
+                    // Tournament data mapping
+                    const tournaments = {
+                        'masters2025': {
+                            title: 'Masters Tournament 2025',
+                            subtitle: 'Round 3 £ Augusta National'
+                        },
+                        'pga2025': {
+                            title: 'PGA Championship 2025',
+                            subtitle: 'Round 2 £ Valhalla Golf Club'
+                        },
+                        'usopen2025': {
+                            title: 'US Open 2025',
+                            subtitle: 'Round 1 £ Oakmont Country Club'
+                        },
+                        'theopen2025': {
+                            title: 'The Open Championship 2025',
+                            subtitle: 'Round 4 £ Royal Troon'
+                        },
+                        'playerschamp2025': {
+                            title: 'The Players Championship 2025',
+                            subtitle: 'Round 2 £ TPC Sawgrass'
+                        },
+                        'fedexcup2025': {
+                            title: 'FedEx Cup Playoffs 2025',
+                            subtitle: 'Final Round £ East Lake'
+                        },
+                        'rydercup2025': {
+                            title: 'Ryder Cup 2025',
+                            subtitle: 'Day 2 £ Bethpage Black'
+                        }
+                    };
+                    
+                    // Update the tournament name and subtitle
+                    if (tournaments[selectedValue]) {
+                        tournamentTitle.textContent = tournaments[selectedValue].title;
+                        tournamentSubtitle.textContent = tournaments[selectedValue].subtitle;
+                    }
+                });
+            }
+        });
+
+        // Dark Mode Toggle Functions
+            function toggleDarkMode() {
+                const body = document.body;
+                const isDarkMode = body.classList.toggle('dark-mode');
+                
+                // Save preference to localStorage
+                localStorage.setItem('darkMode', isDarkMode ? 'enabled' : 'disabled');
+                
+                // Update toggle state
+                const darkModeToggle = document.getElementById('darkModeToggle');
+                if (darkModeToggle) {
+                    darkModeToggle.checked = isDarkMode;
+                }
+                
+                console.log('Dark mode toggled:', isDarkMode);
+            }
+
+            function initializeDarkMode() {
+                // Check for saved dark mode preference or default to light mode
+                const darkMode = localStorage.getItem('darkMode');
+                const body = document.body;
+                const darkModeToggle = document.getElementById('darkModeToggle');
+                
+                console.log('INDEX: initializeDarkMode called, darkMode =', darkMode);
+                
+                if (darkMode === 'enabled') {
+                    body.classList.add('dark-mode');
+                    if (darkModeToggle) darkModeToggle.checked = true;
+                    console.log('INDEX: Applied dark mode class');
+                } else {
+                    body.classList.remove('dark-mode');
+                    if (darkModeToggle) darkModeToggle.checked = false;
+                    console.log('INDEX: Applied light mode (removed dark-mode class)');
+                }
+                
+                console.log('INDEX: Dark mode initialized:', darkMode);
+                
+                // Add a watcher to see if something removes dark mode class
+                setTimeout(function() {
+                    const currentClasses = document.body.className;
+                    console.log('INDEX: Body classes 1 second after init:', currentClasses);
+                    if (darkMode === 'enabled' && !document.body.classList.contains('dark-mode')) {
+                        console.log('INDEX: WARNING - Dark mode class was removed by something else!');
+                        document.body.classList.add('dark-mode');
+                        console.log('INDEX: Re-applied dark mode class');
+                    }
+                }, 1000);
+            }
+
+            function handleRowClick(event) {
+                console.log('INDEX: handleRowClick called');
+                // Don't toggle if the click came from the checkbox itself to avoid double-triggering
+                if (event && event.target && event.target.type === 'checkbox') {
+                    console.log('INDEX: Click came from checkbox, letting change event handle it');
+                    return;
+                }
+                console.log('INDEX: Click came from row, toggling manually');
+                
+                // Manually check/uncheck the checkbox and trigger its change event
+                const darkModeToggle = document.getElementById('darkModeToggle');
+                if (darkModeToggle) {
+                    darkModeToggle.checked = !darkModeToggle.checked;
+                    darkModeToggle.dispatchEvent(new Event('change'));
+                }
+            }
+
+            // Add dark mode initialization to existing DOMContentLoaded
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('INDEX: DOMContentLoaded fired');
+                initializeDarkMode();
+                
+                // Add event listener to toggle, but prevent double-triggering
+                const darkModeToggle = document.getElementById('darkModeToggle');
+                if (darkModeToggle) {
+                    darkModeToggle.addEventListener('change', function() {
+                        console.log('INDEX: Change event fired');
+                        toggleDarkMode();
+                    });
+                }
+            });
+    </script>
+</body>
+</html>
+

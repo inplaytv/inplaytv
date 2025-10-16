@@ -1,0 +1,106 @@
+﻿<!-- Cache Buster Test -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cache Test - Golf Website</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .status {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+        .success {
+            border: 2px solid #14b8a6;
+            color: #14b8a6;
+        }
+        .error {
+            border: 2px solid #ef4444;
+            color: #ef4444;
+        }
+        .test-button {
+            background: linear-gradient(135deg, #14b8a6, #0891b2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .test-button:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <h1>🔄 Browser Cache Test</h1>
+    
+    <div class="status">
+        <h2>Testing JavaScript Changes</h2>
+        <p>This page will check if your browser has loaded the updated JavaScript without particles.</p>
+        <div id="test-result">⏳ Testing...</div>
+    </div>
+    
+    <div class="status">
+        <h3>If you still see floating dots, try these steps:</h3>
+        <ol style="text-align: left; display: inline-block; margin: 0 auto;">
+            <li><strong>Hard Refresh:</strong> Press <code>Ctrl + F5</code> (Windows) or <code>Cmd + Shift + R</code> (Mac)</li>
+            <li><strong>Clear Cache:</strong> Press <code>F12</code> → Network tab → Check "Disable cache"</li>
+            <li><strong>Incognito Mode:</strong> Open the website in a private/incognito window</li>
+            <li><strong>Clear All Data:</strong> Right-click → Inspect → Application → Clear storage</li>
+        </ol>
+    </div>
+    
+    <button class="test-button" onclick="clearCacheAndReload()">🔄 Clear Cache & Reload</button>
+    <button class="test-button" onclick="testParticles()">🧪 Test Particles</button>
+    
+    <script>
+        // Test if ParticleSystem class still exists
+        function testParticles() {
+            const result = document.getElementById('test-result');
+            
+            try {
+                // Try to create a ParticleSystem instance
+                if (typeof ParticleSystem !== 'undefined') {
+                    result.innerHTML = '❌ ParticleSystem still exists - Cache issue detected!';
+                    result.parentElement.className = 'status error';
+                } else {
+                    result.innerHTML = '✅ ParticleSystem removed successfully - No cache issues!';
+                    result.parentElement.className = 'status success';
+                }
+            } catch (error) {
+                result.innerHTML = '✅ ParticleSystem removed successfully - No cache issues!';
+                result.parentElement.className = 'status success';
+            }
+        }
+        
+        function clearCacheAndReload() {
+            // Clear localStorage
+            localStorage.clear();
+            
+            // Clear sessionStorage
+            sessionStorage.clear();
+            
+            // Force reload without cache
+            location.reload(true);
+        }
+        
+        // Run test automatically
+        setTimeout(testParticles, 1000);
+        
+        // Add timestamp to prevent caching
+        console.log('Cache test loaded at:', new Date().toISOString());
+    </script>
+</body>
+</html>

@@ -1,0 +1,2438 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InPlay TV - Team Builder</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-container {
+                gap: 15px !important;
+                padding: 90px 15px 20px 15px !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column !important;
+                gap: 20px !important;
+                padding: 80px 15px 20px 15px !important;
+            }
+            
+            .left-panel, .right-panel {
+                flex: none !important;
+                width: 100% !important;
+            }
+            
+            .budget-tips .budget-tips > div {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+            
+            .budget-tips .budget-tips > div > div {
+                min-width: auto !important;
+            }
+        }
+        
+        /* Mobile Navigation Styles */
+        .hamburger-menu {
+            display: none;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 30px;
+            height: 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 1001;
+        }
+
+        .hamburger-line {
+            width: 100%;
+            height: 3px;
+            background: white;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+            transform-origin: center;
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(1) {
+            transform: rotate(45deg) translate(6px, 6px);
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(3) {
+            transform: rotate(-45deg) translate(6px, -6px);
+        }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(20, 20, 40, 0.98);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-nav.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-nav-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            padding: 80px 20px 30px;
+        }
+
+        .mobile-nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mobile-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 18px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-nav-link:hover, .mobile-nav-link.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-color: var(--primary-color);
+            transform: translateX(5px);
+        }
+
+        .mobile-nav-link i {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .mobile-nav-user {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 20px;
+        }
+
+        .mobile-user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+        }
+
+        .mobile-user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .mobile-user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mobile-user-balance {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .mobile-user-label {
+            font-size: 12px;
+            opacity: 0.7;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            /* Show hamburger menu */
+            .hamburger-menu {
+                display: flex;
+            }
+            
+            /* Hide desktop navigation */
+            .nav-links {
+                display: none;
+            }
+            
+            /* Show mobile navigation */
+            .mobile-nav {
+                display: block;
+            }
+            
+            /* Adjust nav container */
+            .nav-container {
+                justify-content: space-between;
+            }
+            
+            /* Optimize nav-user for mobile */
+            .nav-user .user-balance span {
+                display: none;
+            }
+            
+            .nav-user .user-balance {
+                gap: 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-container {
+                padding: 10px !important; /* Removed top padding since body now has universal padding */
+            }
+            
+            .scorecard-header-top {
+                padding: 15px !important;
+            }
+            
+            /* Further mobile optimizations */
+            .nav-brand span {
+                font-size: 16px;
+            }
+            
+            .user-avatar {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .user-avatar img {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .mobile-nav-content {
+                padding: 70px 15px 20px;
+            }
+            
+            .mobile-nav-link {
+                padding: 15px 16px;
+                font-size: 15px;
+            }
+            
+            .scorecard-header-top > div {
+                flex-direction: column !important;
+                gap: 10px !important;
+                align-items: flex-start !important;
+            }
+        }
+        
+        /* Compact Player List */
+        .leaderboard-item.player-select {
+            padding: 12px 15px !important;
+        }
+        
+        .leaderboard-item.lineup-slot {
+            padding: 10px 15px !important;
+        }
+        
+        .right-panel .leaderboard.glass-card {
+            padding-top: 5px !important;
+        }
+        
+        .scorecard-header {
+            margin-bottom: 8px !important;
+        }
+        
+        .budget-tracker-compact {
+            transition: all 0.3s ease;
+        }
+        
+        /* Captain Special Effects */
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-container">
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <div class="nav-brand">
+                    <i class="fas fa-golf-ball"></i>
+                    <span>InPlay TV</span>
+                </div>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="tournaments.html" class="nav-link">Tournaments</a>
+                <a href="#" class="nav-link active">Team Builder</a>
+                <a href="index.html" class="nav-link">Scorecards</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboards</a>
+            </div>
+            
+            <div class="nav-user" onclick="toggleUserDropdown()">
+                <div class="user-balance">
+                    <span class="balance-amount">£2,450</span>
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="user-avatar">
+                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="User">
+                    <i class="fas fa-chevron-down user-dropdown-arrow"></i>
+                </div>
+                
+                <!-- User Dropdown Menu -->
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="user-dropdown-header">
+                        <div class="dropdown-user-avatar">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face" alt="User">
+                        </div>
+                        <div class="dropdown-user-info">
+                            <div class="dropdown-user-name">John Smith</div>
+                            <div class="dropdown-user-email">john.smith@example.com</div>
+                        </div>
+                    </div>
+                    <div class="user-dropdown-divider"></div>
+                    <div class="user-dropdown-menu">
+                        <a href="profile.html" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="settings.html" class="dropdown-item">
+                            <i class="fas fa-cog"></i>
+                            <span>Account Settings</span>
+                        </a>
+                        <div class="dropdown-item dropdown-toggle-item" onclick="handleRowClick()">
+                            <div class="dropdown-toggle-content">
+                                <i class="fas fa-moon"></i>
+                                <span>Dark Mode</span>
+                            </div>
+                            <label class="dropdown-toggle-switch" onclick="event.stopPropagation();">
+                                <input type="checkbox" id="darkModeToggle">
+                                <span class="dropdown-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <a href="#" class="dropdown-item" onclick="showTransactionHistory()">
+                            <i class="fas fa-receipt"></i>
+                            <span>Transaction History</span>
+                        </a>
+                        <a href="#" class="dropdown-item" onclick="showNotifications()">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
+                        </a>
+                        <div class="user-dropdown-divider"></div>
+                        <a href="#" class="dropdown-item" onclick="showHelp()">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Help & Support</span>
+                        </a>
+                        <a href="#" class="dropdown-item logout" onclick="handleLogout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sign Out</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Hamburger Menu -->
+            <button class="hamburger-menu" onclick="toggleMobileMenu()" aria-label="Toggle navigation menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+        
+        <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-content">
+                <div class="mobile-nav-links">
+                    <a href="home.html" class="mobile-nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                    <a href="tournaments.html" class="mobile-nav-link">
+                        <i class="fas fa-trophy"></i>
+                        <span>Tournaments</span>
+                    </a>
+                    <a href="index.html" class="mobile-nav-link">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Scorecards</span>
+                    </a>
+                    <a href="leaderboard.html" class="mobile-nav-link">
+                        <i class="fas fa-medal"></i>
+                        <span>Leaderboards</span>
+                    </a>
+                    <a href="#" class="mobile-nav-link active">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Team Builder</span>
+                    </a>
+                    <a href="#" class="mobile-nav-link">
+                        <i class="fas fa-user"></i>
+                        <span>Profile</span>
+                    </a>
+                </div>
+                <div class="mobile-nav-user">
+                    <div class="mobile-user-info">
+                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="User" class="mobile-user-avatar">
+                        <div class="mobile-user-details">
+                            <span class="mobile-user-balance">£2,450</span>
+                            <span class="mobile-user-label">Account Balance</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-container" style="display: flex; gap: 20px; align-items: flex-start; padding: 20px; max-width: 1400px; margin: 0 auto;">
+        <!-- Left Panel: Tournament Overview -->
+        <section class="left-panel" style="flex: 1; min-width: 0;">
+            <div class="leaderboard-section">
+                <div class="section-header" style="position: relative;">
+                    <h2>Masters Tournament 2025</h2>
+                    <!-- Scorecard Full Indicator -->
+                    <div id="scorecard-full-badge" style="display: none; position: absolute; top: 50%; right: 0; transform: translateY(-50%); background: rgba(255, 71, 87, 0.15); border: 1px solid rgba(255, 71, 87, 0.4); border-radius: 20px; padding: 6px 12px; font-size: 11px; font-weight: 600; color: #ffffff;">
+                        <i class="fas fa-check-circle" style="margin-right: 5px; font-size: 10px;"></i>Your Scorecard is Full
+                    </div>
+                </div>
+
+                <!-- Compact Budget Status Component -->
+                <div id="budget-status-container" class="budget-status-component glass-card" style="padding: 12px; margin-bottom: 15px;">
+                    <!-- Top Row: Header + Health + Quick Stats -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--primary-color); display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-wallet" style="font-size: 12px;"></i>
+                                Budget
+                            </h3>
+                            <div id="budget-health-indicator" class="budget-health" style="padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3);">
+                                Excellent
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; font-size: 12px;">
+                            <div style="text-align: right;">
+                                <span style="color: #999;">Remaining: </span>
+                                <span id="budget-remaining-compact" style="color: var(--primary-color); font-weight: 600;">£50,000</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="color: #999;">Players: </span>
+                                <span id="players-count-compact" style="color: #fff; font-weight: 600;">0/6</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Middle Row: Progress Bar with Inline Stats -->
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <div style="flex: 1;">
+                            <div class="progress-bar-container" style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                <div id="budget-progress-bar" class="progress-fill" style="height: 100%; background: linear-gradient(90deg, #22c55e, #16a34a); border-radius: 3px; width: 0%; transition: all 0.3s ease;"></div>
+                            </div>
+                        </div>
+                        <span id="budget-percentage" style="font-size: 11px; font-weight: 600; color: var(--primary-color); min-width: 28px;">0%</span>
+                    </div>
+
+                    <!-- Bottom Row: Compact Insights in Single Line -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                        <!-- Left: Affordability Status -->
+                        <div id="affordability-status-compact" style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;">
+                            <i class="fas fa-check-circle" style="color: #22c55e; font-size: 12px;"></i>
+                            <span style="color: #22c55e; font-weight: 600; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Can Afford All</span>
+                        </div>
+
+                        <!-- Center: Average Cost -->
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-chart-line" style="color: var(--primary-color); font-size: 10px;"></i>
+                            <span style="font-size: 10px; color: #999;">Avg:</span>
+                            <span id="average-cost-compact" style="font-size: 11px; font-weight: 600; color: #fff;">£0</span>
+                        </div>
+
+                        <!-- Right: Value Assessment -->
+                        <div id="value-assessment-compact" style="display: flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-star" style="color: #3b82f6; font-size: 10px;"></i>
+                            <span id="value-rating-compact" style="color: #3b82f6; font-size: 11px; font-weight: 600;">Balanced</span>
+                        </div>
+                    </div>
+
+                    <!-- Hidden detailed elements for JavaScript compatibility -->
+                    <div style="display: none;">
+                        <span id="budget-percentage"></span>
+                        <span id="budget-used-amount"></span>
+                        <span id="budget-total-amount"></span>
+                        <span id="budget-remaining"></span>
+                        <span id="average-cost"></span>
+                        <div id="affordability-status"></div>
+                        <div id="value-assessment">
+                            <span id="value-rating"></span>
+                            <span id="value-details"></span>
+                        </div>
+                        <span id="positions-remaining"></span>
+                    </div>
+                </div>
+
+                <div class="leaderboard glass-card" style="max-height: 650px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--primary-color) rgba(255,255,255,0.1);">
+                    <div class="leaderboard-item player-select" data-player="scheffler" data-salary="12500" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" alt="Scottie Scheffler" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Scottie Scheffler - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£12,500</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="mcilroy" data-salary="11800" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" alt="Rory McIlroy" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Rory McIlroy - NIR</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£11,800</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="rahm" data-salary="11200" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=40&h=40&fit=crop&crop=face" alt="Jon Rahm" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Jon Rahm - ESP</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£11,200</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="hovland" data-salary="9200" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face" alt="Viktor Hovland" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Viktor Hovland - NOR</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£9,200</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="schauffele" data-salary="10400" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="Xander Schauffele" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Xander Schauffele - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£10,400</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="thomas" data-salary="8900" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face" alt="Justin Thomas" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Justin Thomas - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£8,900</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="matsuyama" data-salary="7600" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=40&h=40&fit=crop&crop=face" alt="Hideki Matsuyama" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Hideki Matsuyama - JPN</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£7,600</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="cantlay" data-salary="8200" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="Patrick Cantlay" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Patrick Cantlay - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£8,200</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="morikawa" data-salary="9100" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face" alt="Collin Morikawa" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Collin Morikawa - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£9,100</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="spieth" data-salary="7800" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" alt="Jordan Spieth" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Jordan Spieth - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£7,800</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="koepka" data-salary="9800" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" alt="Brooks Koepka" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Brooks Koepka - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£9,800</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="garcia" data-salary="6200" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=40&h=40&fit=crop&crop=face" alt="Sergio Garcia" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Sergio Garcia - ESP</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£6,200</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="fowler" data-salary="5900" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="Rickie Fowler" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Rickie Fowler - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£5,900</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="dechambeau" data-salary="8500" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face" alt="Bryson DeChambeau" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Bryson DeChambeau - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£8,500</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="finau" data-salary="7100" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face" alt="Tony Finau" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Tony Finau - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£7,100</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="rose" data-salary="6800" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" alt="Justin Rose" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Justin Rose - ENG</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£6,800</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="horschel" data-salary="6400" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=40&h=40&fit=crop&crop=face" alt="Billy Horschel" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Billy Horschel - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£6,400</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="harman" data-salary="6000" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="Brian Harman" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Brian Harman - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£6,000</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="fleetwood" data-salary="7300" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face" alt="Tommy Fleetwood" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Tommy Fleetwood - ENG</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£7,300</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="burns" data-salary="5700" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" alt="Sam Burns" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Sam Burns - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£5,700</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="conners" data-salary="6600" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" alt="Corey Conners" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Corey Conners - CAN</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£6,600</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="young" data-salary="5400" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=40&h=40&fit=crop&crop=face" alt="Cameron Young" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Cameron Young - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£5,400</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="zalatoris" data-salary="7500" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="Will Zalatoris" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Will Zalatoris - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£7,500</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="english" data-salary="5100" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face" alt="Harris English" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Harris English - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£5,100</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="homa" data-salary="6900" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face" alt="Max Homa" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Max Homa - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£6,900</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="smith" data-salary="8700" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" alt="Cameron Smith" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Cameron Smith - AUS</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£8,700</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="im" data-salary="6700" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" alt="Sungjae Im" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Sungjae Im - KOR</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£6,700</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="henley" data-salary="5800" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=40&h=40&fit=crop&crop=face" alt="Russell Henley" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Russell Henley - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£5,800</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="poston" data-salary="5200" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="J.T. Poston" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">J.T. Poston - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£5,200</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="kim" data-salary="6300" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face" alt="Tom Kim" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Tom Kim - KOR</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£6,300</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="hoge" data-salary="4900" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face" alt="Tom Hoge" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Tom Hoge - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£4,900</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="riley" data-salary="4600" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" alt="Davis Riley" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Davis Riley - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£4,600</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="lowry" data-salary="6500" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" alt="Shane Lowry" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Shane Lowry - IRL</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£6,500</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="day" data-salary="7000" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=40&h=40&fit=crop&crop=face" alt="Jason Day" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Jason Day - AUS</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£7,000</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="hubbard" data-salary="4300" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="Mark Hubbard" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Mark Hubbard - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£4,300</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="mccarthy" data-salary="5000" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face" alt="Denny McCarthy" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Denny McCarthy - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£5,000</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="niemann" data-salary="5500" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face" alt="Joaquin Niemann" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Joaquin Niemann - CHI</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£5,500</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="todd" data-salary="4100" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" alt="Brendon Todd" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Brendon Todd - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£4,100</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="varner" data-salary="4800" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" alt="Harold Varner III" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Harold Varner III - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£4,800</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="hoffman" data-salary="4400" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=40&h=40&fit=crop&crop=face" alt="Charley Hoffman" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Charley Hoffman - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£4,400</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="palmer" data-salary="4700" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="Ryan Palmer" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Ryan Palmer - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£4,700</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="scott" data-salary="6100" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=40&h=40&fit=crop&crop=face" alt="Adam Scott" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Adam Scott - AUS</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£6,100</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="leishman" data-salary="5300" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=40&h=40&fit=crop&crop=face" alt="Marc Leishman" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Marc Leishman - AUS</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£5,300</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="wise" data-salary="4500" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" alt="Aaron Wise" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Aaron Wise - USA</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£4,500</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="munoz" data-salary="5600" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face" alt="Sebastian Munoz" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Sebastian Munoz - COL</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£5,600</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="taylor" data-salary="4200" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=40&h=40&fit=crop&crop=face" alt="Nick Taylor" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Nick Taylor - CAN</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£4,200</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item player-select" data-player="power" data-salary="4000" style="display: flex; align-items: center; justify-content: space-between; padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="Seamus Power" class="player-avatar">
+                            <div class="player-info-section">
+                                <span class="player-name">Seamus Power - IRL</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: var(--primary-color);">£4,000</div>
+                            <button class="add-player-btn" style="background: var(--primary-color); border: none; border-radius: 50%; width: 32px; height: 32px; color: #000; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: My Scorecard -->
+        <section class="right-panel" style="flex: 1; min-width: 0;">
+            <div class="leaderboard-section">
+                <div class="section-header">
+                    <h2>My Lineup</h2>
+                </div>
+
+                <div class="leaderboard glass-card" style="padding-top: 5px;">
+                    <!-- Scorecard Header Inside Container -->
+                    <div class="scorecard-header-top" style="padding: 10px 20px 8px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 5px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div id="scorecard-title" style="font-size: 18px; font-weight: 600; margin-bottom: 2px;">Your Scorecard (0/6)</div>
+                                <div id="scorecard-subtitle" style="font-size: 14px; opacity: 0.8;"><i class="fas fa-crown" style="color: #ffd700; margin-right: 6px; font-size: 12px;"></i>Select a captain to earn 2x points!</div>
+                                <!-- Captain Warning (initially hidden) -->
+                                <div id="captain-warning" style="display: none; background: rgba(255, 193, 7, 0.15); border: 1px solid rgba(255, 193, 7, 0.4); border-radius: 6px; padding: 6px 10px; margin-top: 3px; font-size: 12px; color: #ffc107;">
+                                    <i class="fas fa-exclamation-triangle" style="margin-right: 6px;"></i>Select a captain to continue - earn 2x points!
+                                </div>
+                            </div>
+                            <button id="clear-all-btn" onclick="clearAllPlayers()" style="background: #B22222; border: none; border-radius: 6px; padding: 8px 16px; color: white; font-weight: 600; cursor: pointer; font-size: 12px;">Clear Lineup</button>
+                        </div>
+                    </div>
+                    <div class="leaderboard-item lineup-slot empty" data-slot="1" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; opacity: 0.6;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-user-plus" style="color: #666;"></i>
+                            </div>
+                            <div class="player-info-section">
+                                <span class="player-name" style="color: #999;">Select Player 1</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: #666;">£0</div>
+                            <button class="add-player-btn disabled" style="background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 32px; height: 32px; color: #666; cursor: not-allowed;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item lineup-slot empty" data-slot="2" style="display: flex; align-items: center; justify-content: space-between; padding: 15px; opacity: 0.6;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-user-plus" style="color: #666;"></i>
+                            </div>
+                            <div class="player-info-section">
+                                <span class="player-name" style="color: #999;">Select Player 2</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: #666;">£0</div>
+                            <button class="add-player-btn disabled" style="background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 32px; height: 32px; color: #666; cursor: not-allowed;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item lineup-slot empty" data-slot="3" style="display: flex; align-items: center; justify-content: space-between; padding: 15px; opacity: 0.6;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-user-plus" style="color: #666;"></i>
+                            </div>
+                            <div class="player-info-section">
+                                <span class="player-name" style="color: #999;">Select Player 3</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: #666;">£0</div>
+                            <button class="add-player-btn disabled" style="background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 32px; height: 32px; color: #666; cursor: not-allowed;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item lineup-slot empty" data-slot="4" style="display: flex; align-items: center; justify-content: space-between; padding: 15px; opacity: 0.6;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-user-plus" style="color: #666;"></i>
+                            </div>
+                            <div class="player-info-section">
+                                <span class="player-name" style="color: #999;">Select Player 4</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: #666;">£0</div>
+                            <button class="add-player-btn disabled" style="background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 32px; height: 32px; color: #666; cursor: not-allowed;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item lineup-slot empty" data-slot="5" style="display: flex; align-items: center; justify-content: space-between; padding: 15px; opacity: 0.6;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-user-plus" style="color: #666;"></i>
+                            </div>
+                            <div class="player-info-section">
+                                <span class="player-name" style="color: #999;">Select Player 5</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: #666;">£0</div>
+                            <button class="add-player-btn disabled" style="background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 32px; height: 32px; color: #666; cursor: not-allowed;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leaderboard-item lineup-slot empty" data-slot="6" style="display: flex; align-items: center; justify-content: space-between; padding: 15px; opacity: 0.6;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-user-plus" style="color: #666;"></i>
+                            </div>
+                            <div class="player-info-section">
+                                <span class="player-name" style="color: #999;">Select Player 6</span>
+                            </div>
+                        </div>
+                        <div class="player-actions" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="player-salary" style="font-weight: 600; color: #666;">£0</div>
+                            <button class="add-player-btn disabled" style="background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 32px; height: 32px; color: #666; cursor: not-allowed;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Gold Indicator - Shows when lineup is full (6/6) -->
+                    <div id="lineup-complete-indicator" style="display: none; padding: 15px 20px; border-top: 1px solid rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.08);">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; color: #ffd700;">
+                            <i class="fas fa-star" style="font-size: 16px;"></i>
+                            <span style="font-weight: 600; font-size: 14px;">Lineup Complete! Now select your captain to continue.</span>
+                            <i class="fas fa-crown" style="font-size: 16px;"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button - Shows only when captain is selected -->
+                    <div id="submit-button-container" style="display: none; padding: 15px 20px; border-top: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02);">
+                        <button class="action-btn primary" onclick="submitEntry()" style="width: 100%; background: var(--primary-color); border: none; border-radius: 8px; padding: 12px 20px; color: #000; font-weight: 600; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i class="fas fa-check"></i>
+                            Submit Scorecard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+    
+    <script>
+        // Team Builder Functionality
+        let selectedPlayers = [];
+        const maxPlayers = 6;
+        let totalBudget = 50000;
+        let usedBudget = 0;
+
+        // Initialize event listeners when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedTheme();
+            initializeTeamBuilder();
+        });
+
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('golfProTheme') || 'teal';
+            document.body.setAttribute('data-theme', savedTheme);
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        function initializeTeamBuilder() {
+            // Add click listeners to all add player buttons
+            const addButtons = document.querySelectorAll('.add-player-btn');
+            addButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const playerItem = this.closest('.player-select');
+                    addPlayerToLineup(playerItem);
+                });
+            });
+        }
+
+        function addPlayerToLineup(playerItem) {
+            console.log('Adding player to lineup:', playerItem);
+            
+            // Check if lineup is full
+            if (selectedPlayers.length >= maxPlayers) {
+                alert('Lineup is full! Remove a player first.');
+                return;
+            }
+
+            // Immediately disable button to prevent double-clicks
+            const button = playerItem.querySelector('.add-player-btn');
+            if (button) {
+                button.style.pointerEvents = 'none';
+                button.style.opacity = '0.5';
+            }
+
+            // Get player data
+            const fullName = playerItem.querySelector('.player-name').textContent;
+            const nameParts = fullName.split(' - ');
+            const playerData = {
+                id: playerItem.dataset.player,
+                name: nameParts[0], // Just the player name without country
+                country: nameParts[1] || '--', // The country part, or '--' as fallback
+                salary: parseInt(playerItem.dataset.salary),
+                avatar: playerItem.querySelector('.player-avatar').src,
+                rank: Math.floor(Math.random() * 200) + 1, // Random rank for demo
+                recent: 'N/A' // Placeholder for recent performance
+            };
+
+            // Check budget
+            if (usedBudget + playerData.salary > totalBudget) {
+                alert('Not enough budget! This player costs £' + playerData.salary.toLocaleString());
+                return;
+            }
+
+            // Check if player already selected
+            if (selectedPlayers.find(p => p.id === playerData.id)) {
+                alert('Player already selected!');
+                return;
+            }
+
+            // Add player to lineup
+            selectedPlayers.push(playerData);
+            usedBudget += playerData.salary;
+            
+            console.log('Player added:', playerData);
+            console.log('Selected players:', selectedPlayers);
+            console.log('Player item being updated:', playerItem);
+
+            // Update UI immediately to prevent double-clicks
+            updatePlayerButton(playerItem, true);
+            updateScorecardDisplay();
+            updateBudgetDisplay();
+        }
+
+        function removePlayerFromLineup(playerId) {
+            const playerIndex = selectedPlayers.findIndex(p => p.id === playerId);
+            if (playerIndex !== -1) {
+                const player = selectedPlayers[playerIndex];
+                usedBudget -= player.salary;
+                selectedPlayers.splice(playerIndex, 1);
+
+                // Update UI
+                updateScorecardDisplay();
+                updateBudgetDisplay();
+                
+                // Re-enable the add button for this player
+                const playerItem = document.querySelector(`[data-player="${playerId}"]`);
+                if (playerItem) {
+                    updatePlayerButton(playerItem, false);
+                }
+            }
+        }
+
+        function setCaptain(playerId) {
+            // Remove captain status from all players
+            selectedPlayers.forEach(player => {
+                player.isCaptain = false;
+            });
+
+            // Set new captain
+            const player = selectedPlayers.find(p => p.id === playerId);
+            if (player) {
+                player.isCaptain = true;
+                updateScorecardDisplay();
+            }
+        }
+
+        function updateScorecardDisplay() {
+            console.log('Updating scorecard display');
+            const scorecardContainer = document.querySelector('.right-panel .leaderboard');
+            console.log('Scorecard container:', scorecardContainer);
+            const headerTop = scorecardContainer.querySelector('.scorecard-header-top');
+            console.log('Header top:', headerTop);
+            
+            // Clear existing player headers (but keep the top header)
+            const existingHeaders = scorecardContainer.querySelectorAll('.scorecard-header');
+            existingHeaders.forEach(header => header.remove());
+
+            // Add selected players after the header but before empty slots
+            const firstEmptySlot = scorecardContainer.querySelector('.lineup-slot.empty');
+            selectedPlayers.forEach((player, index) => {
+                const playerHeader = createPlayerHeader(player, index);
+                if (firstEmptySlot) {
+                    scorecardContainer.insertBefore(playerHeader, firstEmptySlot);
+                } else {
+                    // If no empty slots, insert after header
+                    const insertAfter = headerTop.nextElementSibling || headerTop;
+                    insertAfter.parentNode.insertBefore(playerHeader, insertAfter.nextSibling);
+                }
+            });
+
+            // Update empty slots visibility
+            updateEmptySlots();
+            
+            // Update captain message visibility
+            updateCaptainMessage();
+            
+            // Update scorecard title
+            updateScorecardTitle();
+        }
+
+        function createPlayerHeader(player, index) {
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'scorecard-header';
+            
+            // Special styling for captain
+            if (player.isCaptain) {
+                headerDiv.style.cssText = 'background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05)); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 2px solid #ffd700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); position: relative; overflow: hidden;';
+                // Add animated golden glow effect
+                headerDiv.innerHTML = '<div style="position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent); animation: shimmer 3s infinite;"></div>';
+            } else {
+                headerDiv.style.cssText = 'background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.1);';
+            }
+            
+            const captainBadge = player.isCaptain ? '<span style="background: #ffd700; color: #000; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; margin-left: 8px; box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4); animation: pulse 2s infinite;"><i class="fas fa-crown" style="margin-right: 4px;"></i>CAPTAIN</span>' : '';
+            
+            headerDiv.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden;">
+                            <img src="${player.avatar}" alt="${player.name}" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 16px;">${player.name}${captainBadge}</div>
+                            <div style="font-size: 12px; opacity: 0.7;">Rank #${player.rank} • Recent: ${player.recent}</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto; flex-shrink: 0;">
+                        <div style="font-weight: 600; color: var(--primary-color); font-size: 16px;">£${player.salary.toLocaleString()}</div>
+                        <button onclick="setCaptain('${player.id}')" style="background: #ffd700; border: none; border-radius: 4px; padding: 6px 10px; font-size: 11px; color: #000; font-weight: 600; cursor: pointer; white-space: nowrap;">Set Captain</button>
+                        <button onclick="removePlayerFromLineup('${player.id}')" style="background: #ff4757; border: none; border-radius: 4px; padding: 6px 10px; font-size: 11px; color: white; font-weight: 600; cursor: pointer;">Remove</button>
+                    </div>
+                </div>
+            `;
+            
+            return headerDiv;
+        }
+
+        function updateEmptySlots() {
+            const emptySlots = document.querySelectorAll('.lineup-slot.empty');
+            const slotsToShow = maxPlayers - selectedPlayers.length;
+            
+            emptySlots.forEach((slot, index) => {
+                if (index < slotsToShow) {
+                    slot.style.display = 'flex';
+                    // Update slot number
+                    const slotText = slot.querySelector('.player-name');
+                    if (slotText) {
+                        slotText.textContent = `Select Player ${selectedPlayers.length + index + 1}`;
+                    }
+                } else {
+                    slot.style.display = 'none';
+                }
+            });
+        }
+
+        function updateBudgetDisplay() {
+            console.log('Updating budget display');
+            const remainingBudget = totalBudget - usedBudget;
+            const progressPercent = (usedBudget / totalBudget) * 100;
+            const remainingSlots = maxPlayers - selectedPlayers.length;
+            
+            console.log('Remaining budget:', remainingBudget, 'Progress:', progressPercent);
+
+            // Update legacy budget values (if they exist)
+            const remainingElement = document.querySelector('.budget-value.remaining');
+            const playersElement = document.querySelector('.budget-value.players');
+            console.log('Budget elements:', remainingElement, playersElement);
+            
+            if (remainingElement) remainingElement.textContent = '£' + remainingBudget.toLocaleString();
+            if (playersElement) playersElement.textContent = selectedPlayers.length + '/6';
+            
+            // Update legacy progress bar (if exists)
+            const progressBar = document.querySelector('.budget-progress');
+            if (progressBar) {
+                progressBar.style.width = progressPercent + '%';
+            }
+            
+            // Update new Budget Status Component
+            updateBudgetStatusComponent(remainingBudget, progressPercent, remainingSlots);
+            
+            // Update budget optimization tips
+            updateBudgetTips(remainingBudget, progressPercent, remainingSlots);
+        }
+
+        function updateBudgetStatusComponent(remainingBudget, progressPercent, remainingSlots) {
+            // Calculate budget health
+            const budgetHealth = calculateBudgetHealth(progressPercent, remainingSlots);
+            const averageCost = selectedPlayers.length > 0 ? Math.round(usedBudget / selectedPlayers.length) : 0;
+            
+            // Update budget percentage
+            const budgetPercentageEl = document.getElementById('budget-percentage');
+            if (budgetPercentageEl) {
+                budgetPercentageEl.textContent = Math.round(progressPercent) + '%';
+            }
+            
+            // Update progress bar
+            const progressBarEl = document.getElementById('budget-progress-bar');
+            if (progressBarEl) {
+                progressBarEl.style.width = progressPercent + '%';
+                progressBarEl.className = 'progress-fill ' + budgetHealth.level;
+            }
+            
+            // Update budget amounts (regular elements)
+            const budgetUsedEl = document.getElementById('budget-used-amount');
+            const budgetRemainingEl = document.getElementById('budget-remaining');
+            const averageCostEl = document.getElementById('average-cost');
+            
+            if (budgetUsedEl) budgetUsedEl.textContent = '£' + usedBudget.toLocaleString();
+            if (budgetRemainingEl) budgetRemainingEl.textContent = '£' + remainingBudget.toLocaleString();
+            if (averageCostEl) averageCostEl.textContent = averageCost > 0 ? '£' + averageCost.toLocaleString() : '£0';
+            
+            // Update compact elements
+            const budgetRemainingCompactEl = document.getElementById('budget-remaining-compact');
+            const playersCountCompactEl = document.getElementById('players-count-compact');
+            const averageCostCompactEl = document.getElementById('average-cost-compact');
+            
+            if (budgetRemainingCompactEl) budgetRemainingCompactEl.textContent = '£' + remainingBudget.toLocaleString();
+            if (playersCountCompactEl) playersCountCompactEl.textContent = selectedPlayers.length + '/6';
+            if (averageCostCompactEl) averageCostCompactEl.textContent = averageCost > 0 ? '£' + averageCost.toLocaleString() : '£0';
+            
+            // Update budget health indicator
+            const healthIndicatorEl = document.getElementById('budget-health-indicator');
+            if (healthIndicatorEl) {
+                healthIndicatorEl.textContent = budgetHealth.label;
+                healthIndicatorEl.className = 'budget-health ' + budgetHealth.level;
+            }
+            
+            // Update affordability status
+            updateAffordabilityStatus(remainingBudget, remainingSlots);
+            
+            // Update value assessment
+            updateValueAssessment();
+            
+            // Animate the component
+            const componentEl = document.getElementById('budget-status-container');
+            if (componentEl) {
+                componentEl.classList.add('budget-animate');
+                setTimeout(() => componentEl.classList.remove('budget-animate'), 300);
+            }
+        }
+
+        function calculateBudgetHealth(progressPercent, remainingSlots) {
+            if (progressPercent <= 50) {
+                return { level: 'excellent', label: 'Excellent' };
+            } else if (progressPercent <= 75) {
+                return { level: 'good', label: 'Good' };
+            } else if (progressPercent <= 90) {
+                return { level: 'warning', label: 'Tight' };
+            } else {
+                return { level: 'danger', label: 'Critical' };
+            }
+        }
+
+        function updateAffordabilityStatus(remainingBudget, remainingSlots) {
+            const affordabilityEl = document.getElementById('affordability-status');
+            const positionsRemainingEl = document.getElementById('positions-remaining');
+            
+            if (!affordabilityEl || !positionsRemainingEl) return;
+            
+            let status, className, icon, message, positions;
+            
+            if (remainingSlots === 0) {
+                status = 'Lineup Complete';
+                className = 'can-afford';
+                icon = 'fas fa-check-circle';
+                message = 'Ready to Submit';
+                positions = 'All filled';
+            } else if (remainingBudget >= (remainingSlots * 4000)) {
+                status = 'Can Afford All Positions';
+                className = 'can-afford';
+                icon = 'fas fa-check-circle';
+                message = 'Budget looks healthy';
+                positions = remainingSlots + ' spots left';
+            } else if (remainingBudget >= (remainingSlots * 2000)) {
+                status = 'Tight Budget Remaining';
+                className = 'tight-budget';
+                icon = 'fas fa-exclamation-triangle';
+                message = 'Consider budget players';
+                positions = remainingSlots + ' spots left';
+            } else {
+                const deficit = (remainingSlots * 4000) - remainingBudget;
+                status = 'Over Budget';
+                className = 'over-budget';
+                icon = 'fas fa-times-circle';
+                message = 'Need £' + deficit.toLocaleString() + ' more';
+                positions = remainingSlots + ' spots left';
+            }
+            
+            // Update the affordability card (if exists)
+            if (affordabilityEl) {
+                affordabilityEl.className = 'affordability-card ' + className;
+                affordabilityEl.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="${icon}" style="color: ${getStatusColor(className)}; font-size: 16px;"></i>
+                            <span style="color: ${getStatusColor(className)}; font-weight: 600; font-size: 14px;">${status}</span>
+                        </div>
+                        <span style="color: ${getStatusColor(className)}; font-size: 12px;">${positions}</span>
+                    </div>
+                    <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">${message}</div>
+                `;
+            }
+            
+            // Update compact affordability status
+            const affordabilityCompactEl = document.getElementById('affordability-status-compact');
+            if (affordabilityCompactEl) {
+                const shortStatus = remainingSlots === 0 ? 'Complete' :
+                                  className === 'can-afford' ? 'Can Afford All' :
+                                  className === 'tight-budget' ? 'Tight Budget Please review Your Selections ' : 'Over Budget';
+                
+                affordabilityCompactEl.innerHTML = `
+                    <i class="${icon}" style="color: ${getStatusColor(className)}; font-size: 12px;"></i>
+                    <span style="color: ${getStatusColor(className)}; font-weight: 600; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${shortStatus}</span>
+                `;
+            }
+        }
+
+        function updateValueAssessment() {
+            const valueAssessmentEl = document.getElementById('value-assessment');
+            const valueDetailsEl = document.getElementById('value-details');
+            const valueRatingEl = document.getElementById('value-rating');
+            
+            if (!valueAssessmentEl || !selectedPlayers.length) {
+                if (valueDetailsEl) valueDetailsEl.textContent = 'Select players to see value analysis';
+                if (valueRatingEl) valueRatingEl.textContent = 'Balanced';
+                return;
+            }
+            
+            // Calculate value metrics
+            const totalCost = selectedPlayers.reduce((sum, player) => sum + player.salary, 0);
+            const averageCost = totalCost / selectedPlayers.length;
+            const marketAverage = 8333; // £50k / 6 players
+            
+            let valueLevel, valueLabel, valueClass, valueColor, valueDetails;
+            
+            if (averageCost < marketAverage * 0.8) {
+                valueLevel = 'excellent-value';
+                valueLabel = 'Excellent Value';
+                valueClass = 'excellent-value';
+                valueColor = '#22c55e';
+                valueDetails = 'Great budget strategy - room for stars!';
+            } else if (averageCost < marketAverage * 1.1) {
+                valueLevel = 'good-value';
+                valueLabel = 'Good Value';
+                valueClass = 'good-value';
+                valueColor = '#3b82f6';
+                valueDetails = 'Balanced approach with smart picks';
+            } else if (averageCost < marketAverage * 1.3) {
+                valueLevel = 'fair-value';
+                valueLabel = 'Premium Strategy';
+                valueClass = 'fair-value';
+                valueColor = '#fbbf24';
+                valueDetails = 'High-cost players - ensure they perform';
+            } else {
+                valueLevel = 'poor-value';
+                valueLabel = 'Expensive Lineup';
+                valueClass = 'poor-value';
+                valueColor = '#ef4444';
+                valueDetails = 'Very expensive - high risk/reward';
+            }
+            
+            // Update the value assessment (if exists)
+            if (valueAssessmentEl) {
+                valueAssessmentEl.className = 'value-card ' + valueClass;
+                valueAssessmentEl.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-star" style="color: ${valueColor}; font-size: 16px;"></i>
+                            <span style="color: ${valueColor}; font-weight: 600; font-size: 14px;">${valueLabel}</span>
+                        </div>
+                        <span style="color: ${valueColor}; font-size: 12px;">Avg: £${Math.round(averageCost).toLocaleString()}</span>
+                    </div>
+                    <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">${valueDetails}</div>
+                `;
+            }
+            
+            // Update compact value assessment
+            const valueCompactEl = document.getElementById('value-assessment-compact');
+            const valueRatingCompactEl = document.getElementById('value-rating-compact');
+            
+            if (valueCompactEl && valueRatingCompactEl) {
+                const shortLabel = valueLabel.includes('Excellent') ? 'Excellent' :
+                                 valueLabel.includes('Good') ? 'Good Value' :
+                                 valueLabel.includes('Premium') ? 'Premium' :
+                                 valueLabel.includes('Expensive') ? 'Expensive' : 'Balanced';
+                
+                valueCompactEl.innerHTML = `
+                    <i class="fas fa-star" style="color: ${valueColor}; font-size: 10px;"></i>
+                    <span style="color: ${valueColor}; font-size: 11px; font-weight: 600;">${shortLabel}</span>
+                `;
+            }
+        }
+
+        function getStatusColor(className) {
+            switch(className) {
+                case 'can-afford': return '#22c55e';
+                case 'tight-budget': return '#fbbf24';
+                case 'over-budget': return '#ef4444';
+                default: return '#3b82f6';
+            }
+        }
+
+        function updateBudgetTips(remainingBudget, progressPercent, remainingSlots) {
+            const budgetTips = document.getElementById('budget-tips');
+            const budgetStatus = document.getElementById('budget-status');
+            const valueList = document.getElementById('value-list');
+            const expandButton = document.getElementById('budget-expand');
+            
+            // Show expand button when there are players selected or budget is being used
+            if (selectedPlayers.length > 0 || progressPercent > 10) {
+                expandButton.style.display = 'block';
+                
+                // Update status message
+                let statusIcon = '💰';
+                let statusText = '';
+                
+                if (progressPercent >= 90) {
+                    statusIcon = '🚨';
+                    statusText = `Budget Almost Full (${Math.round(progressPercent)}%)`;
+                } else if (progressPercent >= 70) {
+                    statusIcon = '⚠️';
+                    statusText = `Budget Getting High (${Math.round(progressPercent)}%)`;
+                } else {
+                    statusIcon = '💰';
+                    statusText = `Budget Usage (${Math.round(progressPercent)}%)`;
+                }
+                
+                budgetStatus.innerHTML = `${statusIcon} ${statusText}<br>£${remainingBudget.toLocaleString()} left • ${remainingSlots} slots`;
+                
+                // Get value players (players under £6000 who aren't selected)
+                const allPlayerItems = document.querySelectorAll('.player-select');
+                const valuePlayers = [];
+                
+                allPlayerItems.forEach(item => {
+                    const salary = parseInt(item.dataset.salary);
+                    const playerId = item.dataset.player;
+                    const playerName = item.querySelector('.player-name').textContent;
+                    
+                    // Include players under £6000 who aren't selected
+                    if (salary <= 6000 && !selectedPlayers.find(p => p.id === playerId)) {
+                        // Get first name only for compactness
+                        const firstName = playerName.split(' ')[0];
+                        valuePlayers.push({ name: firstName, salary: salary });
+                    }
+                });
+                
+                // Sort by salary and take top 3
+                valuePlayers.sort((a, b) => a.salary - b.salary);
+                const topValuePlayers = valuePlayers.slice(0, 3);
+                
+                if (topValuePlayers.length > 0) {
+                    valueList.innerHTML = topValuePlayers
+                        .map(player => `${player.name} (£${(player.salary/1000).toFixed(1)}k)`)
+                        .join(' • ');
+                } else {
+                    valueList.innerHTML = 'No value picks available';
+                }
+            } else {
+                expandButton.style.display = 'none';
+                budgetTips.style.display = 'none';
+            }
+        }
+
+        function toggleBudgetTips() {
+            const budgetTips = document.getElementById('budget-tips');
+            const expandButton = document.getElementById('budget-expand');
+            
+            if (budgetTips.style.display === 'none' || !budgetTips.style.display) {
+                budgetTips.style.display = 'block';
+                expandButton.innerHTML = '<i class="fas fa-times" style="font-size: 12px;"></i>';
+                expandButton.title = 'Hide budget tips';
+            } else {
+                budgetTips.style.display = 'none';
+                expandButton.innerHTML = '<i class="fas fa-chart-line" style="font-size: 12px;"></i>';
+                expandButton.title = 'Show budget tips';
+            }
+        }
+
+        function updatePlayerButton(playerItem, isSelected) {
+            console.log('updatePlayerButton called:', playerItem, isSelected);
+            
+            if (!playerItem) {
+                console.error('Player item not found!');
+                return;
+            }
+            
+            if (isSelected) {
+                // Hide player immediately
+                console.log('Hiding player:', playerItem.dataset.player);
+                playerItem.style.display = 'none';
+                playerItem.classList.add('player-selected');
+                
+                // Update button state
+                const button = playerItem.querySelector('.add-player-btn');
+                if (button) {
+                    button.style.pointerEvents = 'none';
+                    button.style.background = '#ff4757';
+                    button.innerHTML = '<i class="fas fa-check"></i>';
+                }
+                
+                console.log('Player hidden:', playerItem.dataset.player);
+            } else {
+                // Show the player in the list again
+                console.log('Showing player:', playerItem.dataset.player);
+                playerItem.style.display = 'flex';
+                playerItem.classList.remove('player-selected');
+                const button = playerItem.querySelector('.add-player-btn');
+                if (button) {
+                    button.style.background = 'var(--primary-color)';
+                    button.innerHTML = '<i class="fas fa-plus"></i>';
+                    button.style.pointerEvents = 'auto';
+                    button.style.opacity = '1';
+                }
+                playerItem.style.opacity = '1';
+                playerItem.style.transform = 'none';
+            }
+        }
+
+        function updateCaptainMessage() {
+            const captainWarning = document.getElementById('captain-warning');
+            const scorecardSubtitle = document.getElementById('scorecard-subtitle');
+            const lineupCompleteIndicator = document.getElementById('lineup-complete-indicator');
+            const submitButtonContainer = document.getElementById('submit-button-container');
+            const hasCaptain = selectedPlayers.some(player => player.isCaptain);
+            const lineupFull = selectedPlayers.length === maxPlayers;
+            
+            // Update subtitle and show/hide captain warning
+            if (lineupFull && !hasCaptain) {
+                scorecardSubtitle.style.display = 'none';
+                captainWarning.style.display = 'block';
+            } else {
+                scorecardSubtitle.style.display = 'block';
+                captainWarning.style.display = 'none';
+                
+                // Update subtitle based on captain status
+                if (hasCaptain) {
+                    const captain = selectedPlayers.find(p => p.isCaptain);
+                    scorecardSubtitle.innerHTML = `<i class="fas fa-crown" style="color: #ffd700; margin-right: 6px; font-size: 12px;"></i>Captain: ${captain.name} (2x points)`;
+                } else {
+                    scorecardSubtitle.innerHTML = '<i class="fas fa-crown" style="color: #ffd700; margin-right: 6px; font-size: 12px;"></i>Select a captain to earn 2x points!';
+                }
+            }
+            
+            // Control gold indicator and submit button visibility
+            if (lineupFull && !hasCaptain) {
+                // Show gold indicator when lineup is complete but no captain
+                lineupCompleteIndicator.style.display = 'block';
+                submitButtonContainer.style.display = 'none';
+            } else if (lineupFull && hasCaptain) {
+                // Show submit button when lineup is complete AND captain is selected
+                lineupCompleteIndicator.style.display = 'none';
+                submitButtonContainer.style.display = 'block';
+            } else {
+                // Hide both when lineup is not complete
+                lineupCompleteIndicator.style.display = 'none';
+                submitButtonContainer.style.display = 'none';
+            }
+        }
+
+        function updateScorecardTitle() {
+            const titleElement = document.getElementById('scorecard-title');
+            const fullBadge = document.getElementById('scorecard-full-badge');
+            
+            if (titleElement) {
+                titleElement.textContent = `Your Scorecard (${selectedPlayers.length}/6)`;
+            }
+            
+            // Show/hide scorecard full badge
+            if (fullBadge) {
+                if (selectedPlayers.length === maxPlayers) {
+                    fullBadge.style.display = 'block';
+                } else {
+                    fullBadge.style.display = 'none';
+                }
+            }
+        }
+
+        function clearAllPlayers() {
+            if (selectedPlayers.length === 0) return;
+            
+            if (confirm('Are you sure you want to clear your entire lineup?')) {
+                // Re-enable all player buttons
+                selectedPlayers.forEach(player => {
+                    const playerItem = document.querySelector(`[data-player="${player.id}"]`);
+                    if (playerItem) {
+                        updatePlayerButton(playerItem, false);
+                    }
+                });
+                
+                // Clear the lineup
+                selectedPlayers = [];
+                usedBudget = 0;
+                
+                // Update all displays
+                updateScorecardDisplay();
+                updateBudgetDisplay();
+            }
+        }
+
+        function submitEntry() {
+            // Check if lineup is complete and has captain
+            const hasCaptain = selectedPlayers.some(player => player.isCaptain);
+            const lineupFull = selectedPlayers.length === maxPlayers;
+            
+            if (!lineupFull) {
+                alert('Please complete your lineup by selecting 6 players.');
+                return;
+            }
+            
+            if (!hasCaptain) {
+                alert('Please select a captain before submitting your entry.');
+                return;
+            }
+            
+            // Prepare entry data for dashboard
+            const entryData = {
+                id: 'entry_' + Date.now(),
+                tournament: 'Masters Tournament 2025',
+                players: selectedPlayers.map(player => ({
+                    id: player.id,
+                    name: player.name,
+                    country: player.country,
+                    salary: player.salary,
+                    avatar: player.avatar,
+                    rank: player.rank,
+                    recent: player.recent,
+                    isCaptain: player.isCaptain || false,
+                    points: 0, // Initial points
+                    status: 'active'
+                })),
+                totalBudget: totalBudget,
+                usedBudget: usedBudget,
+                remainingBudget: totalBudget - usedBudget,
+                submittedAt: new Date().toISOString(),
+                status: 'active'
+            };
+            
+            // Save to localStorage for dashboard to pick up (newest first)
+            let existingEntries = JSON.parse(localStorage.getItem('dfsEntries') || '[]');
+            existingEntries.unshift(entryData); // Add to beginning instead of end
+            localStorage.setItem('dfsEntries', JSON.stringify(existingEntries));
+            
+            // Show success message
+            alert('Entry submitted successfully! Your lineup has been added to your Scorecard.');
+            
+            // Redirect to dashboard
+            window.location.href = 'index.html';
+        }
+        
+        // Mobile Navigation Toggle
+        function toggleMobileMenu() {
+            const hamburger = document.querySelector('.hamburger-menu');
+            const mobileNav = document.getElementById('mobileNav');
+            
+            if (hamburger && mobileNav) {
+                hamburger.classList.toggle('active');
+                mobileNav.classList.toggle('active');
+                
+                // Prevent body scroll when menu is open
+                document.body.style.overflow = mobileNav.classList.contains('active') ? 'hidden' : '';
+            }
+        }
+        
+        // Close mobile menu when clicking on a link
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+            mobileNavLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    // Only close if it's not the current page
+                    if (!this.classList.contains('active')) {
+                        toggleMobileMenu();
+                    }
+                });
+            });
+            
+            // Close mobile menu when clicking outside
+            const mobileNav = document.getElementById('mobileNav');
+            if (mobileNav) {
+                mobileNav.addEventListener('click', function(e) {
+                    if (e.target === mobileNav) {
+                        toggleMobileMenu();
+                    }
+                });
+            }
+        });
+
+        // User Dropdown Functions
+        function toggleUserDropdown() {
+            console.log('Dropdown toggle clicked!');
+            
+            // FORCE ensure toggle exists - always call this
+            setTimeout(function() {
+                ensureToggleExists();
+            }, 50); // Small delay to ensure DOM is ready
+            
+            const dropdown = document.getElementById('userDropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('active');
+                console.log('Dropdown classes:', dropdown.className);
+                console.log('Dropdown has active?', dropdown.classList.contains('active'));
+                
+                // If opening dropdown, double-check toggle exists
+                if (dropdown.classList.contains('active')) {
+                    setTimeout(function() {
+                        ensureToggleExists();
+                    }, 100);
+                    document.addEventListener('click', closeDropdownOnClickOutside);
+                } else {
+                    document.removeEventListener('click', closeDropdownOnClickOutside);
+                }
+            } else {
+                console.log('Dropdown element not found!');
+            }
+        }
+
+        function closeDropdownOnClickOutside(event) {
+            const dropdown = document.getElementById('userDropdown');
+            const navUser = document.querySelector('.nav-user');
+            
+            if (dropdown && !navUser.contains(event.target)) {
+                dropdown.classList.remove('active');
+                document.removeEventListener('click', closeDropdownOnClickOutside);
+            }
+        }
+
+        // User Menu Functions
+        function showTransactionHistory() {
+            showNotification('Transaction History feature coming soon!', 'info');
+        }
+
+        function showNotifications() {
+            showNotification('Notifications feature coming soon!', 'info');
+        }
+
+        function showHelp() {
+            showNotification('Help & Support feature coming soon!', 'info');
+        }
+
+        function handleLogout() {
+            if (confirm('Are you sure you want to sign out?')) {
+                // Clear session data
+                localStorage.removeItem('golfProSession');
+                sessionStorage.removeItem('golfProSession');
+                
+                showNotification('Logged out successfully! Redirecting...', 'success');
+                
+                // Redirect to login page
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            }
+        }
+
+        // Notification System
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas ${getNotificationIcon(type)}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        function getNotificationIcon(type) {
+            switch (type) {
+                case 'success': return 'fa-check-circle';
+                case 'error': return 'fa-exclamation-circle';
+                case 'warning': return 'fa-exclamation-triangle';
+                default: return 'fa-info-circle';
+            }
+        }
+
+        // Simple Dark Mode Toggle
+        function toggleDarkMode() {
+            const body = document.body;
+            const isDarkMode = body.classList.toggle('dark-mode');
+            
+            // Save preference to localStorage
+            localStorage.setItem('darkMode', isDarkMode ? 'enabled' : 'disabled');
+            
+            // Update toggle state
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            if (darkModeToggle) {
+                darkModeToggle.checked = isDarkMode;
+            }
+            
+            console.log('Dark mode toggled:', isDarkMode);
+        }
+
+        // Ensure the toggle element exists in the dropdown
+        function ensureToggleExists() {
+            const existingToggle = document.getElementById('darkModeToggle');
+            if (existingToggle) {
+                return; // Toggle already exists
+            }
+            
+            console.log('Adding missing dark mode toggle to dropdown');
+            
+            // If toggle doesn't exist, re-add it to the dropdown
+            const dropdown = document.querySelector('.user-dropdown-menu');
+            if (dropdown) {
+                const toggleHTML = `
+                    <div class="dropdown-item dropdown-toggle-item" onclick="handleRowClick()">
+                        <div class="dropdown-toggle-content">
+                            <i class="fas fa-moon"></i>
+                            <span>Dark Mode</span>
+                        </div>
+                        <label class="dropdown-toggle-switch" onclick="event.stopPropagation();">
+                            <input type="checkbox" id="darkModeToggle">
+                            <span class="dropdown-toggle-slider"></span>
+                        </label>
+                    </div>
+                `;
+                
+                // Try multiple insertion points
+                const settingsItem = dropdown.querySelector('a[href="settings.html"]') || 
+                                   dropdown.querySelector('.dropdown-item:nth-child(2)') ||
+                                   dropdown.querySelector('.dropdown-item');
+                
+                if (settingsItem) {
+                    settingsItem.insertAdjacentHTML('afterend', toggleHTML);
+                    console.log('Toggle added after settings item');
+                } else {
+                    // If no settings item found, add at the beginning
+                    dropdown.insertAdjacentHTML('afterbegin', toggleHTML);
+                    console.log('Toggle added at beginning of dropdown');
+                }
+                
+                // Update the toggle state to match current mode
+                const newToggle = document.getElementById('darkModeToggle');
+                if (newToggle && document.body.classList.contains('dark-mode')) {
+                    newToggle.checked = true;
+                }
+            } else {
+                console.log('Dropdown menu not found');
+            }
+        }
+
+        // Handle clicking anywhere on the row
+        function handleRowClick(event) {
+            console.log('SCORECARDS: handleRowClick called');
+            // Don't toggle if the click came from the checkbox itself to avoid double-triggering
+            if (event && event.target && event.target.type === 'checkbox') {
+                console.log('SCORECARDS: Click came from checkbox, letting change event handle it');
+                return;
+            }
+            console.log('SCORECARDS: Click came from row, toggling manually');
+            
+            // Manually check/uncheck the checkbox and trigger its change event
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            if (darkModeToggle) {
+                darkModeToggle.checked = !darkModeToggle.checked;
+                darkModeToggle.dispatchEvent(new Event('change'));
+            }
+        }
+
+
+
+        // Aggressive toggle watcher - checks very frequently
+        function startToggleWatcher() {
+            setInterval(function() {
+                const dropdown = document.querySelector('.user-dropdown-menu');
+                const toggle = document.getElementById('darkModeToggle');
+                
+                if (dropdown && !toggle) {
+                    console.log('Toggle missing, re-adding...');
+                    ensureToggleExists();
+                }
+                
+                // Also ensure dark mode class persists
+                const savedDarkMode = localStorage.getItem('darkMode');
+                if (savedDarkMode === 'enabled' && !document.body.classList.contains('dark-mode')) {
+                    console.log('Dark mode lost, restoring...');
+                    document.body.classList.add('dark-mode');
+                }
+            }, 2000); // Check every 2 seconds - less aggressive
+        }
+
+        // Watch for DOM changes that might remove the toggle
+        function startDOMWatcher() {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList') {
+                        const dropdown = document.querySelector('.user-dropdown-menu');
+                        const toggle = document.getElementById('darkModeToggle');
+                        
+                        if (dropdown && !toggle) {
+                            console.log('DOM change detected - toggle missing, re-adding...');
+                            ensureToggleExists();
+                        }
+                    }
+                });
+            });
+            
+            // Watch the entire document for changes
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        // Initialize dark mode on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('PAGE LOADED - DARK MODE INIT');
+            
+            // Ensure toggle exists (disabled to prevent conflicts)
+            // ensureToggleExists();
+            
+            // Start watching for toggle disappearance (disabled to prevent conflicts)
+            // startToggleWatcher();
+            
+            // Start DOM mutation watching (disabled to prevent conflicts)
+            // startDOMWatcher();
+            
+            const savedDarkMode = localStorage.getItem('darkMode');
+            const toggle = document.getElementById('darkModeToggle');
+            
+            console.log('Saved dark mode:', savedDarkMode);
+            console.log('Toggle element found:', !!toggle);
+            
+            // If no preference is saved, default to light mode
+            // If preference exists, use it
+            if (savedDarkMode === 'enabled') {
+                document.body.classList.add('dark-mode');
+                if (toggle) {
+                    toggle.checked = true;
+                }
+                console.log('Applied DARK mode on load');
+            } else {
+                // Ensure light mode is active by default
+                document.body.classList.remove('dark-mode');
+                if (toggle) {
+                    toggle.checked = false;
+                }
+                // Set default preference if none exists
+                if (savedDarkMode === null) {
+                    localStorage.setItem('darkMode', 'disabled');
+                }
+                console.log('Applied LIGHT mode on load');
+            }
+            
+            // Add event listener to toggle, but prevent double-triggering
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            if (darkModeToggle) {
+                darkModeToggle.addEventListener('change', function() {
+                    console.log('SCORECARDS: Change event fired');
+                    toggleDarkMode();
+                });
+            }
+        });
+    </script>
+
+    <!-- Add notification styles -->
+    <style>
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: rgba(20, 20, 40, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px 20px;
+            z-index: 3000;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            max-width: 350px;
+        }
+
+        .notification.success {
+            border-color: var(--primary-color);
+            background: rgba(var(--primary-rgb), 0.1);
+        }
+
+        .notification.error {
+            border-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .notification.warning {
+            border-color: #ffd93d;
+            background: rgba(255, 217, 61, 0.1);
+        }
+
+        .notification.info {
+            border-color: #4dabf7;
+            background: rgba(77, 171, 247, 0.1);
+        }
+
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .notification.success .notification-content i {
+            color: var(--primary-color);
+        }
+
+        .notification.error .notification-content i {
+            color: #ff6b6b;
+        }
+
+        .notification.warning .notification-content i {
+            color: #ffd93d;
+        }
+
+        .notification.info .notification-content i {
+            color: #4dabf7;
+        }
+    </style>
+</body>
+</html>
+
