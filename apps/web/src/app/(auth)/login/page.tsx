@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { getGolfAppUrl } from '@/lib/urls';
 
 type LoginMode = 'password' | 'magic';
 
@@ -51,7 +52,7 @@ export default function LoginPage() {
         }
       } else if (data.user) {
         // After login, redirect to golf app (main product)
-        window.location.href = 'https://golf.inplay.tv/';
+        window.location.href = getGolfAppUrl();
       }
     } catch (err) {
       setMessage('An unexpected error occurred');

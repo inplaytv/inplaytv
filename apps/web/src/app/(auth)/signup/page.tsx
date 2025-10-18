@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getGolfAppUrl } from '@/lib/urls';
 
 type SignUpMode = 'password' | 'magic';
 
@@ -49,7 +50,7 @@ export default function SignUpPage() {
         if (data.user.email_confirmed_at) {
           // Email already confirmed (instant signup - verification disabled)
           setMessage('Account created! Redirecting to golf app...');
-          setTimeout(() => window.location.href = 'https://golf.inplay.tv/', 1000);
+          setTimeout(() => window.location.href = getGolfAppUrl(), 1000);
         } else {
           // Email confirmation required - redirect to verification page
           router.push(`/verify-email?email=${encodeURIComponent(email)}`);

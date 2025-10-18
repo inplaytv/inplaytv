@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import Link from 'next/link';
+import { getGolfAppUrl } from '@/lib/urls';
 
 export default function VerificationSuccessPage() {
   const [email, setEmail] = useState<string | null>(null);
@@ -128,7 +129,7 @@ export default function VerificationSuccessPage() {
           </p>
         </div>
 
-        <a href="https://golf.inplay.tv/" style={styles.button}>
+        <a href={getGolfAppUrl()} style={styles.button}>
           Go to Golf App →
         </a>
 
