@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabaseClient';
+import { createClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -8,40 +8,52 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code');
   const origin = requestUrl.origin;
 
-  const supabase = createClient();
+  // Debug: Log what we received
+  console.log('Auth callback received:', {
+    token_hash: token_hash ? 'present' : 'missing',
+    type,
+    code: code ? 'present' : 'missing',
+    all_params: Object.fromEntries(requestUrl.searchParams.entries())
+  });
 
-  // Handle email verification (token_hash flow)
+  const supabase = await createClient();
+
+  // Handle email verification with code parameter (Supabase's default flow)
+  if (code) {
+    // For email verification, we need to exchange the code
+    // This is different from PKCE - Supabase handles it server-side
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+      console.error('Email verification error:', error);
+      // Return more detailed error for debugging
+      return NextResponse.redirect(
+        `${origin}/login?error=verification_failed&message=${encodeURIComponent(error.message)}&details=${encodeURIComponent(JSON.stringify({ code: 'present', error: error.name }))}`
+      );
+    }
+
+    // Success - redirect to verified page
+    return NextResponse.redirect(`${origin}/verified`);
+  }
+
+  // Handle token_hash flow (alternative email verification method)
   if (token_hash && type) {
-    const { data, error } = await supabase.auth.verifyOtp({
+    const { error } = await supabase.auth.verifyOtp({
       token_hash,
       type: type as any,
     });
 
     if (error) {
-      console.error('Email verification error:', error);
+      console.error('Token verification error:', error);
       return NextResponse.redirect(`${origin}/login?error=verification_failed&message=${encodeURIComponent(error.message)}`);
     }
 
-    if (data.user) {
-      // Email verified and session created
-      return NextResponse.redirect(`${origin}/verified`);
-    }
+    return NextResponse.redirect(`${origin}/verified`);
   }
 
-  // Handle OAuth callback (code flow - for future OAuth providers)
-  if (code) {
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (error) {
-      console.error('Auth callback error:', error);
-      return NextResponse.redirect(`${origin}/login?error=auth_failed&message=${encodeURIComponent(error.message)}`);
-    }
-
-    if (data.user) {
-      return NextResponse.redirect(`${origin}/verified`);
-    }
-  }
-
-  // If no valid parameters, redirect to login
-  return NextResponse.redirect(`${origin}/login?error=no_code`);
+  // If no valid parameters, redirect to login with debugging info
+  const allParams = Object.fromEntries(requestUrl.searchParams.entries());
+  return NextResponse.redirect(
+    `${origin}/login?error=no_code&message=${encodeURIComponent('No verification code found')}&params=${encodeURIComponent(JSON.stringify(allParams))}`
+  );
 }
