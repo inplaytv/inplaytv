@@ -209,7 +209,7 @@ export default function VerifyEmailPage() {
         <h1 style={styles.title}>Verify Your Email</h1>
         
         <p style={styles.description}>
-          We've sent a verification email to:
+          We&apos;ve sent a verification email to:
           <span style={styles.email}>{email}</span>
         </p>
 
@@ -220,7 +220,7 @@ export default function VerifyEmailPage() {
           <ol style={styles.instructionsList}>
             <li>Check your email inbox (and spam/junk folder)</li>
             <li>Click the verification link in the email</li>
-            <li>You'll be automatically redirected</li>
+            <li>You&apos;ll be automatically redirected</li>
             <li>This page will auto-refresh when verified ✨</li>
           </ol>
         </div>

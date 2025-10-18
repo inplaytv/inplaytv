@@ -47,7 +47,7 @@ export default function AccountPage() {
     };
 
     loadUserData();
-  }, [supabase, router]);
+  }, [supabase, router, searchParams]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
