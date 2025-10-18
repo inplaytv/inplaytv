@@ -14,7 +14,7 @@ export default function Hero() {
           Build your team with strategy, compete in live tournaments, and win real prizes through skillful play.
         </p>
         <div className={styles.heroBtns}>
-          <Link href="/signup">Get Started</Link>
+          <a href="https://golf.inplay.tv/">Get Started</a>
           <a href="/#how-it-works">How it works</a>
         </div>
       </div>
