@@ -2,38 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
-import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function VerificationSuccessPage() {
-  const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState<string | null>(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const supabase = createClient();
 
   useEffect(() => {
-    const checkVerification = async () => {
+    // Try to get email if user happens to be logged in
+    const getEmail = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        setEmail(user.email || null);
-        
-        // Check if email is confirmed
-        if (user.email_confirmed_at) {
-          setChecking(false);
-        } else {
-          // Not verified yet, redirect to verify-email page
-          router.push(`/verify-email?email=${user.email}`);
-        }
-      } else {
-        // Not logged in, something went wrong
-        setChecking(false);
+      if (user?.email) {
+        setEmail(user.email);
       }
     };
-
-    checkVerification();
-  }, [supabase, router]);
+    getEmail();
+  }, [supabase]);
 
   const styles: { [key: string]: React.CSSProperties } = {
     container: {
@@ -125,17 +109,6 @@ export default function VerificationSuccessPage() {
     },
   };
 
-  if (checking) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <div style={{ fontSize: '3rem', color: '#667eea' }}>⏳</div>
-          <p style={styles.subtitle}>Verifying your email...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div style={styles.container}>
       <div style={styles.card}>
@@ -144,8 +117,8 @@ export default function VerificationSuccessPage() {
         <h1 style={styles.title}>Email Verified!</h1>
         
         <p style={styles.subtitle}>
-          Thank you for verifying your email address:
-          <span style={styles.email}>{email}</span>
+          Your email has been successfully verified!
+          {email && <span style={styles.email}>{email}</span>}
         </p>
 
         <div style={styles.successBox}>
