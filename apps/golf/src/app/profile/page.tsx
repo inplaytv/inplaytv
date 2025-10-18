@@ -384,12 +384,12 @@ export default function ProfilePage() {
                     <span>{profile.email}</span>
                   </div>
                   <div className="info-group">
-                    <label>Phone Number</label>
-                    <span>{profile.phone || 'Not set'}</span>
-                  </div>
-                  <div className="info-group">
                     <label>Username</label>
                     <span>{profile.username || 'Not set'}</span>
+                  </div>
+                  <div className="info-group">
+                    <label>Phone Number (Optional)</label>
+                    <span>{profile.phone || 'Not set'}</span>
                   </div>
                   <div className="info-group">
                     <label>Date of Birth</label>
@@ -453,13 +453,14 @@ export default function ProfilePage() {
                     </small>
                   </div>
                   <div className="form-group">
-                    <label htmlFor="editPhone">Phone Number</label>
+                    <label htmlFor="editPhone">Phone Number (Optional)</label>
                     <input
                       type="tel"
                       id="editPhone"
                       className="form-input"
                       value={editPhone}
                       onChange={(e) => setEditPhone(e.target.value)}
+                      placeholder="Optional"
                     />
                   </div>
                   <div className="form-group">
