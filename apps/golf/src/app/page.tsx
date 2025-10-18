@@ -12,7 +12,7 @@ export default function LobbyPage() {
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) setEmail(user.email);
+      if (user?.email) setEmail(user.email);
     };
     getUser();
   }, [supabase]);
