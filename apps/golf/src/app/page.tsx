@@ -5,6 +5,9 @@ import RequireAuth from '@/components/RequireAuth';
 import Header from '@/components/Header';
 import { createClient } from '@/lib/supabaseClient';
 
+// Force dynamic rendering (requires auth)
+export const dynamic = 'force-dynamic';
+
 export default function LobbyPage() {
   const [email, setEmail] = useState<string | null>(null);
   const supabase = createClient();
