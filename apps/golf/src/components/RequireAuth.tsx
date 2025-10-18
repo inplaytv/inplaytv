@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 
 export default function RequireAuth({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
 
   useEffect(() => {
@@ -16,14 +17,29 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
       
       if (!user) {
         router.push('/login');
-      } else {
-        setAuthenticated(true);
+        return;
       }
+
+      // Check onboarding completion (skip check if on onboarding page)
+      if (pathname !== '/onboarding') {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarding_complete')
+          .eq('id', user.id)
+          .single();
+
+        if (!profile?.onboarding_complete) {
+          router.push('/onboarding');
+          return;
+        }
+      }
+      
+      setAuthenticated(true);
       setLoading(false);
     };
 
     checkAuth();
-  }, [supabase, router]);
+  }, [supabase, router, pathname]);
 
   if (loading) {
     return (
