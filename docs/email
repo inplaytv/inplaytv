@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Confirm your InPlay TV account</title>
+    <meta name="x-preheader" content="Activate your account and start using InPlay TV. This link expires shortly.">
+  </head>
+  <body style="margin:0; padding:0; background:#0b1020; color:#ffffff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+    <!-- Background gradient -->
+    <div style="background:
+      radial-gradient(900px 600px at 85% -10%, rgba(79,124,255,0.25), transparent 60%),
+      radial-gradient(900px 600px at -10% 90%, rgba(25,195,125,0.25), transparent 55%),
+      linear-gradient(180deg,#0b1020,#111a36);
+      padding:40px 16px;">
+      <!-- Glass card -->
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px; margin:0 auto; border-collapse:separate;">
+        <tr>
+          <td style="
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius:16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+            padding:32px;
+            text-align:center;">
+            
+            <!-- Logo -->
+            <img src="https://yourdomain.com/logo.png" alt="InPlay TV" width="128" height="auto" style="display:block; margin:0 auto 20px auto;">
+
+            <!-- Heading -->
+            <h1 style="margin:0 0 10px; font-size:22px; font-weight:800; color:#ffffff;">
+              Confirm your account
+            </h1>
+
+            <!-- Copy -->
+            <p style="margin:0 0 18px; color:#c8cee9; font-size:15px; line-height:1.6;">
+              Welcome to <strong>InPlay TV</strong> — you’re almost ready to get started.<br>
+              Tap the button below to verify your email address and activate your account.
+            </p>
+
+            <!-- Button -->
+            <p style="margin:0 0 20px;">
+              <a href="{{ .ConfirmationURL }}"
+                 style="background:#4f7cff; color:#fff; text-decoration:none; padding:14px 24px; border-radius:12px; font-weight:700; display:inline-block;">
+                 Confirm your email
+              </a>
+            </p>
+
+            <!-- Fallback URL -->
+            <p style="margin:0; font-size:13px; color:#a8b2d1; line-height:1.5;">
+              If the button doesn’t work, copy and paste this link into your browser:
+            </p>
+            <p style="margin:8px 0 0; word-break:break-all; font-size:13px; color:#bfc6e2;">
+              {{ .ConfirmationURL }}
+            </p>
+
+            <hr style="border:none; border-top:1px solid #1e2848; margin:24px 0;">
+
+            <p style="margin:0 0 6px; font-size:12px; color:#7a86b7;">
+              If you didn’t create an account, you can safely ignore this email.
+            </p>
+            <p style="margin:0; font-size:12px; color:#7a86b7;">
+              © {{ .CurrentYear }} InPlay TV
+            </p>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>
