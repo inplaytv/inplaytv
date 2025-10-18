@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 type LoginMode = 'password' | 'magic';
 
@@ -14,7 +14,22 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  useEffect(() => {
+    // Check for error messages from callback
+    const error = searchParams.get('error');
+    const errorMessage = searchParams.get('message');
+    
+    if (error === 'verification_failed') {
+      setMessage(`Verification failed: ${errorMessage || 'Please try again or contact support.'}`);
+    } else if (error === 'auth_failed') {
+      setMessage('Authentication failed. Please try again.');
+    } else if (error === 'no_code') {
+      setMessage('Invalid verification link. Please try again.');
+    }
+  }, [searchParams]);
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,14 +37,19 @@ export default function LoginPage() {
     setMessage('');
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        setMessage(`Error: ${error.message}`);
-      } else {
+        // Check if it's an unverified email error
+        if (error.message.includes('Email not confirmed')) {
+          setMessage('Please verify your email before logging in. Check your inbox (including spam folder).');
+        } else {
+          setMessage(`Error: ${error.message}`);
+        }
+      } else if (data.user) {
         router.push('/account');
       }
     } catch (err) {
@@ -205,31 +225,9 @@ export default function LoginPage() {
         <h1 style={styles.title}>Welcome Back</h1>
         <p style={styles.subtitle}>Sign in to continue competing</p>
 
-        {/* Mode Toggle */}
-        <div style={styles.modeToggle}>
-          <button
-            onClick={() => setMode('password')}
-            style={{
-              ...styles.modeButton,
-              ...(mode === 'password' ? styles.modeButtonActive : {}),
-            }}
-          >
-            Password
-          </button>
-          <button
-            onClick={() => setMode('magic')}
-            style={{
-              ...styles.modeButton,
-              ...(mode === 'magic' ? styles.modeButtonActive : {}),
-            }}
-          >
-            Magic Link
-          </button>
-        </div>
+        {/* Password Mode Only - Magic Link Removed */}
 
-        {/* Password Mode */}
-        {mode === 'password' && (
-          <form onSubmit={handlePasswordLogin} style={styles.form}>
+        <form onSubmit={handlePasswordLogin} style={styles.form}>
             <div>
               <label htmlFor="email" style={styles.label}>
                 Email address
@@ -274,53 +272,7 @@ export default function LoginPage() {
             >
               {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
-
-            <div style={styles.switchLink}>
-              <a onClick={() => setMode('magic')} style={styles.link}>
-                Prefer a magic link instead?
-              </a>
-            </div>
           </form>
-        )}
-
-        {/* Magic Link Mode */}
-        {mode === 'magic' && (
-          <form onSubmit={handleMagicLinkLogin} style={styles.form}>
-            <div>
-              <label htmlFor="email-magic" style={styles.label}>
-                Email address
-              </label>
-              <input
-                id="email-magic"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                disabled={isLoading}
-                style={styles.input}
-                autoComplete="email"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              style={{
-                ...styles.button,
-                ...(isLoading ? styles.buttonDisabled : {}),
-              }}
-            >
-              {isLoading ? 'Sending...' : 'Send sign-in link'}
-            </button>
-
-            <div style={styles.switchLink}>
-              <a onClick={() => setMode('password')} style={styles.link}>
-                Sign in with password instead
-              </a>
-            </div>
-          </form>
-        )}
 
         {/* Message Display */}
         {message && (

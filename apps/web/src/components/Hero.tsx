@@ -10,8 +10,8 @@ export default function Hero() {
           <span>Never Before</span>
         </h1>
         <p className={styles.heroSub}>
-          Join thousands of golf enthusiasts in the ultimate fantasy golf experience. 
-          Build your dream team, compete in live tournaments, and win real prizes.
+          Join thousands of skilled players putting their golf knowledge to the test. 
+          Build your team with strategy, compete in live tournaments, and win real prizes through skillful play.
         </p>
         <div className={styles.heroBtns}>
           <Link href="/signup">Get Started</Link>

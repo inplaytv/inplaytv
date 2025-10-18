@@ -11,13 +11,14 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+      console.error('Auth callback error:', error);
+      return NextResponse.redirect(`${origin}/login?error=verification_failed&message=${encodeURIComponent(error.message)}`);
     }
 
     if (data.user) {
-      // Always redirect to onboarding
-      // The onboarding page will check if already completed and redirect to account
-      return NextResponse.redirect(`${origin}/onboarding`);
+      // User verified email, profile already created during signup
+      // Redirect to verification success page
+      return NextResponse.redirect(`${origin}/verified`);
     }
   }
 

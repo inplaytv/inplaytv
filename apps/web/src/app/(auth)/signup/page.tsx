@@ -2,15 +2,67 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+type SignUpMode = 'password' | 'magic';
+
 export default function SignUpPage() {
+  const [mode, setMode] = useState<SignUpMode>('password');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const supabase = createClient();
+  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePasswordSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage('');
+
+    if (password.length < 8) {
+      setMessage('Password must be at least 8 characters');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Sign up with email and password
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        setMessage(`Error: ${error.message}`);
+      } else if (data.user) {
+        // Create profile with name
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          name: name,
+          onboarding_complete: true,
+        });
+        
+        // Check if email confirmation is required
+        if (data.user.email_confirmed_at) {
+          // Email already confirmed (instant signup - verification disabled)
+          setMessage('Account created! Redirecting...');
+          setTimeout(() => router.push('/account'), 1000);
+        } else {
+          // Email confirmation required - redirect to verification page
+          router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+        }
+      }
+    } catch (err) {
+      setMessage('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMagicLinkSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
@@ -142,10 +194,27 @@ export default function SignUpPage() {
           Join InPlayTV and start competing in premium fantasy golf tournaments
         </p>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
+        {/* Password Mode Only - Magic Link Removed */}
+
+        <form onSubmit={handlePasswordSignUp} style={styles.form}>
+          <div>
+            <label htmlFor="name" style={styles.label}>
+              Display Name
+            </label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              style={styles.input}
+              placeholder="Your name"
+            />
+          </div>
+
           <div>
             <label htmlFor="email" style={styles.label}>
-              Email address
+              Email
             </label>
             <input
               id="email"
@@ -153,6 +222,22 @@ export default function SignUpPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              required
+              disabled={isLoading}
+              style={styles.input}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" style={styles.label}>
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="At least 8 characters"
               required
               disabled={isLoading}
               style={styles.input}
@@ -167,7 +252,7 @@ export default function SignUpPage() {
               ...(isLoading ? styles.buttonDisabled : {}),
             }}
           >
-            {isLoading ? 'Sending...' : 'Send sign-in link'}
+            {isLoading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
