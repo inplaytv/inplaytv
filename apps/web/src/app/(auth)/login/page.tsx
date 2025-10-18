@@ -10,7 +10,7 @@ type LoginMode = 'password' | 'magic';
 
 export default function LoginPage() {
   const [mode, setMode] = useState<LoginMode>('password');
-  const [email, setEmail] = useState('');
+  const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -39,7 +39,7 @@ export default function LoginPage() {
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: emailOrUsername,
         password,
       });
 
@@ -68,7 +68,7 @@ export default function LoginPage() {
 
     try {
       const { error } = await supabase.auth.signInWithOtp({
-        email,
+        email: emailOrUsername,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
@@ -78,7 +78,7 @@ export default function LoginPage() {
         setMessage(`Error: ${error.message}`);
       } else {
         setMessage('Check your email for a sign-in link');
-        setEmail('');
+        setEmailOrUsername('');
       }
     } catch (err) {
       setMessage('An unexpected error occurred');
@@ -231,20 +231,23 @@ export default function LoginPage() {
 
         <form onSubmit={handlePasswordLogin} style={styles.form}>
             <div>
-              <label htmlFor="email" style={styles.label}>
-                Email address
+              <label htmlFor="emailOrUsername" style={styles.label}>
+                Email Address
               </label>
               <input
-                id="email"
+                id="emailOrUsername"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={emailOrUsername}
+                onChange={(e) => setEmailOrUsername(e.target.value)}
                 placeholder="you@example.com"
                 required
                 disabled={isLoading}
                 style={styles.input}
                 autoComplete="email"
               />
+              <small style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>
+                Login with email address only (username login coming soon)
+              </small>
             </div>
 
             <div>

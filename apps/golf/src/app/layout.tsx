@@ -13,6 +13,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link 
+          rel="stylesheet" 
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+        />
+      </head>
       <body style={{ margin: 0, padding: 0, fontFamily: 'system-ui, sans-serif', background: '#0a0f1a', color: '#fff', minHeight: '100vh' }}>
         {children}
       </body>

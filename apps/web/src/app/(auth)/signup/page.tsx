@@ -12,7 +12,7 @@ export default function SignUpPage() {
   const [mode, setMode] = useState<SignUpMode>('password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const supabase = createClient();
@@ -29,7 +29,26 @@ export default function SignUpPage() {
       return;
     }
 
+    if (username.length < 3) {
+      setMessage('Username must be at least 3 characters');
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      // Check if username is already taken
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .single();
+
+      if (existingUser) {
+        setMessage('Username is already taken. Please choose another one.');
+        setIsLoading(false);
+        return;
+      }
+
       // Sign up with email and password
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -39,10 +58,11 @@ export default function SignUpPage() {
       if (error) {
         setMessage(`Error: ${error.message}`);
       } else if (data.user) {
-        // Create profile with name
+        // Create profile with username
         await supabase.from('profiles').upsert({
           id: data.user.id,
-          name: name,
+          username: username,
+          name: username, // Also set name to username for backward compatibility
           onboarding_complete: true,
         });
         
@@ -199,17 +219,18 @@ export default function SignUpPage() {
 
         <form onSubmit={handlePasswordSignUp} style={styles.form}>
           <div>
-            <label htmlFor="name" style={styles.label}>
-              Display Name
+            <label htmlFor="username" style={styles.label}>
+              Username
             </label>
             <input
-              id="name"
+              id="username"
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
               style={styles.input}
-              placeholder="Your name"
+              placeholder="Choose a unique username"
+              minLength={3}
             />
           </div>
 

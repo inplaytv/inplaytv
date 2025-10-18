@@ -45,7 +45,11 @@ export default function UserMenu() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
-    router.push('/login');
+    // Redirect to website after logout
+    const websiteUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://www.inplay.tv';
+    window.location.href = websiteUrl;
   }
 
   const toggleDropdown = () => setIsOpen(!isOpen);
@@ -95,22 +99,24 @@ export default function UserMenu() {
         {isOpen && (
           <div style={{
             position: 'absolute',
-            top: '50px',
+            top: '100%',
             right: 0,
-            background: '#1a1f2e',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
-            minWidth: '240px',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.4)',
+            background: 'rgba(20, 20, 40, 0.95)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+            minWidth: '280px',
+            marginTop: '8px',
             zIndex: 1000,
           }}>
             {/* Header */}
             <div style={{
-              padding: '1rem',
-              borderBottom: '1px solid rgba(255,255,255,0.1)',
               display: 'flex',
-              gap: '0.75rem',
               alignItems: 'center',
+              gap: '12px',
+              padding: '20px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
             }}>
               <UserAvatar
                 avatarUrl={profile?.avatar_url}
@@ -118,43 +124,64 @@ export default function UserMenu() {
                 email={user?.email}
                 size={50}
               />
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ 
+                  fontWeight: 600, 
+                  color: 'white', 
+                  fontSize: '16px', 
+                  marginBottom: '4px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
                   {profile?.name || 'User'}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ 
+                  color: 'rgba(255, 255, 255, 0.6)', 
+                  fontSize: '14px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
                   {user?.email}
                 </div>
               </div>
             </div>
 
             {/* Menu Items */}
-            <div style={{ padding: '0.5rem 0' }}>
+            <div style={{ padding: '8px' }}>
               <MenuLink href="/profile" icon="👤" onClick={() => setIsOpen(false)}>My Profile</MenuLink>
-              <MenuLink href="/security" icon="🔒" onClick={() => setIsOpen(false)}>Security</MenuLink>
               <MenuLink href="/wallet" icon="💰" onClick={() => setIsOpen(false)}>Wallet</MenuLink>
+              <MenuLink href="/security" icon="🔒" onClick={() => setIsOpen(false)}>Security</MenuLink>
               <MenuLink href="/notifications" icon="🔔" onClick={() => setIsOpen(false)}>Notifications</MenuLink>
               <MenuLink href="/help" icon="❓" onClick={() => setIsOpen(false)}>Help & Support</MenuLink>
-              <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0.5rem 0' }} />
-              <button
+
+              <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.1)', margin: '8px 0' }} />
+
+              <div
                 onClick={handleSignOut}
                 style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#ff6b6b',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  fontSize: '0.875rem',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.75rem',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  color: '#ff6b6b',
+                  borderRadius: '8px',
+                  transition: 'all 0.3s ease',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }} 
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 107, 107, 0.1)';
+                }} 
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
                 }}
               >
-                <span>🚪</span>
+                <span style={{ width: '18px', textAlign: 'center' }}>🚪</span>
                 <span>Sign Out</span>
-              </button>
+              </div>
             </div>
           </div>
         )}
@@ -182,20 +209,29 @@ function MenuLink({ href, icon, children, onClick }: { href: string; icon: strin
   return (
     <Link href={href} onClick={onClick} style={{ textDecoration: 'none' }}>
       <div style={{
-        padding: '0.75rem 1rem',
-        color: 'rgba(255,255,255,0.9)',
-        cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
-        gap: '0.75rem',
-        fontSize: '0.875rem',
-        transition: 'background 0.2s',
-        background: 'transparent',
+        gap: '12px',
+        padding: '12px 16px',
+        color: 'rgba(255, 255, 255, 0.8)',
+        borderRadius: '8px',
+        transition: 'all 0.3s ease',
+        fontSize: '14px',
+        fontWeight: 500,
+        cursor: 'pointer',
       }}
-      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+        e.currentTarget.style.color = 'white';
+        e.currentTarget.style.transform = 'translateX(4px)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'transparent';
+        e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)';
+        e.currentTarget.style.transform = 'translateX(0)';
+      }}
       >
-        <span>{icon}</span>
+        <span style={{ width: '18px', textAlign: 'center', color: 'rgba(255, 255, 255, 0.6)' }}>{icon}</span>
         <span>{children}</span>
       </div>
     </Link>

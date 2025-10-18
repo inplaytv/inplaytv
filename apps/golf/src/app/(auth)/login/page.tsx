@@ -1,4 +1,17 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
 export default function LoginPage() {
+  const [websiteUrl, setWebsiteUrl] = useState('https://www.inplay.tv/login');
+
+  useEffect(() => {
+    // Set environment-aware URL
+    if (window.location.hostname === 'localhost') {
+      setWebsiteUrl('http://localhost:3000/login');
+    }
+  }, []);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -24,7 +37,7 @@ export default function LoginPage() {
         </p>
         
         <a
-          href="https://www.inplay.tv/login"
+          href={websiteUrl}
           style={{
             display: 'inline-block',
             padding: '1rem 2rem',

@@ -1,248 +1,689 @@
 'use client';
 
-import { createClient } from '@/lib/supabaseClient';
 import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import RequireAuth from '@/components/RequireAuth';
 import Header from '@/components/Header';
-import UserAvatar from '@/components/UserAvatar';
+import './profile.css';
+
+interface ProfileData {
+  name: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  phone: string;
+  date_of_birth: string;
+  avatar_url: string | null;
+  created_at: string;
+}
+
+interface TournamentStats {
+  tournaments: number;
+  wins: number;
+  earnings: number;
+}
 
 export const dynamic = 'force-dynamic';
 
-function ProfilePageContent() {
+export default function ProfilePage() {
   const supabase = createClient();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [name, setName] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [stats, setStats] = useState<TournamentStats>({ tournaments: 0, wins: 0, earnings: 0 });
+  const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState('');
+
+  // Form states
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editDOB, setEditDOB] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [showEmailPasswordModal, setShowEmailPasswordModal] = useState(false);
+
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
   useEffect(() => {
     loadProfile();
+    loadStats();
   }, []);
 
   async function loadProfile() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    setUser(user);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth/login');
+        return;
+      }
 
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-    if (profileData) {
+      if (error) throw error;
+
+      // Parse name into first and last name
+      const [firstName = '', lastName = ''] = (data?.name || '').split(' ');
+
+      const profileData = {
+        ...data,
+        email: user.email || '',
+        firstName,
+        lastName,
+        date_of_birth: data.date_of_birth || '',
+      };
+
       setProfile(profileData);
-      setName(profileData.name || '');
-      setAvatarUrl(profileData.avatar_url || '');
+      setEditFirstName(firstName);
+      setEditLastName(lastName);
+      setEditUsername(data.username || '');
+      setEditEmail(user.email || '');
+      setEditPhone(data.phone || '');
+      setEditDOB(data.date_of_birth || '');
+    } catch (err) {
+      console.error('Error loading profile:', err);
+      setError('Failed to load profile');
+    } finally {
+      setLoading(false);
     }
+  }
+
+  async function loadStats() {
+    // TODO: Query tournament entries and results from database
+    // For now, use placeholder data
+    setStats({
+      tournaments: 0,
+      wins: 0,
+      earnings: 0,
+    });
   }
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!e.target.files || !e.target.files[0] || !user) return;
-
-    const file = e.target.files[0];
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-    const filePath = `avatars/${user.id}/${fileName}`;
-
-    setUploading(true);
-    setError('');
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     try {
-      // Upload to Supabase Storage
+      setUploadingAvatar(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { upsert: true });
+        .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data } = supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
-      setAvatarUrl(data.publicUrl);
-      setMessage('Avatar uploaded! Click Save to apply.');
-    } catch (err: any) {
-      setError('Failed to upload avatar: ' + err.message);
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
+    } catch (err) {
+      console.error('Error uploading avatar:', err);
+      setError('Failed to upload avatar');
     } finally {
-      setUploading(false);
+      setUploadingAvatar(false);
     }
   }
 
-  async function handleSave() {
-    if (!user) return;
+  async function handleSaveAccountInfo(e: React.FormEvent) {
+    e.preventDefault();
     setError('');
-    setMessage('');
 
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        name: name.trim(),
-        avatar_url: avatarUrl,
-      })
-      .eq('id', user.id);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
 
-    if (updateError) {
-      setError('Failed to save: ' + updateError.message);
-    } else {
-      setMessage('Profile updated successfully!');
-      loadProfile();
+      // Check if username is unique (if changed)
+      if (editUsername && editUsername !== profile?.username) {
+        const { data: existingUser } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', editUsername)
+          .single();
+
+        if (existingUser) {
+          setError('Username is already taken. Please choose another one.');
+          return;
+        }
+      }
+
+      // Update profile fields
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          name: `${editFirstName} ${editLastName}`.trim(),
+          username: editUsername || null,
+          phone: editPhone,
+          date_of_birth: editDOB,
+        })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      // If email changed, require password confirmation
+      if (editEmail !== profile?.email) {
+        setShowEmailPasswordModal(true);
+        return; // Don't close edit mode yet
+      }
+
+      await loadProfile();
+      setEditMode(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update profile');
     }
   }
+
+  async function handleEmailChange() {
+    setError('');
+
+    if (!emailPassword) {
+      setError('Please enter your password to confirm email change');
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error('Not authenticated');
+
+      // Verify current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: emailPassword,
+      });
+
+      if (signInError) throw new Error('Incorrect password');
+
+      // Update email
+      const { error: emailError } = await supabase.auth.updateUser({
+        email: editEmail,
+      });
+
+      if (emailError) throw emailError;
+
+      alert('Verification email sent to your new email address. Please verify to complete the change.');
+      setShowEmailPasswordModal(false);
+      setEmailPassword('');
+      setEditMode(false);
+      await loadProfile();
+    } catch (err: any) {
+      setError(err.message || 'Failed to update email');
+    }
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+
+    if (newPassword !== confirmNewPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error('Not authenticated');
+
+      // Verify current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (signInError) throw new Error('Current password is incorrect');
+
+      // Update password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) throw updateError;
+
+      alert('Password updated successfully');
+      setShowChangePasswordModal(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (err: any) {
+      setError(err.message || 'Failed to update password');
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="profile-container">
+        <p style={{ textAlign: 'center', padding: '2rem', color: 'white' }}>Loading profile...</p>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="profile-container">
+        <p style={{ textAlign: 'center', padding: '2rem', color: 'white' }}>Profile not found</p>
+      </div>
+    );
+  }
+
+  const memberSince = new Date(profile.created_at).toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric',
+  });
 
   return (
     <>
       <Header />
-      <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '2rem', color: '#fff' }}>
-          My Profile
-        </h1>
-
-        <div style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '12px',
-          padding: '2rem',
-        }}>
-          {/* Avatar Section */}
-          <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-            <UserAvatar
-              avatarUrl={avatarUrl}
-              name={name}
-              email={user?.email}
-              size={120}
-            />
-            <div style={{ marginTop: '1rem' }}>
-              <label style={{
-                display: 'inline-block',
-                padding: '0.5rem 1rem',
-                background: 'rgba(102, 126, 234, 0.2)',
-                border: '1px solid rgba(102, 126, 234, 0.4)',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                color: '#fff',
-              }}>
-                {uploading ? 'Uploading...' : '📷 Change Avatar'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  disabled={uploading}
-                  style={{ display: 'none' }}
-                />
-              </label>
+      <div className="background-container"></div>
+      
+      <main className="profile-container">
+        {/* Profile Header */}
+        <section className="profile-header glass-card">
+          <div className="profile-header-content">
+            <div className="profile-avatar-section">
+              <div className="profile-avatar">
+                {profile.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Profile" />
+                ) : (
+                  <div className="avatar-placeholder">
+                    {profile.firstName.charAt(0) || profile.email.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <label className="avatar-edit-btn">
+                  <i className="fas fa-camera"></i>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    disabled={uploadingAvatar}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.5rem' }}>
-              Avatar is publicly visible
-            </p>
+            
+            <div className="profile-info">
+              <h1 className="profile-name">
+                {profile.name || `${profile.firstName} ${profile.lastName}`.trim() || 'Anonymous User'}
+              </h1>
+              <p className="profile-email">{profile.email}</p>
+              
+              <div className="profile-stats">
+                <div className="stat-item">
+                  <span className="stat-value">{stats.tournaments}</span>
+                  <span className="stat-label">Tournaments</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-value">{stats.wins}</span>
+                  <span className="stat-label">Wins</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-value">£{stats.earnings}</span>
+                  <span className="stat-label">Earnings</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-value">{memberSince}</span>
+                  <span className="stat-label">Member Since</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Profile Content */}
+        <div className="profile-content">
+          {/* Left Column */}
+          <div className="profile-left">
+            {/* Account Information */}
+            <section className="profile-section glass-card">
+              <div className="section-header">
+                <h2>
+                  <i className="fas fa-user-circle"></i>
+                  Account Information
+                </h2>
+                {!editMode && (
+                  <button className="edit-btn" onClick={() => setEditMode(true)}>
+                    <i className="fas fa-edit"></i>
+                    <span>Edit</span>
+                  </button>
+                )}
+              </div>
+
+              {!editMode ? (
+                <div className="account-info">
+                  <div className="info-group">
+                    <label>First Name</label>
+                    <span>{profile.firstName || 'Not set'}</span>
+                  </div>
+                  <div className="info-group">
+                    <label>Last Name</label>
+                    <span>{profile.lastName || 'Not set'}</span>
+                  </div>
+                  <div className="info-group">
+                    <label>Email Address</label>
+                    <span>{profile.email}</span>
+                  </div>
+                  <div className="info-group">
+                    <label>Phone Number</label>
+                    <span>{profile.phone || 'Not set'}</span>
+                  </div>
+                  <div className="info-group">
+                    <label>Username</label>
+                    <span>{profile.username || 'Not set'}</span>
+                  </div>
+                  <div className="info-group">
+                    <label>Date of Birth</label>
+                    <span>
+                      {profile.date_of_birth 
+                        ? new Date(profile.date_of_birth).toLocaleDateString('en-US', { 
+                            month: 'long', 
+                            day: 'numeric', 
+                            year: 'numeric' 
+                          }) 
+                        : 'Not set'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <form className="account-edit-form" onSubmit={handleSaveAccountInfo}>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="editFirstName">First Name</label>
+                      <input
+                        type="text"
+                        id="editFirstName"
+                        className="form-input"
+                        value={editFirstName}
+                        onChange={(e) => setEditFirstName(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="editLastName">Last Name</label>
+                      <input
+                        type="text"
+                        id="editLastName"
+                        className="form-input"
+                        value={editLastName}
+                        onChange={(e) => setEditLastName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="editUsername">Username</label>
+                    <input
+                      type="text"
+                      id="editUsername"
+                      className="form-input"
+                      value={editUsername}
+                      onChange={(e) => setEditUsername(e.target.value)}
+                      placeholder="Choose a unique username"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="editEmail">Email Address</label>
+                    <input
+                      type="email"
+                      id="editEmail"
+                      className="form-input"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                    />
+                    <small style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                      Changing email will require password confirmation and email verification
+                    </small>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="editPhone">Phone Number</label>
+                    <input
+                      type="tel"
+                      id="editPhone"
+                      className="form-input"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="editDOB">Date of Birth</label>
+                    <input
+                      type="date"
+                      id="editDOB"
+                      className="form-input"
+                      value={editDOB}
+                      onChange={(e) => setEditDOB(e.target.value)}
+                    />
+                  </div>
+                  
+                  {error && (
+                    <div className="error-message">{error}</div>
+                  )}
+
+                  <div className="form-actions">
+                    <button type="button" className="btn secondary" onClick={() => setEditMode(false)}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn primary">
+                      Save Changes
+                    </button>
+                  </div>
+                </form>
+              )}
+            </section>
+
+            {/* Security Settings */}
+            <section className="profile-section glass-card">
+              <div className="section-header">
+                <h2>
+                  <i className="fas fa-shield-alt"></i>
+                  Security Settings
+                </h2>
+              </div>
+              
+              <div className="security-options">
+                <div className="security-item">
+                  <div className="security-info">
+                    <h3>Password</h3>
+                    <p>Change your account password</p>
+                  </div>
+                  <button className="btn secondary" onClick={() => setShowChangePasswordModal(true)}>
+                    <i className="fas fa-key"></i>
+                    Change Password
+                  </button>
+                </div>
+              </div>
+            </section>
           </div>
 
-          {/* Email (Read-only) */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500, color: '#fff' }}>
-              Email Address
-            </label>
-            <input
-              type="email"
-              value={user?.email || ''}
-              disabled
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '6px',
-                color: 'rgba(255,255,255,0.5)',
-                fontSize: '0.9rem',
-                cursor: 'not-allowed',
-              }}
-            />
+          {/* Right Column */}
+          <div className="profile-right">
+            {/* Fantasy Performance */}
+            <section className="profile-section glass-card">
+              <div className="section-header">
+                <h2>
+                  <i className="fas fa-chart-bar"></i>
+                  Fantasy Performance
+                </h2>
+              </div>
+              
+              <div className="fantasy-stats">
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <i className="fas fa-trophy"></i>
+                  </div>
+                  <div className="stat-details">
+                    <span className="stat-number">{stats.wins}</span>
+                    <span className="stat-title">Tournament Wins</span>
+                  </div>
+                </div>
+                
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <i className="fas fa-medal"></i>
+                  </div>
+                  <div className="stat-details">
+                    <span className="stat-number">0</span>
+                    <span className="stat-title">Top 10 Finishes</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Recent Activity */}
+            <section className="profile-section glass-card">
+              <div className="section-header">
+                <h2>
+                  <i className="fas fa-history"></i>
+                  Recent Activity
+                </h2>
+              </div>
+              
+              <div className="activity-list">
+                <p className="no-activity">No recent activity</p>
+              </div>
+            </section>
           </div>
-
-          {/* Name */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500, color: '#fff' }}>
-              Full Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '6px',
-                color: '#fff',
-                fontSize: '0.9rem',
-              }}
-            />
-          </div>
-
-          {/* Messages */}
-          {message && (
-            <div style={{
-              background: 'rgba(102, 234, 158, 0.1)',
-              border: '1px solid rgba(102, 234, 158, 0.3)',
-              borderRadius: '6px',
-              padding: '0.75rem',
-              marginBottom: '1rem',
-              color: '#66ea9e',
-              fontSize: '0.875rem',
-            }}>
-              {message}
-            </div>
-          )}
-
-          {error && (
-            <div style={{
-              background: 'rgba(255, 107, 107, 0.1)',
-              border: '1px solid rgba(255, 107, 107, 0.3)',
-              borderRadius: '6px',
-              padding: '0.75rem',
-              marginBottom: '1rem',
-              color: '#ff6b6b',
-              fontSize: '0.875rem',
-            }}>
-              {error}
-            </div>
-          )}
-
-          {/* Save Button */}
-          <button
-            onClick={handleSave}
-            style={{
-              width: '100%',
-              padding: '0.875rem',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none',
-              borderRadius: '6px',
-              color: '#fff',
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Save Changes
-          </button>
         </div>
-      </div>
-    </>
-  );
-}
 
-export default function ProfilePage() {
-  return (
-    <RequireAuth>
-      <ProfilePageContent />
-    </RequireAuth>
+        {/* Change Password Modal */}
+        {showChangePasswordModal && (
+          <div className="modal-overlay" onClick={() => setShowChangePasswordModal(false)}>
+            <div className="modal-content glass-card" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Change Password</h3>
+                <button className="modal-close" onClick={() => setShowChangePasswordModal(false)}>
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <div className="modal-body">
+                <form onSubmit={handleChangePassword}>
+                  <div className="form-group">
+                    <label htmlFor="currentPassword">Current Password</label>
+                    <div className="input-wrapper">
+                      <i className="fas fa-lock input-icon"></i>
+                      <input
+                        type="password"
+                        id="currentPassword"
+                        className="form-input"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="newPassword">New Password</label>
+                    <div className="input-wrapper">
+                      <i className="fas fa-lock input-icon"></i>
+                      <input
+                        type="password"
+                        id="newPassword"
+                        className="form-input"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="confirmNewPassword">Confirm New Password</label>
+                    <div className="input-wrapper">
+                      <i className="fas fa-lock input-icon"></i>
+                      <input
+                        type="password"
+                        id="confirmNewPassword"
+                        className="form-input"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="error-message">{error}</div>
+                  )}
+                  
+                  <div className="modal-actions">
+                    <button type="button" className="btn secondary" onClick={() => setShowChangePasswordModal(false)}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn primary">
+                      Update Password
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Email Password Confirmation Modal */}
+        {showEmailPasswordModal && (
+          <div className="modal-overlay" onClick={() => setShowEmailPasswordModal(false)}>
+            <div className="modal-content glass-card" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Confirm Email Change</h3>
+                <button className="modal-close" onClick={() => setShowEmailPasswordModal(false)}>
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <div className="modal-body">
+                <p style={{ marginBottom: '1.5rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                  Please enter your password to confirm changing your email to <strong>{editEmail}</strong>
+                </p>
+                <div className="form-group">
+                  <label htmlFor="emailPassword">Current Password</label>
+                  <div className="input-wrapper">
+                    <i className="fas fa-lock input-icon"></i>
+                    <input
+                      type="password"
+                      id="emailPassword"
+                      className="form-input"
+                      value={emailPassword}
+                      onChange={(e) => setEmailPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="error-message">{error}</div>
+                )}
+                
+                <div className="modal-actions">
+                  <button type="button" className="btn secondary" onClick={() => setShowEmailPasswordModal(false)}>
+                    Cancel
+                  </button>
+                  <button type="button" className="btn primary" onClick={handleEmailChange}>
+                    Confirm Change
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </>
   );
 }
