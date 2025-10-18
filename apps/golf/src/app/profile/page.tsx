@@ -52,6 +52,10 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
+  // Security settings states
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [loginNotificationsEnabled, setLoginNotificationsEnabled] = useState(true);
+
   useEffect(() => {
     loadProfile();
     loadStats();
@@ -509,6 +513,36 @@ export default function ProfilePage() {
                     <i className="fas fa-key"></i>
                     Change Password
                   </button>
+                </div>
+
+                <div className="security-item">
+                  <div className="security-info">
+                    <h3>Two-Factor Authentication</h3>
+                    <p>Add an extra layer of security to your account</p>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={twoFactorEnabled}
+                      onChange={(e) => setTwoFactorEnabled(e.target.checked)}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div className="security-item">
+                  <div className="security-info">
+                    <h3>Login Notifications</h3>
+                    <p>Get notified when someone signs into your account</p>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={loginNotificationsEnabled}
+                      onChange={(e) => setLoginNotificationsEnabled(e.target.checked)}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
                 </div>
               </div>
             </section>
