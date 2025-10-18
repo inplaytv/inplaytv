@@ -48,8 +48,8 @@ export default function SignUpPage() {
         // Check if email confirmation is required
         if (data.user.email_confirmed_at) {
           // Email already confirmed (instant signup - verification disabled)
-          setMessage('Account created! Redirecting...');
-          setTimeout(() => router.push('/account'), 1000);
+          setMessage('Account created! Redirecting to golf app...');
+          setTimeout(() => window.location.href = 'https://golf.inplay.tv/', 1000);
         } else {
           // Email confirmation required - redirect to verification page
           router.push(`/verify-email?email=${encodeURIComponent(email)}`);

@@ -124,13 +124,13 @@ export default function VerificationSuccessPage() {
         <div style={styles.successBox}>
           <p style={styles.successText}>
             ✅ Your account is now fully activated!<br />
-            You can now login and access all features.
+            You can now access the golf app.
           </p>
         </div>
 
-        <Link href="/login" style={styles.button}>
-          Continue to Login →
-        </Link>
+        <a href="https://golf.inplay.tv/" style={styles.button}>
+          Go to Golf App →
+        </a>
 
         <Link href="/" style={styles.buttonSecondary}>
           ← Back to Home

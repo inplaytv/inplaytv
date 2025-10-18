@@ -19,8 +19,8 @@ export default function LoginPage() {
       }}>
         <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Sign In Required</h1>
         <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '2rem', lineHeight: '1.6' }}>
-          Please sign in on the InPlay TV website. Your session will be shared across subdomains, 
-          so once you sign in there, you can return here and access the golf app.
+          Please sign in on the InPlay TV website. After logging in, you&apos;ll be automatically 
+          redirected back here to access the golf app.
         </p>
         
         <a

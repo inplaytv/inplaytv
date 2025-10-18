@@ -50,7 +50,8 @@ export default function LoginPage() {
           setMessage(`Error: ${error.message}`);
         }
       } else if (data.user) {
-        router.push('/account');
+        // After login, redirect to golf app (main product)
+        window.location.href = 'https://golf.inplay.tv/';
       }
     } catch (err) {
       setMessage('An unexpected error occurred');
