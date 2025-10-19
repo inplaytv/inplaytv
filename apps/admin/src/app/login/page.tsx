@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
@@ -43,11 +43,17 @@ export default function LoginPage() {
 
   return (
     <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       background: 'linear-gradient(135deg, #0a0f1a 0%, #1a1f2e 100%)',
+      margin: '-2rem',
     }}>
       <div style={{
         maxWidth: '400px',
@@ -64,7 +70,7 @@ export default function LoginPage() {
           fontWeight: 700,
           textAlign: 'center',
         }}>
-          🛠️ Admin Access
+          Admin Access
         </h1>
         
         <p style={{ 
@@ -179,5 +185,30 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0a0f1a 0%, #1a1f2e 100%)',
+        margin: '-2rem',
+        color: '#fff',
+      }}>
+        Loading...
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

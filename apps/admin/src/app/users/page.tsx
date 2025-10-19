@@ -1,5 +1,6 @@
 import { assertAdminOrRedirect } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabaseAdminServer';
+import UsersList from '@/components/UsersList';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,13 @@ async function searchUsers(query?: string) {
   // Get auth users
   const { data: { users } } = await adminClient.auth.admin.listUsers();
   
+  // Get profiles for username, phone and personal info
+  const { data: profiles } = await adminClient
+    .from('profiles')
+    .select('user_id, username, phone, first_name, last_name, date_of_birth, address_line1, address_line2, city, postcode, country');
+  
+  const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+  
   // Get wallet balances
   const { data: wallets } = await adminClient
     .from('wallets')
@@ -16,22 +24,52 @@ async function searchUsers(query?: string) {
   
   const walletMap = new Map(wallets?.map(w => [w.user_id, w.balance_cents]) || []);
   
+  // Check if user is admin
+  const { data: admins } = await adminClient
+    .from('admins')
+    .select('user_id');
+  
+  const adminSet = new Set(admins?.map(a => a.user_id) || []);
+  
   // Filter and map
   let filteredUsers = users || [];
   if (query) {
     const lowerQuery = query.toLowerCase();
-    filteredUsers = filteredUsers.filter(u => 
-      u.email?.toLowerCase().includes(lowerQuery) ||
-      u.id.toLowerCase().includes(lowerQuery)
-    );
+    filteredUsers = filteredUsers.filter(u => {
+      const profile = profileMap.get(u.id);
+      return (
+        u.email?.toLowerCase().includes(lowerQuery) ||
+        u.id.toLowerCase().includes(lowerQuery) ||
+        profile?.username?.toLowerCase().includes(lowerQuery) ||
+        profile?.phone?.includes(query)
+      );
+    });
   }
   
-  return filteredUsers.slice(0, 50).map(u => ({
-    id: u.id,
-    email: u.email || 'No email',
-    created_at: u.created_at,
-    balance_cents: walletMap.get(u.id) || 0,
-  }));
+  return filteredUsers.slice(0, 100).map(u => {
+    const profile = profileMap.get(u.id);
+    return {
+      id: u.id,
+      email: u.email || 'No email',
+      username: profile?.username || null,
+      phone: profile?.phone || null,
+      first_name: profile?.first_name || null,
+      last_name: profile?.last_name || null,
+      date_of_birth: profile?.date_of_birth || null,
+      address_line1: profile?.address_line1 || null,
+      address_line2: profile?.address_line2 || null,
+      city: profile?.city || null,
+      postcode: profile?.postcode || null,
+      country: profile?.country || null,
+      created_at: u.created_at,
+      last_sign_in_at: u.last_sign_in_at || null,
+      email_confirmed_at: u.email_confirmed_at || null,
+      balance_cents: walletMap.get(u.id) || 0,
+      is_admin: adminSet.has(u.id),
+      app_metadata: u.app_metadata,
+      user_metadata: u.user_metadata,
+    };
+  });
 }
 
 export default async function UsersPage({
@@ -44,60 +82,9 @@ export default async function UsersPage({
   
   return (
     <div>
-      <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Users</h1>
+      <h1 style={{ fontSize: '1.75rem', marginBottom: '1.5rem', fontWeight: 700 }}>Users</h1>
       
-      <form method="GET" style={{ marginBottom: '2rem' }}>
-        <input
-          type="text"
-          name="q"
-          placeholder="Search by email or ID..."
-          defaultValue={searchParams.q || ''}
-          style={{
-            padding: '0.75rem',
-            border: '1px solid #eaeaea',
-            borderRadius: '6px',
-            width: '100%',
-            maxWidth: '400px',
-            fontSize: '1rem',
-          }}
-        />
-      </form>
-      
-      <div style={{
-        background: '#fff',
-        border: '1px solid #eaeaea',
-        borderRadius: '8px',
-        overflow: 'hidden',
-      }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: '#fafafa', borderBottom: '1px solid #eaeaea' }}>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600 }}>Email</th>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600 }}>Balance</th>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600 }}>Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id} style={{ borderBottom: '1px solid #eaeaea' }}>
-                <td style={{ padding: '1rem' }}>{user.email}</td>
-                <td style={{ padding: '1rem', fontWeight: 500 }}>
-                  £{(user.balance_cents / 100).toFixed(2)}
-                </td>
-                <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#666' }}>
-                  {new Date(user.created_at).toLocaleDateString('en-GB')}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        
-        {users.length === 0 && (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#999' }}>
-            No users found
-          </div>
-        )}
-      </div>
+      <UsersList users={users} searchQuery={searchParams.q} />
     </div>
   );
 }

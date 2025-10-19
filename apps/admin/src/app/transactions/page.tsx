@@ -40,17 +40,20 @@ export default async function TransactionsPage({
   
   return (
     <div>
-      <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Transactions</h1>
+      <h1 style={{ fontSize: '1.75rem', marginBottom: '1.5rem', fontWeight: 700 }}>Transactions</h1>
       
-      <form method="GET" style={{ marginBottom: '2rem', display: 'flex', gap: '1rem' }}>
+      <form method="GET" style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
         <select
           name="type"
           defaultValue={searchParams.type || ''}
           style={{
-            padding: '0.75rem',
-            border: '1px solid #eaeaea',
+            padding: '0.7rem 1rem',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.15)',
             borderRadius: '6px',
-            fontSize: '1rem',
+            fontSize: '0.9rem',
+            color: '#fff',
+            outline: 'none',
           }}
         >
           <option value="">All types</option>
@@ -61,42 +64,44 @@ export default async function TransactionsPage({
       </form>
       
       <div style={{
-        background: '#fff',
-        border: '1px solid #eaeaea',
-        borderRadius: '8px',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '10px',
         overflow: 'hidden',
+        backdropFilter: 'blur(10px)',
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#fafafa', borderBottom: '1px solid #eaeaea' }}>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600 }}>Date</th>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600 }}>Type</th>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600 }}>Reason</th>
-              <th style={{ padding: '1rem', textAlign: 'right', fontWeight: 600 }}>Amount</th>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600 }}>Ref</th>
+            <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Date</th>
+              <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Type</th>
+              <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Reason</th>
+              <th style={{ padding: '0.875rem', textAlign: 'right', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Amount</th>
+              <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Ref</th>
             </tr>
           </thead>
           <tbody>
             {transactions.map((tx, idx) => (
-              <tr key={`${tx.source}-${tx.ref_id}-${idx}`} style={{ borderBottom: '1px solid #eaeaea' }}>
-                <td style={{ padding: '1rem', fontSize: '0.875rem' }}>
+              <tr key={`${tx.source}-${tx.ref_id}-${idx}`} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <td style={{ padding: '0.875rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)' }}>
                   {new Date(tx.created_at).toLocaleString('en-GB')}
                 </td>
-                <td style={{ padding: '1rem' }}>
-                  <span style={{ fontSize: '0.875rem' }}>{tx.source}</span>
+                <td style={{ padding: '0.875rem', color: 'rgba(255,255,255,0.9)' }}>
+                  <span style={{ fontSize: '0.8rem' }}>{tx.source}</span>
                 </td>
-                <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#666' }}>
+                <td style={{ padding: '0.875rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>
                   {tx.reason}
                 </td>
                 <td style={{
-                  padding: '1rem',
+                  padding: '0.875rem',
                   textAlign: 'right',
-                  fontWeight: 500,
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
                   color: tx.amount_cents >= 0 ? '#10b981' : '#ef4444',
                 }}>
                   {tx.amount_cents >= 0 ? '+' : ''}£{(tx.amount_cents / 100).toFixed(2)}
                 </td>
-                <td style={{ padding: '1rem', fontSize: '0.75rem', color: '#999' }}>
+                <td style={{ padding: '0.875rem', fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
                   {tx.ref_id}
                 </td>
               </tr>
@@ -105,7 +110,7 @@ export default async function TransactionsPage({
         </table>
         
         {transactions.length === 0 && (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#999' }}>
+          <div style={{ padding: '2.5rem', textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem' }}>
             No transactions found
           </div>
         )}

@@ -61,43 +61,43 @@ export default async function WithdrawalsPage() {
   
   return (
     <div>
-      <h1 style={{ fontSize: '2rem', marginBottom: '2rem', fontWeight: 700 }}>Withdrawal Requests</h1>
+      <h1 style={{ fontSize: '1.75rem', marginBottom: '1.5rem', fontWeight: 700 }}>Withdrawal Requests</h1>
       
       <div style={{
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '12px',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '10px',
         overflow: 'hidden',
         backdropFilter: 'blur(10px)',
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>ID</th>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>User</th>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>Amount</th>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>Status</th>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>Requested</th>
-              <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>Actions</th>
+            <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>ID</th>
+              <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>User</th>
+              <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Amount</th>
+              <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Status</th>
+              <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Requested</th>
+              <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {withdrawals.map((withdrawal) => (
-              <tr key={withdrawal.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                <td style={{ padding: '1rem', color: 'rgba(255,255,255,0.9)' }}>{withdrawal.id}</td>
-                <td style={{ padding: '1rem' }}>
-                  <div style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.7)' }}>
+              <tr key={withdrawal.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <td style={{ padding: '0.875rem', color: 'rgba(255,255,255,0.9)', fontSize: '0.85rem' }}>{withdrawal.id}</td>
+                <td style={{ padding: '0.875rem' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>
                     {withdrawal.user_email}
                   </div>
                 </td>
-                <td style={{ padding: '1rem', fontWeight: 600, color: '#fff' }}>
+                <td style={{ padding: '0.875rem', fontWeight: 600, color: '#fff', fontSize: '0.9rem' }}>
                   £{(withdrawal.amount_cents / 100).toFixed(2)}
                 </td>
-                <td style={{ padding: '1rem' }}>
+                <td style={{ padding: '0.875rem' }}>
                   <span style={{
-                    padding: '0.25rem 0.75rem',
+                    padding: '0.25rem 0.65rem',
                     borderRadius: '9999px',
-                    fontSize: '0.875rem',
+                    fontSize: '0.75rem',
                     fontWeight: 500,
                     background: `${statusColor(withdrawal.status)}20`,
                     color: statusColor(withdrawal.status),
@@ -105,10 +105,10 @@ export default async function WithdrawalsPage() {
                     {withdrawal.status}
                   </span>
                 </td>
-                <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.6)' }}>
+                <td style={{ padding: '0.875rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>
                   {new Date(withdrawal.requested_at).toLocaleString('en-GB')}
                 </td>
-                <td style={{ padding: '1rem' }}>
+                <td style={{ padding: '0.875rem' }}>
                   <WithdrawalActions id={withdrawal.id} status={withdrawal.status} />
                 </td>
               </tr>
@@ -117,7 +117,7 @@ export default async function WithdrawalsPage() {
         </table>
         
         {withdrawals.length === 0 && (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+          <div style={{ padding: '2.5rem', textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem' }}>
             No withdrawal requests yet
           </div>
         )}

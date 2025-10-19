@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import AdminNav from '@/components/AdminNav';
+import { SidebarProvider } from '@/components/SidebarContext';
+import ConditionalSidebar from '@/components/ConditionalSidebar';
+import MainContent from '@/components/MainContent';
+import Background from '@/components/Background';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -28,12 +31,21 @@ export default function RootLayout({
         padding: 0, 
         background: '#0a0f1a', 
         color: '#fff', 
-        minHeight: '100vh' 
+        minHeight: '100vh',
+        display: 'flex',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        position: 'relative',
+        isolation: 'isolate',
       }}>
-        <AdminNav />
-        <main style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-          {children}
-        </main>
+        <Background />
+        <div style={{ display: 'flex', flex: 1, position: 'relative', zIndex: 10 }}>
+          <SidebarProvider>
+            <ConditionalSidebar />
+            <MainContent>
+              {children}
+            </MainContent>
+          </SidebarProvider>
+        </div>
       </body>
     </html>
   );
