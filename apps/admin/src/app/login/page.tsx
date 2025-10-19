@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
@@ -17,46 +16,18 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const supabase = createClient();
-
     try {
-      // Sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Call server-side API that uses service role to check admin status
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (signInError) {
-        setError(signInError.message);
-        setLoading(false);
-        return;
-      }
+      const data = await response.json();
 
-      // Check if user is admin
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        setError('Authentication failed');
-        setLoading(false);
-        return;
-      }
-
-      console.log('Logged in user ID:', user.id);
-      console.log('Checking admins table...');
-
-      const { data: adminCheck, error: adminCheckError } = await supabase
-        .from('admins')
-        .select('user_id')
-        .eq('user_id', user.id)
-        .single();
-
-      console.log('Admin check result:', adminCheck);
-      console.log('Admin check error:', adminCheckError);
-
-      if (!adminCheck) {
-        // Not an admin, sign them out
-        await supabase.auth.signOut();
-        setError(`Access denied. User ID ${user.id} is not in admins table. Check console for details.`);
+      if (!response.ok) {
+        setError(data.error || 'Login failed');
         setLoading(false);
         return;
       }
