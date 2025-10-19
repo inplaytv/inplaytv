@@ -33,6 +33,16 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    title: 'Tournaments',
+    icon: '◆',
+    items: [
+      { label: 'All Tournaments', href: '/tournaments' },
+      { label: 'Active Competitions', href: '/competitions' },
+      { label: 'Competition Types', href: '/competition-types' },
+      { label: 'Tournament Golfers', href: '/golfers/groups' },
+    ],
+  },
+  {
     title: 'Finance',
     icon: '£',
     items: [
