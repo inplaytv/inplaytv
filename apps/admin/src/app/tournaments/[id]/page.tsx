@@ -37,6 +37,7 @@ interface TournamentCompetition {
   entry_fee_pennies: number;
   entrants_cap: number;
   admin_fee_percent: number;
+  golfer_group_id: string | null;
   reg_open_at: string | null;
   reg_close_at: string | null;
   start_at: string | null;
@@ -54,6 +55,15 @@ interface Golfer {
   external_id: string | null;
 }
 
+interface GolferGroup {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  color: string;
+  golfer_count?: number;
+}
+
 export default function EditTournamentPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -63,6 +73,8 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [competitions, setCompetitions] = useState<TournamentCompetition[]>([]);
   const [availableTypes, setAvailableTypes] = useState<CompetitionType[]>([]);
+  const [golferGroups, setGolferGroups] = useState<GolferGroup[]>([]);
+  const [allGolferGroups, setAllGolferGroups] = useState<GolferGroup[]>([]);
   const [showAddCompetition, setShowAddCompetition] = useState(false);
   const [editingCompetitionId, setEditingCompetitionId] = useState<string | null>(null);
 
@@ -84,6 +96,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
     entry_fee_pounds: '0.00', // Changed to pounds for UI
     entrants_cap: '0',
     admin_fee_percent: '10.00', // Default value, will be loaded from settings
+    golfer_group_id: '', // NEW - golfer group for this competition
     reg_open_at: '',
     reg_close_at: '',
     start_at: '',
@@ -110,10 +123,12 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
 
   const fetchData = async () => {
     try {
-      const [tournamentRes, competitionsRes, typesRes] = await Promise.all([
+      const [tournamentRes, competitionsRes, typesRes, groupsRes, allGroupsRes] = await Promise.all([
         fetch(`/api/tournaments/${params.id}`),
         fetch(`/api/tournaments/${params.id}/competitions`),
         fetch('/api/competition-types'),
+        fetch(`/api/tournaments/${params.id}/golfer-groups`),
+        fetch('/api/golfer-groups'),
       ]);
 
       if (tournamentRes.ok) {
@@ -141,6 +156,16 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
       if (typesRes.ok) {
         const typesData = await typesRes.json();
         setAvailableTypes(typesData);
+      }
+
+      if (groupsRes.ok) {
+        const groupsData = await groupsRes.json();
+        setGolferGroups(groupsData);
+      }
+
+      if (allGroupsRes.ok) {
+        const allGroupsData = await allGroupsRes.json();
+        setAllGolferGroups(allGroupsData);
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
@@ -213,6 +238,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
           entry_fee_pounds: '0.00',
           entrants_cap: '0',
           admin_fee_percent: '10.00',
+          golfer_group_id: '',
           reg_open_at: '',
           reg_close_at: '',
           start_at: '',
@@ -240,6 +266,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
       entry_fee_pounds: (comp.entry_fee_pennies / 100).toFixed(2), // Convert pennies to pounds
       entrants_cap: comp.entrants_cap.toString(),
       admin_fee_percent: comp.admin_fee_percent.toString(),
+      golfer_group_id: comp.golfer_group_id || '',
       reg_open_at: comp.reg_open_at ? comp.reg_open_at.slice(0, 16) : '',
       reg_close_at: comp.reg_close_at ? comp.reg_close_at.slice(0, 16) : '',
       start_at: comp.start_at ? comp.start_at.slice(0, 16) : '',
@@ -280,21 +307,21 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
     return `£${(pennies / 100).toFixed(2)}`;
   };
 
-  const handleAddGolferToTournament = async (golferId: string) => {
+  const handleAddGolferGroup = async (groupId: string) => {
     try {
-      const res = await fetch(`/api/tournaments/${params.id}/golfers`, {
+      const res = await fetch(`/api/tournaments/${params.id}/golfer-groups`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ golfer_id: golferId }),
+        body: JSON.stringify({ group_id: groupId }),
       });
 
       if (res.ok) {
         await fetchData();
-        setSuccess('Golfer added to tournament');
+        setSuccess('Golfer group added to tournament');
         setTimeout(() => setSuccess(''), 3000);
       } else {
         const data = await res.json();
-        setError(data.error || 'Failed to add golfer');
+        setError(data.error || 'Failed to add golfer group');
         setTimeout(() => setError(''), 3000);
       }
     } catch (err) {
@@ -303,20 +330,20 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
     }
   };
 
-  const handleRemoveGolferFromTournament = async (golferId: string, golferName: string) => {
-    if (!confirm(`Remove ${golferName} from this tournament?`)) return;
+  const handleRemoveGolferGroup = async (groupId: string, groupName: string) => {
+    if (!confirm(`Remove "${groupName}" group from this tournament?`)) return;
 
     try {
-      const res = await fetch(`/api/tournaments/${params.id}/golfers?golfer_id=${golferId}`, {
+      const res = await fetch(`/api/tournaments/${params.id}/golfer-groups?group_id=${groupId}`, {
         method: 'DELETE',
       });
 
       if (res.ok) {
         await fetchData();
-        setSuccess('Golfer removed from tournament');
+        setSuccess('Golfer group removed');
         setTimeout(() => setSuccess(''), 3000);
       } else {
-        alert('Failed to remove golfer');
+        alert('Failed to remove golfer group');
       }
     } catch (err) {
       alert('Network error');
@@ -838,6 +865,39 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
               </div>
             </div>
 
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                Golfer Group
+                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
+                  (Required for non-draft status)
+                </span>
+              </label>
+              <select
+                value={competitionFormData.golfer_group_id || ''}
+                onChange={(e) => setCompetitionFormData({ ...competitionFormData, golfer_group_id: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '4px',
+                  color: '#fff',
+                }}
+              >
+                <option value="">No group selected</option>
+                {golferGroups.map(group => (
+                  <option key={group.id} value={group.id}>
+                    {group.name} {group.golfer_count ? `(${group.golfer_count} golfers)` : ''}
+                  </option>
+                ))}
+              </select>
+              {golferGroups.length === 0 && (
+                <p style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.25rem' }}>
+                  ⚠️ Add golfer groups to this tournament first
+                </p>
+              )}
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
@@ -864,6 +924,11 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
+                {competitionFormData.status !== 'draft' && !competitionFormData.golfer_group_id && (
+                  <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.25rem' }}>
+                    ⚠️ Competition needs a golfer group to be non-draft status
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1013,6 +1078,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                     entry_fee_pounds: '0.00',
                     entrants_cap: '0',
                     admin_fee_percent: '10.00',
+                    golfer_group_id: '',
                     reg_open_at: '',
                     reg_close_at: '',
                     start_at: '',
@@ -1120,6 +1186,172 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                     </button>
                   </div>
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Golfer Groups Section */}
+      <div style={{
+        background: 'rgba(30, 30, 35, 0.95)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '8px',
+        padding: '1.5rem',
+        marginTop: '1.5rem',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>
+              Golfer Groups
+            </h2>
+            <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.6)', margin: '0.25rem 0 0 0' }}>
+              {golferGroups.length === 0 ? (
+                <span style={{ color: '#f59e0b' }}>⚠️ Add golfer groups to use in competitions</span>
+              ) : (
+                `${golferGroups.length} group${golferGroups.length !== 1 ? 's' : ''} assigned`
+              )}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <Link
+              href="/golfers/groups"
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'rgba(107, 114, 128, 0.2)',
+                border: '1px solid rgba(107, 114, 128, 0.4)',
+                borderRadius: '6px',
+                color: '#9ca3af',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              Manage All Groups
+            </Link>
+          </div>
+        </div>
+
+        {/* Add Group Dropdown */}
+        {allGolferGroups.filter(g => !golferGroups.find(tg => tg.id === g.id)).length > 0 && (
+          <div style={{
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            borderRadius: '6px',
+            padding: '1rem',
+            marginBottom: '1rem',
+          }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>
+              Add Golfer Group:
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
+              {allGolferGroups
+                .filter(g => !golferGroups.find(tg => tg.id === g.id))
+                .map((group) => (
+                  <button
+                    key={group.id}
+                    onClick={() => handleAddGolferGroup(group.id)}
+                    style={{
+                      padding: '0.75rem',
+                      background: 'rgba(0,0,0,0.3)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '4px',
+                      color: '#fff',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '50%',
+                        backgroundColor: group.color,
+                      }}
+                    />
+                    <span style={{ fontSize: '0.875rem' }}>{group.name}</span>
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Groups List */}
+        {golferGroups.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '3rem 1rem',
+            color: 'rgba(255,255,255,0.6)',
+          }}>
+            <p style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>No golfer groups added yet</p>
+            <p style={{ fontSize: '0.875rem' }}>
+              {allGolferGroups.length === 0 ? (
+                <>Create groups in the <Link href="/golfers/groups" style={{ color: '#60a5fa' }}>Golfer Groups</Link> section first</>
+              ) : (
+                'Click a group above to add it to this tournament'
+              )}
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '0.75rem' }}>
+            {golferGroups.map((group) => (
+              <div
+                key={group.id}
+                style={{
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '6px',
+                  padding: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: group.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    ⛳
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>
+                      {group.name}
+                    </div>
+                    {group.golfer_count !== undefined && (
+                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
+                        {group.golfer_count} golfer{group.golfer_count !== 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleRemoveGolferGroup(group.id, group.name)}
+                  style={{
+                    padding: '0.25rem 0.5rem',
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    borderRadius: '4px',
+                    color: '#f87171',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Remove
+                </button>
               </div>
             ))}
           </div>
