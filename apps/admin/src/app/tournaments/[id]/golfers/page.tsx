@@ -35,6 +35,9 @@ export default function TournamentGolfersPage({ params }: { params: { id: string
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [groupGolfers, setGroupGolfers] = useState<Record<string, Golfer[]>>({});
+  const [loadingGolfers, setLoadingGolfers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchData();
@@ -149,6 +152,36 @@ export default function TournamentGolfersPage({ params }: { params: { id: string
   const unassignedGroups = availableGroups.filter(
     g => !tournamentGroups.find(tg => tg.id === g.id)
   );
+
+  async function toggleGroupExpansion(groupId: string) {
+    const newExpanded = new Set(expandedGroups);
+    
+    if (newExpanded.has(groupId)) {
+      newExpanded.delete(groupId);
+      setExpandedGroups(newExpanded);
+    } else {
+      newExpanded.add(groupId);
+      setExpandedGroups(newExpanded);
+      
+      // Load golfers if not already loaded
+      if (!groupGolfers[groupId]) {
+        setLoadingGolfers(new Set(loadingGolfers).add(groupId));
+        try {
+          const res = await fetch(`/api/golfer-groups/${groupId}/members`);
+          if (res.ok) {
+            const golfers = await res.json();
+            setGroupGolfers({ ...groupGolfers, [groupId]: golfers });
+          }
+        } catch (err) {
+          console.error('Failed to load golfers:', err);
+        } finally {
+          const newLoading = new Set(loadingGolfers);
+          newLoading.delete(groupId);
+          setLoadingGolfers(newLoading);
+        }
+      }
+    }
+  }
 
   if (loading) {
     return <div style={{ padding: '2rem' }}>Loading...</div>;
@@ -491,6 +524,19 @@ export default function TournamentGolfersPage({ params }: { params: { id: string
               >
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <button
+                      onClick={() => toggleGroupExpansion(group.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '18px',
+                        padding: '0 5px',
+                        color: '#333',
+                      }}
+                    >
+                      {expandedGroups.has(group.id) ? '▼' : '▶'}
+                    </button>
                     <div
                       style={{
                         width: '16px',
@@ -514,8 +560,41 @@ export default function TournamentGolfersPage({ params }: { params: { id: string
                       Added {new Date(group.added_at).toLocaleDateString()}
                     </div>
                   )}
+
+                  {/* Expanded Golfers List */}
+                  {expandedGroups.has(group.id) && (
+                    <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #ddd' }}>
+                      {loadingGolfers.has(group.id) ? (
+                        <div style={{ color: '#999', fontSize: '14px' }}>Loading golfers...</div>
+                      ) : groupGolfers[group.id] && groupGolfers[group.id].length > 0 ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
+                          {groupGolfers[group.id].map((golfer) => (
+                            <div
+                              key={golfer.id}
+                              style={{
+                                padding: '10px',
+                                backgroundColor: '#fff',
+                                border: '1px solid #e0e0e0',
+                                borderRadius: '4px',
+                                fontSize: '14px',
+                              }}
+                            >
+                              <div style={{ fontWeight: 600 }}>{golfer.full_name}</div>
+                              {golfer.external_id && (
+                                <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+                                  OWGR: {golfer.external_id}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ color: '#999', fontSize: '14px' }}>No golfers in this group</div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                   <Link
                     href={`/golfers/groups/${group.id}`}
                     style={{

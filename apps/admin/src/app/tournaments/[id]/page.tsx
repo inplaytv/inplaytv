@@ -404,11 +404,13 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
 
       <form onSubmit={handleSubmit}>
         <div style={{
-          background: 'rgba(30, 30, 35, 0.95)',
+          background: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(10px)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '8px',
+          borderRadius: '12px',
           padding: '1.5rem',
           marginBottom: '1.5rem',
+          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
         }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem' }}>Basic Information</h2>
 
@@ -522,11 +524,13 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
         </div>
 
         <div style={{
-          background: 'rgba(30, 30, 35, 0.95)',
+          background: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(10px)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '8px',
+          borderRadius: '12px',
           padding: '1.5rem',
           marginBottom: '1.5rem',
+          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
         }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem' }}>Dates & Times</h2>
           
@@ -574,11 +578,13 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
         </div>
 
         <div style={{
-          background: 'rgba(30, 30, 35, 0.95)',
+          background: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(10px)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '8px',
+          borderRadius: '12px',
           padding: '1.5rem',
           marginBottom: '1.5rem',
+          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
         }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem' }}>Settings</h2>
 
@@ -672,11 +678,13 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
 
       {/* Competition Types Section */}
       <div style={{
-        background: 'rgba(30, 30, 35, 0.95)',
+        background: 'rgba(255, 255, 255, 0.03)',
+        backdropFilter: 'blur(10px)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '8px',
+        borderRadius: '12px',
         padding: '1.5rem',
         marginBottom: '1.5rem',
+        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Competitions</h2>
@@ -1194,10 +1202,12 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
 
       {/* Golfer Groups Section */}
       <div style={{
-        background: 'rgba(30, 30, 35, 0.95)',
+        background: 'rgba(255, 255, 255, 0.03)',
+        backdropFilter: 'blur(10px)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '8px',
+        borderRadius: '12px',
         padding: '1.5rem',
+        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
         marginTop: '1.5rem',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
@@ -1361,10 +1371,12 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
       {/* Prize Pool Calculator */}
       {competitions.some(c => c.entry_fee_pennies > 0) && (
         <div style={{
-          background: 'rgba(30, 30, 35, 0.95)',
+          background: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(10px)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '8px',
+          borderRadius: '12px',
           padding: '1.5rem',
+          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
         }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem' }}>Prize Pool Examples</h2>
           
