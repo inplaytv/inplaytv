@@ -5,7 +5,9 @@
   "scripts": {
     "dev:web": "turbo run dev --filter=web",
     "dev:golf": "turbo run dev --filter=golf",
+    "dev:admin": "turbo run dev --filter=admin",
     "build": "turbo run build",
+    "build:admin": "turbo run build --filter=admin",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck"
   },

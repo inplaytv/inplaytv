@@ -31,6 +31,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [stats, setStats] = useState<TournamentStats>({ tournaments: 0, wins: 0, earnings: 0 });
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -59,6 +60,7 @@ export default function ProfilePage() {
   useEffect(() => {
     loadProfile();
     loadStats();
+    loadRecentActivity();
   }, []);
 
   async function loadProfile() {
@@ -111,6 +113,30 @@ export default function ProfilePage() {
       wins: 0,
       earnings: 0,
     });
+  }
+
+  async function loadRecentActivity() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Load last 10 ledger entries
+      const { data, error } = await supabase
+        .from('ledger_overview')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Ledger error:', error);
+        return;
+      }
+
+      setRecentActivity(data || []);
+    } catch (err) {
+      console.error('Error loading recent activity:', err);
+    }
   }
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -718,6 +744,83 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        {/* Recent Activity Section */}
+        <div className="profile-section glass-card">
+          <div className="section-header">
+            <div>
+              <h2>Recent Activity</h2>
+              <p className="section-subtitle">Your last 10 wallet transactions</p>
+            </div>
+          </div>
+
+          {recentActivity.length === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+              No activity yet
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>
+                      Date
+                    </th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>
+                      Type
+                    </th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>
+                      Description
+                    </th>
+                    <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.875rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>
+                      Amount
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentActivity.map((activity, idx) => (
+                    <tr key={`${activity.source}-${activity.ref_id}-${idx}`} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '0.75rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
+                        {new Date(activity.created_at).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </td>
+                      <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>
+                        <span style={{
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          background: activity.source === 'external' ? 'rgba(102, 126, 234, 0.2)' : 
+                                     activity.source === 'withdrawal' ? 'rgba(245, 158, 11, 0.2)' : 
+                                     'rgba(255,255,255,0.1)',
+                          color: activity.source === 'external' ? '#667eea' : 
+                                activity.source === 'withdrawal' ? '#f59e0b' : 
+                                'rgba(255,255,255,0.8)',
+                        }}>
+                          {activity.source}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                        {activity.reason}
+                      </td>
+                      <td style={{
+                        padding: '0.75rem',
+                        textAlign: 'right',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: activity.amount_cents >= 0 ? '#66ea9e' : '#ff6b6b',
+                      }}>
+                        {activity.amount_cents >= 0 ? '+' : ''}£{(Math.abs(activity.amount_cents) / 100).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </main>
     </>
   );
