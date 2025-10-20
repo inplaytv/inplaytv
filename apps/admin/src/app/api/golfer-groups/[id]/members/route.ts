@@ -24,11 +24,14 @@ export async function GET(
           last_name,
           full_name,
           image_url,
-          external_id
+          external_id,
+          world_ranking,
+          points_won
         )
       `)
       .eq('group_id', params.id)
-      .order('golfers(last_name)', { ascending: true });
+      .order('golfers(last_name)', { ascending: true })
+      .limit(1000);
 
     if (error) throw error;
 
