@@ -61,15 +61,7 @@ export async function POST(request: NextRequest) {
       let golferId: string;
 
       if (existing) {
-        // Update existing golfer with new data
-        await supabase
-          .from('golfers')
-          .update({
-            world_ranking: worldRanking || null,
-            points_won: pointsWon || 0,
-          })
-          .eq('id', existing.id);
-        
+        // Use existing golfer (no update needed since we don't have those columns)
         golferId = existing.id;
       } else {
         // Create new golfer
@@ -78,14 +70,12 @@ export async function POST(request: NextRequest) {
           .insert({
             first_name: firstName,
             last_name: lastName,
-            world_ranking: worldRanking || null,
-            points_won: pointsWon || 0,
           })
           .select('id')
           .single();
 
         if (golferError || !newGolfer) {
-          console.error('Golfer creation error:', golferError);
+          console.error('Golfer creation error for', firstName, lastName, ':', golferError);
           continue;
         }
 

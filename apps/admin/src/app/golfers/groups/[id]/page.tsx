@@ -9,8 +9,6 @@ interface Golfer {
   first_name: string;
   last_name: string;
   full_name: string;
-  world_ranking: number | null;
-  points_won: number | null;
   external_id: string | null;
   image_url: string | null;
 }
@@ -445,21 +443,10 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
                     {golfer.full_name}
                   </div>
                   <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.6)' }}>
-                    {golfer.world_ranking && (
-                      <span>Rank: {golfer.world_ranking}</span>
-                    )}
-                    {golfer.points_won && (
-                      <span style={{ marginLeft: golfer.world_ranking ? '0.75rem' : 0 }}>
-                        Points: {golfer.points_won}
-                      </span>
-                    )}
-                    {golfer.external_id && (
-                      <span style={{ marginLeft: golfer.world_ranking || golfer.points_won ? '0.75rem' : 0 }}>
-                        OWGR: {golfer.external_id}
-                      </span>
-                    )}
-                    {!golfer.world_ranking && !golfer.external_id && !golfer.points_won && (
-                      <span style={{ color: 'rgba(255,255,255,0.4)' }}>No ranking data</span>
+                    {golfer.external_id ? (
+                      <span>OWGR ID: {golfer.external_id}</span>
+                    ) : (
+                      <span style={{ color: 'rgba(255,255,255,0.4)' }}>No OWGR ID</span>
                     )}
                   </div>
                 </div>

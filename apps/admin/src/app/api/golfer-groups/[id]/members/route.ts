@@ -10,9 +10,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('Fetching members for group:', params.id);
+    
     await assertAdminOrRedirect();
+    console.log('Auth check passed');
     
     const adminClient = createAdminClient();
+    console.log('Admin client created');
+    
     const { data, error } = await adminClient
       .from('golfer_group_members')
       .select(`
@@ -24,19 +29,24 @@ export async function GET(
           last_name,
           full_name,
           image_url,
-          external_id,
-          world_ranking,
-          points_won
+          external_id
         )
       `)
       .eq('group_id', params.id)
       .limit(1000);
 
-    if (error) throw error;
+    console.log('Query executed. Error:', error, 'Data count:', data?.length);
+
+    if (error) {
+      console.error('Supabase query error:', error);
+      throw error;
+    }
+
+    console.log('Raw data sample:', JSON.stringify(data?.slice(0, 2), null, 2));
 
     // Flatten structure and sort by last name
     const golfers = (data || [])
-      .map(m => m.golfers)
+      .map((m: any) => m.golfers)
       .filter(Boolean)
       .sort((a: any, b: any) => {
         const aLast = a.last_name?.toLowerCase() || '';
@@ -44,10 +54,14 @@ export async function GET(
         return aLast.localeCompare(bLast);
       });
 
+    console.log('Flattened golfers count:', golfers.length);
+    console.log('First golfer:', golfers[0]);
+
     return NextResponse.json(golfers);
   } catch (error: any) {
     console.error('GET group members error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error stack:', error.stack);
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
 
