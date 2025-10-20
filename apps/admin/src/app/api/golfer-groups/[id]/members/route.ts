@@ -30,13 +30,19 @@ export async function GET(
         )
       `)
       .eq('group_id', params.id)
-      .order('golfers(last_name)', { ascending: true })
       .limit(1000);
 
     if (error) throw error;
 
-    // Flatten structure
-    const golfers = (data || []).map(m => m.golfers).filter(Boolean);
+    // Flatten structure and sort by last name
+    const golfers = (data || [])
+      .map(m => m.golfers)
+      .filter(Boolean)
+      .sort((a: any, b: any) => {
+        const aLast = a.last_name?.toLowerCase() || '';
+        const bLast = b.last_name?.toLowerCase() || '';
+        return aLast.localeCompare(bLast);
+      });
 
     return NextResponse.json(golfers);
   } catch (error: any) {
