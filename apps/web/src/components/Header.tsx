@@ -146,6 +146,9 @@ export default function Header() {
         </button>
 
         <nav style={styles.nav} className="desktop-nav">
+          <Link href="/tournaments" style={styles.link}>
+            Tournaments
+          </Link>
           <button 
             onClick={() => scrollToSection('how-it-works')} 
             style={{...styles.link, background: 'none', border: 'none', cursor: 'pointer'}}
@@ -176,6 +179,9 @@ export default function Header() {
 
         {isMenuOpen && (
           <nav style={styles.navMobile} className="mobile-nav">
+            <Link href="/tournaments" style={styles.link} onClick={() => setIsMenuOpen(false)}>
+              Tournaments
+            </Link>
             <button 
               onClick={() => scrollToSection('how-it-works')} 
               style={{...styles.link, background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left'}}

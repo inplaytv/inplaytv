@@ -3,10 +3,11 @@ import { createAdminClient } from '@/lib/supabaseAdminServer';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = params.userId;
+    const params = await context.params;
+    const userId = params.id;
     const adminClient = createAdminClient();
 
     // Fetch transactions

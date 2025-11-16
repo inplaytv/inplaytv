@@ -14,7 +14,8 @@ export default function Header() {
         <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
           <span style={{ fontWeight: 'bold', fontSize: '1.25rem', color: '#fff' }}>⛳ InPlay Golf</span>
           <Link href="/" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none' }}>Lobby</Link>
-          <Link href="/entries" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none' }}>My Entries</Link>
+          <Link href="/tournaments" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none' }}>Tournaments</Link>
+          <Link href="/entries" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none' }}>My Scorecards</Link>
         </div>
         <UserMenu />
       </nav>

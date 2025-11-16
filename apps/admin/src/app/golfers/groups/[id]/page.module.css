@@ -1,0 +1,21 @@
+.pageContainer {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: #0a0f1a !important;
+  color: #fff !important;
+  min-height: 100vh;
+}
+
+.loadingContainer {
+  padding: 2rem;
+  color: #fff !important;
+  background: #0a0f1a !important;
+  min-height: 100vh;
+}
+
+.errorContainer {
+  padding: 2rem;
+  background: #0a0f1a !important;
+  min-height: 100vh;
+}

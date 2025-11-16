@@ -58,6 +58,7 @@ export async function PUT(
       start_at,
       end_at,
       status,
+      assigned_golfer_group_id,
     } = body;
 
     const adminClient = createAdminClient();
@@ -72,12 +73,40 @@ export async function PUT(
         start_at: start_at || null,
         end_at: end_at || null,
         status: status || 'draft',
+        assigned_golfer_group_id: assigned_golfer_group_id || null,
       })
       .eq('id', params.id)
       .select()
       .single();
 
     if (error) throw error;
+
+    // If a golfer group was assigned, sync the golfers to competition_golfers
+    if (assigned_golfer_group_id) {
+      // Get golfers from the group
+      const { data: members, error: membersError } = await adminClient
+        .from('golfer_group_members')
+        .select('golfer_id')
+        .eq('group_id', assigned_golfer_group_id);
+
+      if (!membersError && members && members.length > 0) {
+        // First, remove existing golfers
+        await adminClient
+          .from('competition_golfers')
+          .delete()
+          .eq('competition_id', params.id);
+
+        // Then add golfers from the group
+        const inserts = members.map(m => ({
+          competition_id: params.id,
+          golfer_id: m.golfer_id,
+        }));
+
+        await adminClient
+          .from('competition_golfers')
+          .insert(inserts);
+      }
+    }
 
     return NextResponse.json(data);
   } catch (error: any) {

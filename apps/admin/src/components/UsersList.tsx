@@ -21,6 +21,7 @@ interface User {
   email_confirmed_at: string | null;
   balance_cents: number;
   is_admin: boolean;
+  banned_until?: string | null;
   app_metadata: any;
   user_metadata: any;
 }
@@ -38,6 +39,8 @@ export default function UsersList({ users: initialUsers, searchQuery }: { users:
   const [users, setUsers] = useState(initialUsers);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -92,7 +95,105 @@ export default function UsersList({ users: initialUsers, searchQuery }: { users:
       });
   }, [selectedUser]);
 
+  const handleToggleStatus = async (userId: string, currentlyBanned: boolean) => {
+    const action = currentlyBanned ? 'unban' : 'ban';
+    const actionText = currentlyBanned ? 'enable' : 'disable';
+    
+    if (!confirm(`Are you sure you want to ${actionText} this user account?`)) {
+      return;
+    }
+
+    setActionLoading(true);
+    setActionMessage(null);
+
+    try {
+      const res = await fetch(`/api/users/${userId}/toggle-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setActionMessage({ type: 'success', text: data.message });
+        // Update user in state
+        if (selectedUser && selectedUser.id === userId) {
+          setSelectedUser({ ...selectedUser, banned_until: data.banned ? 'indefinite' : null });
+        }
+        // Refresh page to update list
+        setTimeout(() => {
+          router.refresh();
+          setActionMessage(null);
+        }, 1500);
+      } else {
+        setActionMessage({ type: 'error', text: data.error || 'Failed to update user status' });
+      }
+    } catch (err) {
+      setActionMessage({ type: 'error', text: 'Network error occurred' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userEmail: string) => {
+    const confirmText = `DELETE ${userEmail}`;
+    const userInput = prompt(
+      `⚠️ WARNING: This will PERMANENTLY delete this user account and all associated data.\n\nType "${confirmText}" to confirm deletion:`
+    );
+
+    if (userInput !== confirmText) {
+      if (userInput !== null) {
+        alert('Deletion cancelled - confirmation text did not match.');
+      }
+      return;
+    }
+
+    setActionLoading(true);
+    setActionMessage(null);
+
+    try {
+      const res = await fetch(`/api/users/${userId}/delete`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setActionMessage({ type: 'success', text: 'User deleted successfully' });
+        // Close modal and refresh
+        setTimeout(() => {
+          setSelectedUser(null);
+          setActionMessage(null);
+          router.refresh();
+        }, 1500);
+      } else {
+        setActionMessage({ type: 'error', text: data.error || 'Failed to delete user' });
+      }
+    } catch (err) {
+      setActionMessage({ type: 'error', text: 'Network error occurred' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getStatusBadge = (user: User) => {
+    if (user.banned_until) {
+      return (
+        <span style={{
+          padding: '0.25rem 0.5rem',
+          background: 'rgba(239, 68, 68, 0.2)',
+          border: '1px solid rgba(239, 68, 68, 0.4)',
+          borderRadius: '4px',
+          fontSize: '0.7rem',
+          fontWeight: 600,
+          color: '#ef4444',
+          marginLeft: '0.5rem',
+        }}>
+          BANNED
+        </span>
+      );
+    }
     if (user.is_admin) {
       return (
         <span style={{
@@ -388,6 +489,20 @@ export default function UsersList({ users: initialUsers, searchQuery }: { users:
                     <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Email Verified</span>
                     {getEmailStatus(selectedUser)}
                   </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Account Status</span>
+                    <span style={{ 
+                      color: selectedUser.banned_until ? '#ef4444' : '#10b981', 
+                      fontWeight: 600,
+                      padding: '0.25rem 0.625rem',
+                      background: selectedUser.banned_until ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                      border: `1px solid ${selectedUser.banned_until ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                    }}>
+                      {selectedUser.banned_until ? 'DISABLED' : 'ACTIVE'}
+                    </span>
+                  </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Admin Access</span>
                     <span style={{ color: selectedUser.is_admin ? '#10b981' : 'rgba(255,255,255,0.4)', fontSize: '0.9rem', fontWeight: 500 }}>
@@ -499,6 +614,102 @@ export default function UsersList({ users: initialUsers, searchQuery }: { users:
                     No recent activity
                   </div>
                 )}
+              </div>
+
+              {/* Action Message */}
+              {actionMessage && (
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  background: actionMessage.type === 'success' 
+                    ? 'rgba(16, 185, 129, 0.1)' 
+                    : 'rgba(239, 68, 68, 0.1)',
+                  border: `1px solid ${actionMessage.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                  borderRadius: '8px',
+                  color: actionMessage.type === 'success' ? '#10b981' : '#ef4444',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                }}>
+                  {actionMessage.text}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div style={{
+                paddingTop: '1.5rem',
+                borderTop: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                gap: '1rem',
+              }}>
+                <button
+                  onClick={() => handleToggleStatus(
+                    selectedUser.id,
+                    !!selectedUser.banned_until
+                  )}
+                  disabled={actionLoading}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem 1.5rem',
+                    background: selectedUser.banned_until 
+                      ? 'rgba(16, 185, 129, 0.2)' 
+                      : 'rgba(245, 158, 11, 0.2)',
+                    border: selectedUser.banned_until 
+                      ? '1px solid rgba(16, 185, 129, 0.4)' 
+                      : '1px solid rgba(245, 158, 11, 0.4)',
+                    borderRadius: '8px',
+                    color: selectedUser.banned_until ? '#10b981' : '#fbbf24',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    cursor: actionLoading ? 'not-allowed' : 'pointer',
+                    opacity: actionLoading ? 0.5 : 1,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!actionLoading) {
+                      e.currentTarget.style.opacity = '0.8';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!actionLoading) {
+                      e.currentTarget.style.opacity = '1';
+                    }
+                  }}
+                >
+                  {actionLoading 
+                    ? 'Processing...' 
+                    : selectedUser.banned_until 
+                      ? '✓ Enable Account' 
+                      : '⊘ Disable Account'}
+                </button>
+
+                <button
+                  onClick={() => handleDeleteUser(selectedUser.id, selectedUser.email)}
+                  disabled={actionLoading}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem 1.5rem',
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    borderRadius: '8px',
+                    color: '#ef4444',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    cursor: actionLoading ? 'not-allowed' : 'pointer',
+                    opacity: actionLoading ? 0.5 : 1,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!actionLoading) {
+                      e.currentTarget.style.opacity = '0.8';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!actionLoading) {
+                      e.currentTarget.style.opacity = '1';
+                    }
+                  }}
+                >
+                  {actionLoading ? 'Processing...' : '🗑 Delete Account'}
+                </button>
               </div>
             </div>
           </div>

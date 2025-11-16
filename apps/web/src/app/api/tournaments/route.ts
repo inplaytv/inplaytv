@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status') || 'active';
+
+    // Fetch tournaments with their competitions
+    const { data: tournaments, error } = await supabase
+      .from('tournaments')
+      .select(`
+        id,
+        name,
+        slug,
+        description,
+        location,
+        start_date,
+        end_date,
+        status,
+        image_url,
+        created_at
+      `)
+      .eq('status', status)
+      .order('start_date', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching tournaments:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // For each tournament, fetch its competitions
+    const tournamentsWithCompetitions = await Promise.all(
+      (tournaments || []).map(async (tournament) => {
+        const { data: competitions, error: compError } = await supabase
+          .from('tournament_competitions')
+          .select(`
+            id,
+            entry_fee_pennies,
+            entrants_cap,
+            admin_fee_percent,
+            reg_open_at,
+            reg_close_at,
+            start_at,
+            end_at,
+            status,
+            tournament_id,
+            competition_type_id,
+            competition_types (
+              id,
+              name,
+              slug,
+              description
+            )
+          `)
+          .eq('tournament_id', tournament.id)
+          .in('status', ['upcoming', 'reg_open', 'reg_closed', 'live'])
+          .order('entry_fee_pennies', { ascending: false });
+
+        return {
+          ...tournament,
+          competitions: competitions || [],
+        };
+      })
+    );
+
+    return NextResponse.json(tournamentsWithCompetitions);
+  } catch (error: any) {
+    console.error('GET tournaments error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

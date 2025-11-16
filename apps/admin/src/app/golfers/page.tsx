@@ -157,47 +157,56 @@ export default function GolfersPage() {
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        marginBottom: '30px',
+        marginBottom: '2rem',
       }}>
         <div>
-          <h1 style={{ margin: '0 0 10px 0', fontSize: '28px', fontWeight: 'bold' }}>
+          <h1 style={{ 
+            margin: '0 0 0.5rem 0', 
+            fontSize: '1.75rem', 
+            fontWeight: 700,
+            color: 'rgba(255,255,255,0.9)',
+          }}>
             Golfers
           </h1>
-          <p style={{ margin: 0, color: '#666' }}>
+          <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '0.875rem' }}>
             Manage golfers who can be added to tournaments
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
           <Link
             href="/tournaments"
             style={{
-              padding: '10px 20px',
-              backgroundColor: '#666',
-              color: 'white',
+              padding: '0.625rem 1.25rem',
+              background: 'rgba(100,100,100,0.2)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '6px',
+              color: 'rgba(255,255,255,0.7)',
               textDecoration: 'none',
-              borderRadius: '5px',
               display: 'inline-block',
+              fontSize: '0.875rem',
+              fontWeight: 600,
             }}
           >
-            Back to Tournaments
+            ← Back
           </Link>
           {!adding && !editing && (
             <button
               onClick={handleAdd}
               style={{
-                padding: '10px 20px',
-                backgroundColor: '#0070f3',
-                color: 'white',
+                padding: '0.625rem 1.25rem',
+                background: 'rgba(59, 130, 246, 0.9)',
                 border: 'none',
-                borderRadius: '5px',
+                borderRadius: '6px',
+                color: '#fff',
                 cursor: 'pointer',
-                fontWeight: 'bold',
+                fontWeight: 600,
+                fontSize: '0.875rem',
               }}
             >
               + Add Golfer
@@ -209,18 +218,19 @@ export default function GolfersPage() {
       {/* Add/Edit Form */}
       {(adding || editing) && (
         <div style={{
-          backgroundColor: '#f5f5f5',
-          padding: '20px',
+          background: 'rgba(30, 30, 35, 0.95)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: '8px',
-          marginBottom: '30px',
+          padding: '1.5rem',
+          marginBottom: '2rem',
         }}>
-          <h2 style={{ margin: '0 0 20px 0', fontSize: '20px' }}>
+          <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.25rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
             {editing ? 'Edit Golfer' : 'Add New Golfer'}
           </h2>
           <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
                   First Name *
                 </label>
                 <input
@@ -230,15 +240,19 @@ export default function GolfersPage() {
                   required
                   style={{
                     width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
+                    padding: '0.625rem 0.875rem',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    fontSize: '0.875rem',
+                    boxSizing: 'border-box',
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
                   Last Name *
                 </label>
                 <input
@@ -248,15 +262,19 @@ export default function GolfersPage() {
                   required
                   style={{
                     width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
+                    padding: '0.625rem 0.875rem',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    fontSize: '0.875rem',
+                    boxSizing: 'border-box',
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
                   Image URL (optional)
                 </label>
                 <input
@@ -266,15 +284,19 @@ export default function GolfersPage() {
                   placeholder="https://example.com/image.jpg"
                   style={{
                     width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
+                    padding: '0.625rem 0.875rem',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    fontSize: '0.875rem',
+                    boxSizing: 'border-box',
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
                   External ID (optional)
                 </label>
                 <input
@@ -284,25 +306,30 @@ export default function GolfersPage() {
                   placeholder="e.g., PGA Tour ID"
                   style={{
                     width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
+                    padding: '0.625rem 0.875rem',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    fontSize: '0.875rem',
+                    boxSizing: 'border-box',
                   }}
                 />
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
               <button
                 type="submit"
                 style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
+                  padding: '0.625rem 1.25rem',
+                  background: 'rgba(16, 185, 129, 0.9)',
                   border: 'none',
-                  borderRadius: '5px',
+                  borderRadius: '6px',
+                  color: '#fff',
                   cursor: 'pointer',
-                  fontWeight: 'bold',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
                 }}
               >
                 {editing ? 'Update Golfer' : 'Create Golfer'}
@@ -311,12 +338,13 @@ export default function GolfersPage() {
                 type="button"
                 onClick={resetForm}
                 style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '5px',
+                  padding: '0.625rem 1.25rem',
+                  background: 'rgba(100, 100, 100, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '6px',
+                  color: 'rgba(255,255,255,0.7)',
                   cursor: 'pointer',
+                  fontSize: '0.875rem',
                 }}
               >
                 Cancel

@@ -24,6 +24,8 @@ export default function MainContent({ children }: { children: ReactNode }) {
       padding: '1.5rem',
       minHeight: '100vh',
       transition: 'margin-left 0.2s ease',
+      background: '#0a0f1a',
+      color: '#fff',
     }}>
       {children}
     </main>

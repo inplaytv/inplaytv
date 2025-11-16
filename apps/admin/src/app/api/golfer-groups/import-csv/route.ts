@@ -10,6 +10,8 @@ export async function POST(request: NextRequest) {
   try {
     const { groupName, golfers } = await request.json();
 
+    console.log('Import CSV request:', { groupName, golferCount: golfers?.length });
+
     if (!groupName || !golfers || !Array.isArray(golfers)) {
       return NextResponse.json(
         { error: 'Group name and golfers array required' },
@@ -18,10 +20,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Create slug from group name
-    const slug = groupName
+    const baseSlug = groupName
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
+    
+    // Check if slug exists and make it unique
+    const timestamp = Date.now();
+    const slug = `${baseSlug}-${timestamp}`;
+
+    console.log('Creating group:', { name: groupName, slug, golferCount: golfers.length });
 
     // Create the group
     const { data: group, error: groupError } = await supabase
@@ -38,58 +46,81 @@ export async function POST(request: NextRequest) {
     if (groupError) {
       console.error('Group creation error:', groupError);
       return NextResponse.json(
-        { error: 'Failed to create group' },
+        { error: `Failed to create group: ${groupError.message || JSON.stringify(groupError)}` },
         { status: 500 }
       );
     }
 
+    console.log('Group created successfully:', group.id);
+
     let golfersCreated = 0;
     const groupMembers: { group_id: string; golfer_id: string }[] = [];
 
-    // Process each golfer
-    for (const golfer of golfers) {
-      const { firstName, lastName, worldRanking, pointsWon } = golfer;
+    // Batch fetch existing golfers
+    const { data: existingGolfers } = await supabase
+      .from('golfers')
+      .select('id, first_name, last_name');
 
-      // Try to find existing golfer
-      const { data: existing } = await supabase
-        .from('golfers')
-        .select('id')
-        .eq('first_name', firstName)
-        .eq('last_name', lastName)
-        .single();
-
-      let golferId: string;
-
-      if (existing) {
-        // Use existing golfer (no update needed since we don't have those columns)
-        golferId = existing.id;
-      } else {
-        // Create new golfer
-        const { data: newGolfer, error: golferError } = await supabase
-          .from('golfers')
-          .insert({
-            first_name: firstName,
-            last_name: lastName,
-          })
-          .select('id')
-          .single();
-
-        if (golferError || !newGolfer) {
-          console.error('Golfer creation error for', firstName, lastName, ':', golferError);
-          continue;
-        }
-
-        golferId = newGolfer.id;
-        golfersCreated++;
+    const existingMap = new Map();
+    if (existingGolfers) {
+      for (const g of existingGolfers) {
+        const key = g.first_name + '___' + g.last_name;
+        existingMap.set(key, g.id);
       }
-
-      groupMembers.push({
-        group_id: group.id,
-        golfer_id: golferId,
-      });
     }
 
-    // Add all golfers to the group
+    // Separate new vs existing golfers
+    const newGolfers: any[] = [];
+    
+    for (const golfer of golfers) {
+      const { firstName, lastName, worldRanking, pointsWon } = golfer;
+      const key = firstName + '___' + lastName;
+      
+      if (existingMap.has(key)) {
+        // Use existing golfer
+        groupMembers.push({
+          group_id: group.id,
+          golfer_id: existingMap.get(key)!,
+        });
+      } else {
+        // Prepare for batch insert
+        newGolfers.push({
+          first_name: firstName,
+          last_name: lastName,
+          world_ranking: worldRanking || null,
+        });
+      }
+    }
+
+    // Batch insert new golfers
+    if (newGolfers.length > 0) {
+      const { data: createdGolfers, error: batchError } = await supabase
+        .from('golfers')
+        .insert(newGolfers)
+        .select('id, first_name, last_name');
+
+      if (batchError) {
+        console.error('Batch golfer creation error:', batchError);
+        return NextResponse.json(
+          { error: 'Failed to create golfers: ' + batchError.message },
+          { status: 500 }
+        );
+      }
+
+      if (createdGolfers) {
+        golfersCreated = createdGolfers.length;
+        
+        // Add newly created golfers to group members
+        for (const golfer of createdGolfers) {
+          groupMembers.push({
+            group_id: group.id,
+            golfer_id: golfer.id,
+          });
+        }
+      }
+    }
+
+    // Add all golfers to the group in batch
     if (groupMembers.length > 0) {
       const { error: membersError } = await supabase
         .from('golfer_group_members')
@@ -98,11 +129,13 @@ export async function POST(request: NextRequest) {
       if (membersError) {
         console.error('Group members error:', membersError);
         return NextResponse.json(
-          { error: 'Failed to add golfers to group' },
+          { error: 'Failed to add golfers to group: ' + membersError.message },
           { status: 500 }
         );
       }
     }
+
+    console.log(`Import complete: ${golfersCreated} new golfers created, ${groupMembers.length} total in group`);
 
     return NextResponse.json({
       success: true,
@@ -111,10 +144,10 @@ export async function POST(request: NextRequest) {
       golfersCreated,
       totalGolfers: groupMembers.length,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Import error:', error);
     return NextResponse.json(
-      { error: 'Failed to import CSV' },
+      { error: error?.message || 'Failed to import CSV' },
       { status: 500 }
     );
   }

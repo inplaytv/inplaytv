@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import styles from './page.module.css';
 
 interface Golfer {
   id: string;
@@ -11,6 +12,7 @@ interface Golfer {
   full_name: string;
   external_id: string | null;
   image_url: string | null;
+  world_ranking: number | null;
 }
 
 interface GolferGroup {
@@ -26,15 +28,29 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
   const router = useRouter();
   const [group, setGroup] = useState<GolferGroup | null>(null);
   const [golfers, setGolfers] = useState<Golfer[]>([]);
+  const [allGolfers, setAllGolfers] = useState<Golfer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [editing, setEditing] = useState(false);
+  const [showAddGolfers, setShowAddGolfers] = useState(false);
+  const [selectedGolferIds, setSelectedGolferIds] = useState<string[]>([]);
+  const [addingGolfers, setAddingGolfers] = useState(false);
+  const [editingGolferId, setEditingGolferId] = useState<string | null>(null);
+  const [golferEditData, setGolferEditData] = useState({
+    first_name: '',
+    last_name: '',
+  });
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     color: '#3b82f6',
   });
+  const [showSalaryCalculator, setShowSalaryCalculator] = useState(false);
+  const [salaryBudget, setSalaryBudget] = useState('50000');
+  const [salaryPreview, setSalaryPreview] = useState<any>(null);
+  const [calculatingSalaries, setCalculatingSalaries] = useState(false);
+  const [selectedCompetitionForSalary, setSelectedCompetitionForSalary] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -42,9 +58,10 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
 
   async function fetchData() {
     try {
-      const [groupRes, golfersRes] = await Promise.all([
+      const [groupRes, golfersRes, allGolfersRes] = await Promise.all([
         fetch(`/api/golfer-groups/${params.id}`),
         fetch(`/api/golfer-groups/${params.id}/members`),
+        fetch('/api/golfers'),
       ]);
 
       if (!groupRes.ok) {
@@ -62,6 +79,11 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
       if (golfersRes.ok) {
         const golfersData = await golfersRes.json();
         setGolfers(golfersData);
+      }
+
+      if (allGolfersRes.ok) {
+        const allGolfersData = await allGolfersRes.json();
+        setAllGolfers(allGolfersData);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load group');
@@ -137,9 +159,170 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
     }
   }
 
+  async function handleAddGolfers() {
+    if (selectedGolferIds.length === 0) {
+      setError('Please select at least one golfer');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    setAddingGolfers(true);
+    try {
+      const res = await fetch(`/api/golfer-groups/${params.id}/add-members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ golfer_ids: selectedGolferIds }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to add golfers');
+      }
+
+      setSuccess(data.message || `Added ${data.added} golfer(s) to the group`);
+      setTimeout(() => setSuccess(''), 3000);
+      setSelectedGolferIds([]);
+      setShowAddGolfers(false);
+      await fetchData();
+    } catch (err: any) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setAddingGolfers(false);
+    }
+  }
+
+  function toggleGolferSelection(golferId: string) {
+    setSelectedGolferIds(prev =>
+      prev.includes(golferId)
+        ? prev.filter(id => id !== golferId)
+        : [...prev, golferId]
+    );
+  }
+
+  function startEditingGolfer(golfer: Golfer) {
+    setEditingGolferId(golfer.id);
+    setGolferEditData({
+      first_name: golfer.first_name,
+      last_name: golfer.last_name,
+    });
+  }
+
+  function cancelEditingGolfer() {
+    setEditingGolferId(null);
+    setGolferEditData({ first_name: '', last_name: '' });
+  }
+
+  async function handleUpdateGolfer(golferId: string) {
+    if (!golferEditData.first_name.trim() || !golferEditData.last_name.trim()) {
+      setError('First name and last name are required');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/golfers?id=${golferId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: golferEditData.first_name.trim(),
+          last_name: golferEditData.last_name.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update golfer');
+      }
+
+      setSuccess('Golfer updated successfully');
+      setTimeout(() => setSuccess(''), 3000);
+      setEditingGolferId(null);
+      await fetchData();
+    } catch (err: any) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    }
+  }
+
+  async function handlePreviewSalaries() {
+    if (!selectedCompetitionForSalary) {
+      setError('Please select a competition');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    setCalculatingSalaries(true);
+    setSalaryPreview(null);
+    setError('');
+
+    try {
+      const res = await fetch(`/api/golfer-groups/${params.id}/calculate-salaries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          competition_id: selectedCompetitionForSalary,
+          budget: parseInt(salaryBudget),
+          apply: false, // Just preview
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to calculate salaries');
+      }
+
+      setSalaryPreview(data);
+    } catch (err: any) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setCalculatingSalaries(false);
+    }
+  }
+
+  async function handleApplySalaries() {
+    if (!selectedCompetitionForSalary || !salaryPreview) return;
+
+    if (!confirm(`Apply these calculated salaries to the competition? This will overwrite any existing salaries.`)) return;
+
+    setCalculatingSalaries(true);
+    setError('');
+
+    try {
+      const res = await fetch(`/api/golfer-groups/${params.id}/calculate-salaries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          competition_id: selectedCompetitionForSalary,
+          budget: parseInt(salaryBudget),
+          apply: true, // Apply to database
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to apply salaries');
+      }
+
+      setSuccess(`✅ Successfully applied salaries to ${data.stats.total_golfers} golfers!`);
+      setTimeout(() => setSuccess(''), 5000);
+      setShowSalaryCalculator(false);
+      setSalaryPreview(null);
+    } catch (err: any) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setCalculatingSalaries(false);
+    }
+  }
+
   if (loading) {
     return (
-      <div style={{ padding: '2rem', color: '#fff' }}>
+      <div className={styles.loadingContainer}>
         Loading...
       </div>
     );
@@ -147,7 +330,7 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
 
   if (error && !group) {
     return (
-      <div style={{ padding: '2rem' }}>
+      <div className={styles.errorContainer}>
         <div style={{
           padding: '1rem',
           background: 'rgba(239, 68, 68, 0.1)',
@@ -172,7 +355,7 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
+    <div className={styles.pageContainer}>
       {/* Breadcrumb */}
       <div style={{ marginBottom: '1.5rem' }}>
         <Link
@@ -406,6 +589,122 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
         )}
       </div>
 
+      {/* Add Golfers Section */}
+      <div style={{
+        background: 'rgba(255, 255, 255, 0.03)',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '12px',
+        padding: '1.5rem',
+        marginBottom: '1.5rem',
+        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showAddGolfers ? '1rem' : '0' }}>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: '#fff' }}>
+            Add Golfers to Group
+          </h2>
+          <button
+            onClick={() => {
+              setShowAddGolfers(!showAddGolfers);
+              setSelectedGolferIds([]);
+              setError('');
+            }}
+            style={{
+              padding: '0.5rem 1rem',
+              background: showAddGolfers ? 'rgba(255,255,255,0.05)' : 'rgba(59, 130, 246, 0.9)',
+              border: showAddGolfers ? '1px solid rgba(255,255,255,0.2)' : 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            {showAddGolfers ? 'Cancel' : '+ Add Golfers'}
+          </button>
+        </div>
+
+        {showAddGolfers && (
+          <>
+            <div style={{
+              maxHeight: '300px',
+              overflowY: 'auto',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px',
+              padding: '0.5rem',
+              background: 'rgba(0,0,0,0.2)',
+              marginBottom: '1rem',
+            }}>
+              {allGolfers
+                .filter(g => !golfers.some(existing => existing.id === g.id))
+                .map((golfer) => (
+                  <label
+                    key={golfer.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '0.75rem',
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      cursor: 'pointer',
+                      background: selectedGolferIds.includes(golfer.id) ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                      borderRadius: '4px',
+                      marginBottom: '0.25rem',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedGolferIds.includes(golfer.id)}
+                      onChange={() => toggleGolferSelection(golfer.id)}
+                      style={{
+                        marginRight: '0.75rem',
+                        cursor: 'pointer',
+                        width: '16px',
+                        height: '16px',
+                      }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9375rem' }}>
+                        {golfer.full_name}
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.6)' }}>
+                        {golfer.world_ranking ? `World Ranking #${golfer.world_ranking}` : 'No Ranking'}
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              {allGolfers.filter(g => !golfers.some(existing => existing.id === g.id)).length === 0 && (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+                  All golfers are already in this group
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button
+                onClick={handleAddGolfers}
+                disabled={addingGolfers || selectedGolferIds.length === 0}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  background: selectedGolferIds.length > 0 ? 'rgba(16, 185, 129, 0.9)' : 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                  cursor: selectedGolferIds.length > 0 ? 'pointer' : 'not-allowed',
+                  fontWeight: 600,
+                  opacity: addingGolfers ? 0.6 : 1,
+                }}
+              >
+                {addingGolfers ? 'Adding...' : `Add ${selectedGolferIds.length} Golfer${selectedGolferIds.length !== 1 ? 's' : ''}`}
+              </button>
+              <span style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.6)' }}>
+                {selectedGolferIds.length} selected
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Golfers List */}
       <div style={{
         background: 'rgba(255, 255, 255, 0.03)',
@@ -424,7 +723,7 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
             No golfers in this group yet
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '0.75rem' }}>
             {golfers.map((golfer) => (
               <div
                 key={golfer.id}
@@ -433,38 +732,133 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
                   background: 'rgba(0, 0, 0, 0.2)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: '8px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
                 }}
               >
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#fff', marginBottom: '0.25rem' }}>
-                    {golfer.full_name}
+                {editingGolferId === golfer.id ? (
+                  // Edit Mode
+                  <div>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.25rem' }}>
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        value={golferEditData.first_name}
+                        onChange={(e) => setGolferEditData({ ...golferEditData, first_name: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          background: 'rgba(0,0,0,0.3)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          borderRadius: '4px',
+                          color: '#fff',
+                          fontSize: '0.875rem',
+                        }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.25rem' }}>
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        value={golferEditData.last_name}
+                        onChange={(e) => setGolferEditData({ ...golferEditData, last_name: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          background: 'rgba(0,0,0,0.3)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          borderRadius: '4px',
+                          color: '#fff',
+                          fontSize: '0.875rem',
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={() => handleUpdateGolfer(golfer.id)}
+                        style={{
+                          flex: 1,
+                          padding: '0.5rem',
+                          background: 'rgba(16, 185, 129, 0.9)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          color: '#fff',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEditingGolfer}
+                        style={{
+                          flex: 1,
+                          padding: '0.5rem',
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '6px',
+                          color: 'rgba(255,255,255,0.7)',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          fontWeight: 500,
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.6)' }}>
-                    {golfer.external_id ? (
-                      <span>OWGR ID: {golfer.external_id}</span>
-                    ) : (
-                      <span style={{ color: 'rgba(255,255,255,0.4)' }}>No OWGR ID</span>
-                    )}
+                ) : (
+                  // View Mode
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#fff', marginBottom: '0.25rem' }}>
+                        {golfer.full_name}
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.6)' }}>
+                        {golfer.world_ranking ? (
+                          <span>World Ranking #{golfer.world_ranking}</span>
+                        ) : (
+                          <span style={{ color: 'rgba(255,255,255,0.4)' }}>No Ranking</span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                      <button
+                        onClick={() => startEditingGolfer(golfer)}
+                        style={{
+                          padding: '0.375rem 0.75rem',
+                          background: 'rgba(59, 130, 246, 0.2)',
+                          border: '1px solid rgba(59, 130, 246, 0.4)',
+                          borderRadius: '6px',
+                          color: '#60a5fa',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          fontWeight: 500,
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleRemoveGolfer(golfer.id, golfer.full_name)}
+                        style={{
+                          padding: '0.375rem 0.75rem',
+                          background: 'rgba(239, 68, 68, 0.2)',
+                          border: '1px solid rgba(239, 68, 68, 0.4)',
+                          borderRadius: '6px',
+                          color: '#f87171',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          fontWeight: 500,
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <button
-                  onClick={() => handleRemoveGolfer(golfer.id, golfer.full_name)}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    background: 'rgba(239, 68, 68, 0.2)',
-                    border: '1px solid rgba(239, 68, 68, 0.4)',
-                    borderRadius: '6px',
-                    color: '#f87171',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                  }}
-                >
-                  Remove
-                </button>
+                )}
               </div>
             ))}
           </div>

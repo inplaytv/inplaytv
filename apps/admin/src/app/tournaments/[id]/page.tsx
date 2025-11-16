@@ -17,6 +17,7 @@ interface Tournament {
   status: string;
   external_id: string | null;
   image_url: string | null;
+  featured_competition_id: string | null;
 }
 
 interface CompetitionType {
@@ -37,7 +38,7 @@ interface TournamentCompetition {
   entry_fee_pennies: number;
   entrants_cap: number;
   admin_fee_percent: number;
-  golfer_group_id: string | null;
+  assigned_golfer_group_id: string | null;
   reg_open_at: string | null;
   reg_close_at: string | null;
   start_at: string | null;
@@ -77,6 +78,10 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
   const [allGolferGroups, setAllGolferGroups] = useState<GolferGroup[]>([]);
   const [showAddCompetition, setShowAddCompetition] = useState(false);
   const [editingCompetitionId, setEditingCompetitionId] = useState<string | null>(null);
+  
+  // Custom entrants calculator states
+  const [customEntrantsForm, setCustomEntrantsForm] = useState('0');
+  const [customEntrantsExamples, setCustomEntrantsExamples] = useState<{ [key: string]: string }>({});
 
   const [formData, setFormData] = useState({
     name: '',
@@ -89,6 +94,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
     status: 'draft',
     external_id: '',
     image_url: '',
+    featured_competition_id: '',
   });
 
   const [competitionFormData, setCompetitionFormData] = useState({
@@ -145,6 +151,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
           status: tournamentData.status,
           external_id: tournamentData.external_id || '',
           image_url: tournamentData.image_url || '',
+          featured_competition_id: tournamentData.featured_competition_id || '',
         });
       }
 
@@ -218,9 +225,19 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
       const dataToSend = {
         ...competitionFormData,
         entry_fee_pennies: Math.round(parseFloat(competitionFormData.entry_fee_pounds) * 100),
+        assigned_golfer_group_id: competitionFormData.golfer_group_id || null,
       };
-      // Remove the pounds field as API expects pennies
-      const { entry_fee_pounds, ...apiData } = dataToSend as any;
+      // Remove the pounds field and golfer_group_id as they're internal form fields
+      const { entry_fee_pounds, golfer_group_id, ...apiData } = dataToSend as any;
+
+      console.log('🔴 ADMIN SAVE - Competition Form Data:', {
+        entry_fee_pounds: competitionFormData.entry_fee_pounds,
+        calculated_pennies: Math.round(parseFloat(competitionFormData.entry_fee_pounds) * 100),
+        competition_id: editingCompetitionId,
+        url,
+        method,
+      });
+      console.log('🔴 ADMIN SAVE - Sending to API:', apiData);
 
       const res = await fetch(url, {
         method,
@@ -266,7 +283,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
       entry_fee_pounds: (comp.entry_fee_pennies / 100).toFixed(2), // Convert pennies to pounds
       entrants_cap: comp.entrants_cap.toString(),
       admin_fee_percent: comp.admin_fee_percent.toString(),
-      golfer_group_id: comp.golfer_group_id || '',
+      golfer_group_id: comp.assigned_golfer_group_id || '',
       reg_open_at: comp.reg_open_at ? comp.reg_open_at.slice(0, 16) : '',
       reg_close_at: comp.reg_close_at ? comp.reg_close_at.slice(0, 16) : '',
       start_at: comp.start_at ? comp.start_at.slice(0, 16) : '',
@@ -654,6 +671,37 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
               }}
             />
           </div>
+
+          <div style={{ marginTop: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+              Featured Competition
+              <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
+                (Displayed on tournament card)
+              </span>
+            </label>
+            <select
+              value={formData.featured_competition_id || ''}
+              onChange={(e) => setFormData({ ...formData, featured_competition_id: e.target.value || null })}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                background: 'rgba(0,0,0,0.3)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '4px',
+                color: '#fff',
+              }}
+            >
+              <option value="">None - Show tournament only</option>
+              {competitions.map((comp) => {
+                const compType = availableTypes.find(ct => ct.id === comp.competition_type_id);
+                return (
+                  <option key={comp.id} value={comp.id}>
+                    {compType?.name || 'Unknown'} - ${(comp.entry_fee_pennies / 100).toFixed(2)}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem' }}>
@@ -932,11 +980,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
-                {competitionFormData.status !== 'draft' && !competitionFormData.golfer_group_id && (
-                  <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.25rem' }}>
-                    ⚠️ Competition needs a golfer group to be non-draft status
-                  </p>
-                )}
+                {/* Golfer group validation temporarily disabled - needs proper junction table implementation */}
               </div>
             </div>
 
@@ -952,38 +996,113 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                 <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.75rem', color: '#10b981' }}>
                   💰 Prize Pool Calculator
                 </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                  {[50, 100, 200].map((entrants) => {
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem' }}>
+                  {(() => {
+                    const entrantsCap = parseInt(competitionFormData.entrants_cap) || 0;
+                    const scenarios = entrantsCap > 0 
+                      ? [
+                          Math.ceil(entrantsCap * 0.25), // 25% filled
+                          Math.ceil(entrantsCap * 0.5),  // 50% filled
+                          entrantsCap                     // 100% filled
+                        ]
+                      : [50, 100, 200]; // Default scenarios if no cap set
+                    
+                    return scenarios.map((entrants) => {
+                      const entryFeePennies = Math.round(parseFloat(competitionFormData.entry_fee_pounds) * 100);
+                      const { gross, adminFee, netPrize } = calculatePrizePool(
+                        entrants,
+                        entryFeePennies,
+                        parseFloat(competitionFormData.admin_fee_percent)
+                      );
+                      const percentage = entrantsCap > 0 ? Math.round((entrants / entrantsCap) * 100) : 0;
+                      
+                      return (
+                        <div key={entrants} style={{
+                          background: 'rgba(0, 0, 0, 0.3)',
+                          borderRadius: '4px',
+                          padding: '0.75rem',
+                        }}>
+                          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.375rem' }}>
+                            {entrants} Entrants {entrantsCap > 0 && `(${percentage}%)`}
+                          </div>
+                          <div style={{ fontSize: '1.125rem', fontWeight: 600, color: '#10b981', marginBottom: '0.25rem' }}>
+                            {formatPennies(netPrize)}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                            Gross: {formatPennies(gross)}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                            Admin Fee: {formatPennies(adminFee)}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                  
+                  {/* Custom Entrants Calculator */}
+                  {(() => {
+                    const entrants = parseInt(customEntrantsForm) || 0;
                     const entryFeePennies = Math.round(parseFloat(competitionFormData.entry_fee_pounds) * 100);
                     const { gross, adminFee, netPrize } = calculatePrizePool(
                       entrants,
                       entryFeePennies,
                       parseFloat(competitionFormData.admin_fee_percent)
                     );
+                    const entrantsCap = parseInt(competitionFormData.entrants_cap) || 0;
+                    const percentage = entrantsCap > 0 && entrants > 0 ? Math.round((entrants / entrantsCap) * 100) : 0;
+                    
                     return (
-                      <div key={entrants} style={{
-                        background: 'rgba(0, 0, 0, 0.3)',
+                      <div style={{
+                        background: 'rgba(96, 165, 250, 0.2)',
                         borderRadius: '4px',
                         padding: '0.75rem',
+                        border: '1px solid rgba(96, 165, 250, 0.3)',
                       }}>
-                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.375rem' }}>
-                          {entrants} Entrants
+                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.5rem', fontWeight: 600 }}>
+                          Custom Amount
                         </div>
-                        <div style={{ fontSize: '1.125rem', fontWeight: 600, color: '#10b981', marginBottom: '0.25rem' }}>
-                          {formatPennies(netPrize)}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
-                          Gross: {formatPennies(gross)}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
-                          Admin Fee: {formatPennies(adminFee)}
-                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={customEntrantsForm}
+                          onChange={(e) => setCustomEntrantsForm(e.target.value)}
+                          placeholder="Enter entrants"
+                          style={{
+                            width: '100%',
+                            padding: '0.375rem',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: '4px',
+                            color: 'white',
+                            fontSize: '0.875rem',
+                            marginBottom: '0.5rem',
+                          }}
+                        />
+                        {entrants > 0 && (
+                          <>
+                            <div style={{ fontSize: '1.125rem', fontWeight: 600, color: '#60a5fa', marginBottom: '0.25rem' }}>
+                              {formatPennies(netPrize)}
+                            </div>
+                            {percentage > 0 && (
+                              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.25rem' }}>
+                                {percentage}% of capacity
+                              </div>
+                            )}
+                            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                              Gross: {formatPennies(gross)}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                              Admin Fee: {formatPennies(adminFee)}
+                            </div>
+                          </>
+                        )}
                       </div>
                     );
-                  })}
+                  })()}
                 </div>
                 <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.75rem', marginBottom: 0 }}>
                   Based on {competitionFormData.admin_fee_percent}% admin fee • Entry: £{parseFloat(competitionFormData.entry_fee_pounds).toFixed(2)}
+                  {parseInt(competitionFormData.entrants_cap) > 0 && ` • Max: ${competitionFormData.entrants_cap} entrants`}
                 </p>
               </div>
             )}
@@ -1380,43 +1499,117 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
         }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem' }}>Prize Pool Examples</h2>
           
-          {competitions.filter(c => c.entry_fee_pennies > 0).map((comp) => (
-            <div key={comp.id} style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.75rem', color: '#60a5fa' }}>
-                {comp.competition_types.name} — {formatPennies(comp.entry_fee_pennies)} entry
-              </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                {[50, 100, 200].map((entrants) => {
-                  const { gross, adminFee, netPrize } = calculatePrizePool(
-                    entrants,
-                    comp.entry_fee_pennies,
-                    comp.admin_fee_percent
-                  );
-                  return (
-                    <div key={entrants} style={{
-                      background: 'rgba(0, 0, 0, 0.2)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '6px',
-                      padding: '0.875rem',
-                    }}>
-                      <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: 'rgba(255,255,255,0.9)' }}>
-                        {entrants} Entrants
+          {competitions.filter(c => c.entry_fee_pennies > 0).map((comp) => {
+            const entrantsCap = comp.entrants_cap || 0;
+            const scenarios = entrantsCap > 0 
+              ? [
+                  Math.ceil(entrantsCap * 0.25), // 25% filled
+                  Math.ceil(entrantsCap * 0.5),  // 50% filled
+                  entrantsCap                     // 100% filled
+                ]
+              : [50, 100, 200]; // Default scenarios if no cap set
+            
+            return (
+              <div key={comp.id} style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.75rem', color: '#60a5fa' }}>
+                  {comp.competition_types.name} — {formatPennies(comp.entry_fee_pennies)} entry
+                  {entrantsCap > 0 && ` • Max: ${entrantsCap} entrants`}
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+                  {scenarios.map((entrants) => {
+                    const { gross, adminFee, netPrize } = calculatePrizePool(
+                      entrants,
+                      comp.entry_fee_pennies,
+                      comp.admin_fee_percent
+                    );
+                    const percentage = entrantsCap > 0 ? Math.round((entrants / entrantsCap) * 100) : 0;
+                    
+                    return (
+                      <div key={entrants} style={{
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '6px',
+                        padding: '0.875rem',
+                      }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: 'rgba(255,255,255,0.9)' }}>
+                          {entrants} Entrants {entrantsCap > 0 && `(${percentage}%)`}
+                        </div>
+                        <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.25rem' }}>
+                          Gross: {formatPennies(gross)}
+                        </div>
+                        <div style={{ fontSize: '0.8125rem', color: 'rgba(239, 68, 68, 0.8)', marginBottom: '0.25rem' }}>
+                          Admin ({comp.admin_fee_percent}%): -{formatPennies(adminFee)}
+                        </div>
+                        <div style={{ fontSize: '0.8125rem', color: 'rgba(16, 185, 129, 0.9)', fontWeight: 600, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.25rem', marginTop: '0.25rem' }}>
+                          Prize Pool: {formatPennies(netPrize)}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.25rem' }}>
-                        Gross: {formatPennies(gross)}
+                    );
+                  })}
+                  
+                  {/* Custom Entrants Calculator */}
+                  {(() => {
+                    const customEntrants = customEntrantsExamples[comp.id] || '0';
+                    const entrants = parseInt(customEntrants) || 0;
+                    const { gross, adminFee, netPrize } = calculatePrizePool(
+                      entrants,
+                      comp.entry_fee_pennies,
+                      comp.admin_fee_percent
+                    );
+                    const percentage = entrantsCap > 0 && entrants > 0 ? Math.round((entrants / entrantsCap) * 100) : 0;
+                    
+                    return (
+                      <div style={{
+                        background: 'rgba(96, 165, 250, 0.15)',
+                        border: '1px solid rgba(96, 165, 250, 0.3)',
+                        borderRadius: '6px',
+                        padding: '0.875rem',
+                      }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: '#60a5fa' }}>
+                          Custom Amount
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={customEntrants}
+                          onChange={(e) => setCustomEntrantsExamples(prev => ({ ...prev, [comp.id]: e.target.value }))}
+                          placeholder="Enter entrants"
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: '4px',
+                            color: 'white',
+                            fontSize: '0.875rem',
+                            marginBottom: '0.5rem',
+                          }}
+                        />
+                        {entrants > 0 && (
+                          <>
+                            <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.25rem' }}>
+                              Gross: {formatPennies(gross)}
+                            </div>
+                            <div style={{ fontSize: '0.8125rem', color: 'rgba(239, 68, 68, 0.8)', marginBottom: '0.25rem' }}>
+                              Admin ({comp.admin_fee_percent}%): -{formatPennies(adminFee)}
+                            </div>
+                            <div style={{ fontSize: '0.8125rem', color: 'rgba(16, 185, 129, 0.9)', fontWeight: 600, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.25rem', marginTop: '0.25rem' }}>
+                              Prize Pool: {formatPennies(netPrize)}
+                            </div>
+                            {percentage > 0 && (
+                              <div style={{ fontSize: '0.75rem', color: 'rgba(96, 165, 250, 0.8)', marginTop: '0.25rem' }}>
+                                {percentage}% of capacity
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
-                      <div style={{ fontSize: '0.8125rem', color: 'rgba(239, 68, 68, 0.8)', marginBottom: '0.25rem' }}>
-                        Admin ({comp.admin_fee_percent}%): -{formatPennies(adminFee)}
-                      </div>
-                      <div style={{ fontSize: '0.8125rem', color: 'rgba(16, 185, 129, 0.9)', fontWeight: 600, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.25rem', marginTop: '0.25rem' }}>
-                        Prize Pool: {formatPennies(netPrize)}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })()}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           
           <p style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.5)', marginTop: '1rem' }}>
             * These are example calculations. Actual prize pools depend on real entrant numbers.

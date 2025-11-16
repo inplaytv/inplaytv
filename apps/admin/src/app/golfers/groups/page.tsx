@@ -317,20 +317,28 @@ function ImportCSVModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
       // Parse CSV (expecting "First Name,Last Name,World Ranking,Points Won")
       const golfers: { firstName: string; lastName: string; worldRanking?: number; pointsWon?: number }[] = [];
       
+      // Sanitize function to remove problematic characters
+      const sanitize = (str: string) => {
+        return str
+          .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+          .replace(/\\/g, '') // Remove backslashes
+          .trim();
+      };
+      
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed || trimmed.toLowerCase().includes('first') || trimmed.toLowerCase().includes('name')) continue;
         
-        const parts = trimmed.split(',').map(p => p.trim());
-        if (parts.length >= 2) {
+        const parts = trimmed.split(',').map(p => sanitize(p));
+        if (parts.length >= 2 && parts[0] && parts[1]) {
           golfers.push({ 
             firstName: parts[0], 
             lastName: parts[1],
             worldRanking: parts[2] ? parseInt(parts[2]) : undefined,
             pointsWon: parts[3] ? parseFloat(parts[3]) : undefined,
           });
-        } else if (parts.length === 1) {
-          const nameParts = parts[0].split(' ');
+        } else if (parts.length === 1 && parts[0]) {
+          const nameParts = parts[0].split(' ').filter(p => p);
           if (nameParts.length >= 2) {
             golfers.push({ 
               firstName: nameParts.slice(0, -1).join(' '), 
@@ -358,11 +366,22 @@ function ImportCSVModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
       }
 
       const result = await response.json();
-      alert(`Successfully imported ${result.golfersCreated} golfers into "${groupName}"`);
-      onSuccess();
+      
+      if (result.success) {
+        alert(`✅ Successfully imported!\n\n• New golfers created: ${result.golfersCreated}\n• Total golfers in "${groupName}": ${result.totalGolfers}`);
+        onSuccess();
+      } else {
+        throw new Error(result.error || 'Import failed');
+      }
     } catch (error: any) {
       console.error('Import error:', error);
-      alert(error.message || 'Failed to import golfers');
+      let errorMessage = 'Failed to import golfers';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`❌ Import Error\n\n${errorMessage}\n\nPlease check:\n• CSV format is correct\n• File is not corrupted\n• All required fields are present`);
     } finally {
       setImporting(false);
     }

@@ -49,6 +49,7 @@ export async function PUT(
       admin_fee_percent,
       external_id,
       image_url,
+      featured_competition_id,
     } = body;
 
     if (!name || !slug || !start_date || !end_date) {
@@ -73,6 +74,7 @@ export async function PUT(
         admin_fee_percent: parseFloat(admin_fee_percent) || 10.0,
         external_id: external_id || null,
         image_url: image_url || null,
+        featured_competition_id: featured_competition_id || null,
       })
       .eq('id', params.id)
       .select()

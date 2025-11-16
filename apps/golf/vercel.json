@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/tournaments/auto-update-statuses",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

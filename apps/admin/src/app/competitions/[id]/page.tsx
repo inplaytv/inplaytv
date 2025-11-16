@@ -17,6 +17,15 @@ interface Tournament {
   slug: string;
 }
 
+interface GolferGroup {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  color: string;
+  golfer_count?: number;
+}
+
 interface Competition {
   id: string;
   tournament_id: string;
@@ -40,6 +49,8 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [competition, setCompetition] = useState<Competition | null>(null);
+  const [golferGroups, setGolferGroups] = useState<GolferGroup[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
   const [manualRegClose, setManualRegClose] = useState(false);
   const [showRegCloseWarning, setShowRegCloseWarning] = useState(false);
 
@@ -72,7 +83,14 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
     try {
       const res = await fetch(`/api/competitions/${params.id}`);
       if (res.ok) {
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (jsonError) {
+          console.error('Invalid JSON response:', text);
+          throw new Error('Server returned invalid JSON');
+        }
         setCompetition(data);
         setFormData({
           entry_fee_pounds: (data.entry_fee_pennies / 100).toFixed(2),
@@ -84,6 +102,11 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
           end_at: data.end_at ? data.end_at.slice(0, 16) : '',
           status: data.status,
         });
+        
+        // Fetch golfer groups for this competition's tournament
+        if (data.tournament_id) {
+          fetchGolferGroups(data.tournament_id);
+        }
       } else {
         setError('Failed to load competition');
       }
@@ -92,6 +115,21 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchGolferGroups = async (tournamentId: string) => {
+    setLoadingGroups(true);
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/golfer-groups`);
+      if (res.ok) {
+        const data = await res.json();
+        setGolferGroups(data);
+      }
+    } catch (err) {
+      console.error('Error loading golfer groups:', err);
+    } finally {
+      setLoadingGroups(false);
     }
   };
 
@@ -119,8 +157,24 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to update competition');
+        // Try to parse error response
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          throw new Error(data.error || 'Failed to update competition');
+        } catch (jsonErr) {
+          console.error('Invalid JSON response from update:', text);
+          throw new Error('Server returned invalid response when updating competition');
+        }
+      }
+      
+      // Parse successful response
+      const text = await res.text();
+      try {
+        JSON.parse(text); // Validate JSON response
+      } catch (jsonErr) {
+        console.error('Invalid JSON success response:', text);
+        throw new Error('Competition may have been updated, but server returned invalid response');
       }
 
       setSuccess('Competition updated successfully!');
@@ -441,12 +495,132 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
           </div>
         </div>
 
-        {/* Prize Pool Calculator */}
+        {/* Golfer Groups (Read-only) */}
         <div style={{
-          background: 'rgba(30, 30, 35, 0.95)',
+          background: 'rgba(255, 255, 255, 0.05)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: '8px',
-          padding: '1.5rem',
+          padding: '1.25rem',
+          marginBottom: '1.5rem',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>
+              Golfer Groups
+            </h3>
+            {competition && (
+              <Link
+                href={`/tournaments/${competition.tournament_id}`}
+                style={{
+                  fontSize: '0.8125rem',
+                  color: '#60a5fa',
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                }}
+              >
+                Edit in Tournament →
+              </Link>
+            )}
+          </div>
+
+          {loadingGroups ? (
+            <div style={{ padding: '1rem', textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+              Loading golfer groups...
+            </div>
+          ) : golferGroups.length === 0 ? (
+            <div style={{
+              padding: '1.5rem',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              borderRadius: '6px',
+              color: 'rgba(255,255,255,0.7)',
+              fontSize: '0.875rem',
+            }}>
+              <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#ef4444' }}>
+                ⚠️ No golfer groups assigned
+              </div>
+              <div>
+                This tournament doesn't have any golfer groups assigned yet.{' '}
+                {competition && (
+                  <Link
+                    href={`/tournaments/${competition.tournament_id}`}
+                    style={{ color: '#60a5fa', textDecoration: 'underline' }}
+                  >
+                    Go to tournament page
+                  </Link>
+                )}
+                {' '}to assign golfer groups.
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: '0.75rem' }}>
+              {golferGroups.map((group) => (
+                <div
+                  key={group.id}
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '6px',
+                    padding: '0.875rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '8px',
+                      height: '40px',
+                      borderRadius: '4px',
+                      background: group.color || '#6366f1',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.25rem', color: '#fff' }}>
+                      {group.name}
+                    </div>
+                    <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.5)' }}>
+                      {group.golfer_count ? `${group.golfer_count} golfer${group.golfer_count !== 1 ? 's' : ''}` : 'No golfers'}
+                      {group.description && ` • ${group.description}`}
+                    </div>
+                  </div>
+                  <div style={{
+                    padding: '0.375rem 0.75rem',
+                    background: 'rgba(34, 197, 94, 0.1)',
+                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                    borderRadius: '6px',
+                    color: '#22c55e',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}>
+                    ACTIVE
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.75rem',
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            borderRadius: '6px',
+            fontSize: '0.8125rem',
+            color: 'rgba(255,255,255,0.7)',
+          }}>
+            <strong>Note:</strong> Golfer groups are managed at the tournament level. All competitions within the same tournament share the same golfer pool.
+          </div>
+        </div>
+
+        {/* Prize Pool Calculator */}
+        <div style={{
+          background: 'rgba(102, 126, 234, 0.1)',
+          border: '1px solid rgba(102, 126, 234, 0.2)',
+          borderRadius: '8px',
+          padding: '1.25rem',
           marginBottom: '1.5rem',
         }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>

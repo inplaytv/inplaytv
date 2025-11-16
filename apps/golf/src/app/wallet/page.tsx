@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabaseClient';
 import { useEffect, useState } from 'react';
 import RequireAuth from '@/components/RequireAuth';
-import Header from '@/components/Header';
 import { formatPounds } from '@/lib/money';
 
 export const dynamic = 'force-dynamic';
@@ -211,7 +210,6 @@ function WalletPageContent() {
   if (loading) {
     return (
       <>
-        <Header />
         <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
           Loading wallet...
         </div>
@@ -221,7 +219,6 @@ function WalletPageContent() {
 
   return (
     <>
-      <Header />
       <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '2rem', color: '#fff' }}>
           My Wallet

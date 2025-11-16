@@ -66,6 +66,7 @@ async function searchUsers(query?: string) {
       email_confirmed_at: u.email_confirmed_at || null,
       balance_cents: walletMap.get(u.id) || 0,
       is_admin: adminSet.has(u.id),
+      banned_until: (u as any).banned_until || null,
       app_metadata: u.app_metadata,
       user_metadata: u.user_metadata,
     };

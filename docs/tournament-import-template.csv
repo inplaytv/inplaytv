@@ -1,0 +1,5 @@
+name,slug,description,location,timezone,start_date,end_date,registration_open_date,registration_close_date,status,image_url,external_id
+The Masters 2025,the-masters-2025,The first major of the year,Augusta National Golf Club,America/New_York,2025-04-10T08:00:00Z,2025-04-13T18:00:00Z,2025-03-11T00:00:00Z,2025-04-10T07:00:00Z,upcoming,/images/masters.jpg,PGA_MASTERS_2025
+PGA Championship 2025,pga-championship-2025,Second major championship,Quail Hollow Club,America/New_York,2025-05-15T08:00:00Z,2025-05-18T18:00:00Z,2025-04-15T00:00:00Z,2025-05-15T07:00:00Z,upcoming,/images/pga-champ.jpg,PGA_PGA_2025
+US Open 2025,us-open-2025,The toughest test in golf,Oakmont Country Club,America/New_York,2025-06-12T08:00:00Z,2025-06-15T18:00:00Z,2025-05-12T00:00:00Z,2025-06-12T07:00:00Z,upcoming,/images/us-open.jpg,PGA_USOPEN_2025
+The Open Championship 2025,the-open-2025,The oldest major championship,Royal Troon Golf Club,Europe/London,2025-07-17T08:00:00Z,2025-07-20T18:00:00Z,2025-06-17T00:00:00Z,2025-07-17T07:00:00Z,upcoming,/images/open.jpg,PGA_OPEN_2025

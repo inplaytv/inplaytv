@@ -1,14 +1,14 @@
-import { assertAdminOrRedirect } from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabaseAdminServer';
-import Link from 'next/link';
+'use client';
 
-export const dynamic = 'force-dynamic';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface Competition {
   id: string;
   tournament_id: string;
   entry_fee_pennies: number;
   entrants_cap: number;
+  admin_fee_percent: number;
   reg_open_at: string | null;
   reg_close_at: string | null;
   start_at: string | null;
@@ -24,33 +24,6 @@ interface Competition {
     id: string;
     name: string;
   };
-}
-
-async function getActiveCompetitions(): Promise<Competition[]> {
-  const adminClient = createAdminClient();
-  
-  const { data, error } = await adminClient
-    .from('tournament_competitions')
-    .select(`
-      *,
-      tournaments (
-        id,
-        name,
-        location
-      ),
-      competition_types (
-        id,
-        name
-      )
-    `)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Error fetching competitions:', error);
-    return [];
-  }
-
-  return data || [];
 }
 
 function getStatusBadge(status: string) {
@@ -97,9 +70,38 @@ function formatPennies(pennies: number) {
   return `£${(pennies / 100).toFixed(2)}`;
 }
 
-export default async function CompetitionsPage() {
-  await assertAdminOrRedirect();
-  const competitions = await getActiveCompetitions();
+function calculatePrizePool(entrants: number, entryFeePennies: number, adminFeePercent: number) {
+  const gross = entrants * entryFeePennies;
+  const adminFee = Math.round(gross * (adminFeePercent / 100));
+  const netPrize = gross - adminFee;
+  return { gross, adminFee, netPrize };
+}
+
+export default function CompetitionsPage() {
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [customEntrants, setCustomEntrants] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+    async function fetchCompetitions() {
+      try {
+        const res = await fetch('/api/competitions');
+        if (res.ok) {
+          const data = await res.json();
+          setCompetitions(data);
+        }
+      } catch (err) {
+        console.error('Error fetching competitions:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCompetitions();
+  }, []);
+
+  if (loading) {
+    return <div style={{ padding: '2rem' }}>Loading...</div>;
+  }
 
   return (
     <div>
@@ -209,6 +211,137 @@ export default async function CompetitionsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Prize Pool Calculator */}
+      {competitions.some(c => c.entry_fee_pennies > 0) && (
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+          marginTop: '2rem',
+        }}>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem' }}>Prize Pool Calculator</h2>
+          
+          {competitions.filter(c => c.entry_fee_pennies > 0).map((comp) => {
+            const entrantsCap = comp.entrants_cap || 0;
+            const scenarios = entrantsCap > 0 
+              ? [
+                  Math.ceil(entrantsCap * 0.25), // 25% filled
+                  Math.ceil(entrantsCap * 0.5),  // 50% filled
+                  entrantsCap                     // 100% filled
+                ]
+              : [50, 100, 200]; // Default scenarios if no cap set
+            
+            return (
+              <div key={comp.id} style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.75rem', color: '#60a5fa' }}>
+                  {comp.tournaments.name} - {comp.competition_types.name} — {formatPennies(comp.entry_fee_pennies)} entry
+                  {entrantsCap > 0 && ` • Max: ${entrantsCap} entrants`}
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+                  {scenarios.map((entrants) => {
+                    const { gross, adminFee, netPrize } = calculatePrizePool(
+                      entrants,
+                      comp.entry_fee_pennies,
+                      comp.admin_fee_percent
+                    );
+                    const percentage = entrantsCap > 0 ? Math.round((entrants / entrantsCap) * 100) : 0;
+                    
+                    return (
+                      <div key={entrants} style={{
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '6px',
+                        padding: '0.875rem',
+                      }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: 'rgba(255,255,255,0.9)' }}>
+                          {entrants} Entrants {entrantsCap > 0 && `(${percentage}%)`}
+                        </div>
+                        <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.25rem' }}>
+                          Gross: {formatPennies(gross)}
+                        </div>
+                        <div style={{ fontSize: '0.8125rem', color: 'rgba(239, 68, 68, 0.8)', marginBottom: '0.25rem' }}>
+                          Admin ({comp.admin_fee_percent}%): -{formatPennies(adminFee)}
+                        </div>
+                        <div style={{ fontSize: '0.8125rem', color: 'rgba(16, 185, 129, 0.9)', fontWeight: 600, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.25rem', marginTop: '0.25rem' }}>
+                          Prize Pool: {formatPennies(netPrize)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Custom Entrants Calculator */}
+                  {(() => {
+                    const customValue = customEntrants[comp.id] || '0';
+                    const entrants = parseInt(customValue) || 0;
+                    const { gross, adminFee, netPrize } = calculatePrizePool(
+                      entrants,
+                      comp.entry_fee_pennies,
+                      comp.admin_fee_percent
+                    );
+                    const percentage = entrantsCap > 0 && entrants > 0 ? Math.round((entrants / entrantsCap) * 100) : 0;
+                    
+                    return (
+                      <div style={{
+                        background: 'rgba(96, 165, 250, 0.15)',
+                        border: '1px solid rgba(96, 165, 250, 0.3)',
+                        borderRadius: '6px',
+                        padding: '0.875rem',
+                      }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: '#60a5fa' }}>
+                          Custom Amount
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={customValue}
+                          onChange={(e) => setCustomEntrants(prev => ({ ...prev, [comp.id]: e.target.value }))}
+                          placeholder="Enter entrants"
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: '4px',
+                            color: 'white',
+                            fontSize: '0.875rem',
+                            marginBottom: '0.5rem',
+                          }}
+                        />
+                        {entrants > 0 && (
+                          <>
+                            <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.25rem' }}>
+                              Gross: {formatPennies(gross)}
+                            </div>
+                            <div style={{ fontSize: '0.8125rem', color: 'rgba(239, 68, 68, 0.8)', marginBottom: '0.25rem' }}>
+                              Admin ({comp.admin_fee_percent}%): -{formatPennies(adminFee)}
+                            </div>
+                            <div style={{ fontSize: '0.8125rem', color: 'rgba(16, 185, 129, 0.9)', fontWeight: 600, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.25rem', marginTop: '0.25rem' }}>
+                              Prize Pool: {formatPennies(netPrize)}
+                            </div>
+                            {percentage > 0 && (
+                              <div style={{ fontSize: '0.75rem', color: 'rgba(96, 165, 250, 0.8)', marginTop: '0.25rem' }}>
+                                {percentage}% of capacity
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            );
+          })}
+          
+          <p style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.5)', marginTop: '1rem' }}>
+            * These are example calculations. Actual prize pools depend on real entrant numbers.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

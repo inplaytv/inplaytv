@@ -20,6 +20,7 @@ export default function RootLayout({
         />
       </head>
       <body style={{ margin: 0, padding: 0, fontFamily: 'system-ui, sans-serif', background: '#0a0f1a', color: '#fff', minHeight: '100vh' }}>
+        <Header />
         {children}
       </body>
     </html>
