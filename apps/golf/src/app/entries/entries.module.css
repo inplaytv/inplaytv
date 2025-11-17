@@ -33,7 +33,13 @@
 .entryCard.live { border-left: 4px solid #66ea9e; }
 .entryCard.upcoming { border-left: 4px solid #ffc107; }
 .entryCard.completed { border-left: 4px solid rgba(255,255,255,0.3); }
-.entryHeader { display: grid; grid-template-columns: auto 1fr auto auto; gap: 1.5rem; align-items: center; padding: 1.5rem; cursor: pointer; user-select: none; }
+.entryHeader { display: flex; justify-content: space-between; align-items: flex-start; padding: 1.5rem; gap: 1rem; }
+.entryHeader > div:first-child h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; color: white; }
+.tournamentName { font-size: 0.95rem; color: rgba(255,255,255,0.7); margin-bottom: 0.25rem; }
+.competitionType { font-size: 0.85rem; color: rgba(255,255,255,0.5); }
+.entryMeta { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
+.entryFee { font-size: 1.1rem; font-weight: 600; color: #ffd700; }
+.entryDate { font-size: 0.85rem; color: rgba(255,255,255,0.5); }
 .tournamentBadge { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: rgba(255,255,255,0.05); border-radius: 12px; min-width: 200px; }
 .statusIndicator { position: relative; width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 .statusIndicator.live { background: #66ea9e; }

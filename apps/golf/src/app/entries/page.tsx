@@ -11,6 +11,23 @@ interface Entry {
   id: string;
   entry_name: string | null;
   created_at: string;
+  entry_fee_paid: number;
+  competition: {
+    id: string;
+    tournament: {
+      name: string;
+      status: string;
+    };
+    competition_type: {
+      name: string;
+    };
+    start_date: string;
+    end_date: string;
+  };
+  picks: Array<{
+    golfer_id: string;
+    is_captain: boolean;
+  }>;
 }
 
 export default function EntriesPage() {
@@ -33,6 +50,17 @@ export default function EntriesPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function getStatus(entry: Entry): 'live' | 'upcoming' | 'completed' {
+    if (!entry.competition) return 'upcoming';
+    const now = new Date();
+    const startDate = new Date(entry.competition.start_date);
+    const endDate = new Date(entry.competition.end_date);
+    
+    if (now >= startDate && now <= endDate) return 'live';
+    if (now < startDate) return 'upcoming';
+    return 'completed';
   }
 
   return (
@@ -73,12 +101,45 @@ export default function EntriesPage() {
         ) : (
           <div className={styles.entriesList}>
             <p>Found {entries.length} scorecards</p>
-            {entries.map((entry) => (
-              <div key={entry.id} className={styles.entryCard}>
-                <h3>{entry.entry_name || 'My Entry'}</h3>
-                <p>Created: {new Date(entry.created_at).toLocaleDateString()}</p>
-              </div>
-            ))}
+            {entries.map((entry) => {
+              const status = getStatus(entry);
+              return (
+                <div key={entry.id} className={`${styles.entryCard} ${styles[status]}`}>
+                  <div className={styles.entryHeader}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                        <div className={`${styles.statusIndicator} ${styles[status]}`}>
+                          {status === 'live' && <div className={styles.pulse}></div>}
+                        </div>
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          fontWeight: 600, 
+                          textTransform: 'uppercase',
+                          color: status === 'live' ? '#66ea9e' : status === 'upcoming' ? '#ffc107' : 'rgba(255,255,255,0.5)'
+                        }}>
+                          {status === 'live' ? '🔴 Live Now' : status === 'upcoming' ? '📅 Upcoming' : '✓ Completed'}
+                        </span>
+                      </div>
+                      <h3>{entry.entry_name || 'My Entry'}</h3>
+                      <p className={styles.tournamentName}>
+                        {entry.competition?.tournament?.name || 'Tournament'}
+                      </p>
+                      <p className={styles.competitionType}>
+                        {entry.competition?.competition_type?.name || 'Competition'}
+                      </p>
+                    </div>
+                    <div className={styles.entryMeta}>
+                      <span className={styles.entryFee}>
+                        £{((entry.entry_fee_paid || 0) / 100).toFixed(2)}
+                      </span>
+                      <span className={styles.entryDate}>
+                        {new Date(entry.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </main>

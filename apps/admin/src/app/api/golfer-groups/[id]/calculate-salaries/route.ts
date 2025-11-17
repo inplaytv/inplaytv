@@ -1,34 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabaseAdminServer';
 import { assertAdminOrRedirect } from '@/lib/auth';
+import { calculateAllSalaries, type GolferSalaryInput } from '@repo/shared/salaryCalculator';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * SALARY CALCULATION FORMULA
+ * ENHANCED SALARY CALCULATION SYSTEM
  * 
- * Based on world rankings using an exponential decay curve:
- * - Rank 1 gets the highest salary
- * - Each subsequent rank gets progressively less
- * - The curve ensures top players are significantly more expensive
+ * Budget: £60,000 | Team Size: 6 golfers | Salary Range: £5,000 - £12,500
  * 
- * Formula: salary = (budget / totalWeight) * weight
- * Where weight = 1 / (rank^0.7)
+ * PRIMARY FACTOR - OWGR (Official World Golf Ranking):
+ * - Rank #1: 1.0 factor → £12,500
+ * - Rank #2: 0.93 factor → £12,000
+ * - Rank #5: 0.87 factor → £11,500
+ * - Rank #10: 0.75 factor → £10,600
+ * - Rank #25: 0.55 factor → £9,100
+ * - Rank #50: 0.35 factor → £7,600
+ * - Rank #100: 0.22 factor → £6,600
+ * - Rank #200: 0.08 factor → £5,600
+ * - Rank 300+: 0.0 factor → £5,000
  * 
- * Example for £50,000 budget with 100 golfers:
- * - Rank 1: ~£2,500
- * - Rank 10: ~£800
- * - Rank 50: ~£250
- * - Rank 100: ~£150
+ * FORM MODIFIER (recent performance):
+ * - Excellent/Hot: 1.2× multiplier
+ * - Good/Solid: 1.1× multiplier
+ * - Average/Steady: 1.0× multiplier
+ * - Poor/Struggling: 0.9× multiplier
+ * 
+ * FIELD SIZE MODIFIER:
+ * - ≤30 players: 1.15× multiplier
+ * - ≤50 players: 1.10× multiplier
+ * - ≤70 players: 1.05× multiplier
+ * - ≤100 players: 1.00× multiplier
+ * - 100+ players: 0.95× multiplier
+ * 
+ * PROFESSIONAL ROUNDING:
+ * Only allow endings: 000, 500, 600, 700, 800, 900
+ * Examples: £11,900, £8,600, £7,500 (NOT £11,847)
+ * 
+ * VALIDATION:
+ * Ensure cheapest 6 golfers cost ≤ 85% of total budget (£51,000)
+ * If exceeded, scale all salaries proportionally
  */
-
-interface SalaryCalculation {
-  golfer_id: string;
-  full_name: string;
-  world_ranking: number;
-  calculated_salary: number;
-  weight: number;
-}
 
 // POST - Calculate and optionally apply salaries for a competition
 export async function POST(
@@ -39,17 +52,19 @@ export async function POST(
     await assertAdminOrRedirect();
     
     const body = await request.json();
-    const { competition_id, budget, apply = false } = body;
+    const { competition_id, budget, apply = false, field_size } = body;
 
     if (!competition_id) {
       return NextResponse.json({ error: 'competition_id is required' }, { status: 400 });
     }
 
-    const budgetAmount = parseInt(budget) || 50000; // Default £50,000
+    const budgetAmount = parseInt(budget) || 60000; // Default £60,000
+    const fieldSize = parseInt(field_size) || 100; // Default 100 players
 
     console.log('💰 Calculating salaries for group:', params.id);
     console.log('💰 Competition:', competition_id);
     console.log('💰 Budget:', budgetAmount);
+    console.log('💰 Field Size:', fieldSize);
 
     const adminClient = createAdminClient();
 
@@ -83,30 +98,23 @@ export async function POST(
 
     console.log('📊 Found', golfersWithRankings.length, 'golfers with rankings');
 
-    // Calculate weights using exponential decay curve
-    // Lower ranking = higher weight = higher salary
-    const calculations: SalaryCalculation[] = golfersWithRankings.map((g: any) => {
-      const weight = 1 / Math.pow(g.world_ranking, 0.7);
-      return {
-        golfer_id: g.id,
-        full_name: g.full_name,
-        world_ranking: g.world_ranking,
-        weight,
-        calculated_salary: 0, // Will calculate after we know total weight
-      };
-    });
+    // Prepare input for salary calculator
+    const golferInputs: GolferSalaryInput[] = golfersWithRankings.map((g: any) => ({
+      id: g.id,
+      full_name: g.full_name,
+      world_ranking: g.world_ranking,
+      form_modifier: 'average' as const, // Default to average form, can be enhanced later
+    }));
 
-    // Calculate total weight
-    const totalWeight = calculations.reduce((sum, c) => sum + c.weight, 0);
+    // Calculate salaries using the enhanced system
+    const { calculations, stats, needsScaling } = calculateAllSalaries(golferInputs, fieldSize);
 
-    // Calculate actual salaries and round to nearest £100
-    calculations.forEach(c => {
-      const rawSalary = (budgetAmount / totalWeight) * c.weight;
-      c.calculated_salary = Math.round(rawSalary / 100) * 100; // Round to nearest £100
-    });
-
-    // Sort by world ranking for display
-    calculations.sort((a, b) => a.world_ranking - b.world_ranking);
+    console.log('💰 Salary Range: £', stats.lowest_salary, '-', stats.highest_salary);
+    console.log('💰 Average Salary: £', stats.average_salary);
+    console.log('💰 Cheapest 6 Total: £', stats.cheapest_six_total, `(${stats.cheapest_six_percentage.toFixed(1)}%)`);
+    if (needsScaling) {
+      console.log('⚠️  Salaries were scaled to meet 85% validation');
+    }
 
     // If apply=true, update the competition_golfers table
     if (apply) {
@@ -126,22 +134,13 @@ export async function POST(
       console.log('✅ Applied salaries to', calculations.length, 'golfers');
     }
 
-    // Calculate statistics
-    const stats = {
-      total_golfers: calculations.length,
-      total_budget: budgetAmount,
-      highest_salary: calculations[0].calculated_salary,
-      lowest_salary: calculations[calculations.length - 1].calculated_salary,
-      average_salary: Math.round(calculations.reduce((sum, c) => sum + c.calculated_salary, 0) / calculations.length),
-      total_allocated: calculations.reduce((sum, c) => sum + c.calculated_salary, 0),
-    };
-
     return NextResponse.json({
       success: true,
       applied: apply,
-      formula: 'weight = 1 / (rank^0.7), salary = (budget / totalWeight) * weight, rounded to nearest £100',
+      formula: 'OWGR-based with form & field size modifiers. Professional rounding (000, 500, 600, 700, 800, 900)',
+      needsScaling,
       stats,
-      calculations: apply ? calculations.slice(0, 10) : calculations, // Return all if previewing, top 10 if applied
+      calculations: apply ? calculations.slice(0, 20) : calculations, // Return top 20 if applied, all if previewing
     });
 
   } catch (error: any) {

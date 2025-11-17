@@ -59,7 +59,7 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
     { slotNumber: 6, golfer: null, isCaptain: false },
   ]);
   
-  const [totalBudget] = useState(50000); // £50,000 salary cap
+  const [totalBudget] = useState(60000); // £60,000 salary cap (updated from £50,000)
   const [searchQuery, setSearchQuery] = useState('');
   const [salaryFilter, setSalaryFilter] = useState<'all' | 'premium' | 'mid' | 'value'>('all');
   const [sortBy, setSortBy] = useState<'salary' | 'ranking' | 'points' | 'name'>('ranking');

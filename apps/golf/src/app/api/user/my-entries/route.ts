@@ -50,10 +50,10 @@ export async function GET() {
       console.log('👥 Fetching', golferIds.length, 'golfers');
       console.log('🔍 Golfer IDs:', golferIds);
       
-      // Fetch golfers
+      // Fetch golfers (removed country column as it doesn't exist)
       const { data: golfers, error: golfersError } = await supabase
         .from('golfers')
-        .select('id, first_name, last_name, country, world_ranking')
+        .select('id, first_name, last_name, world_ranking')
         .in('id', golferIds);
 
       if (golfersError) {

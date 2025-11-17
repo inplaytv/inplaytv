@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabaseAdminServer';
 import { assertAdminOrRedirect } from '@/lib/auth';
+import { calculateAllSalaries, type GolferSalaryInput } from '@repo/shared/salaryCalculator';
 
 export const dynamic = 'force-dynamic';
 
@@ -249,33 +250,30 @@ export async function PUT(
           console.log('🗑️  Deleted existing golfers from competition');
         }
 
-        // Calculate salaries based on world rankings
-        const budget = 50000; // £50,000 default budget
+        // Calculate salaries using enhanced OWGR-based system
         const golfersWithRankings = members
           .map((m: any) => m.golfers)
           .filter((g: any) => g && g.world_ranking && g.world_ranking > 0);
 
         console.log('💰 Calculating salaries for', golfersWithRankings.length, 'golfers with rankings');
 
-        // Calculate weights using exponential decay curve: weight = 1 / (rank^1.2)
-        // Steeper curve means top players cost significantly more
-        const calculations = golfersWithRankings.map((g: any) => ({
-          golfer_id: g.id,
-          weight: 1 / Math.pow(g.world_ranking, 1.2),
+        // Prepare golfer inputs for new salary calculator
+        const golferInputs: GolferSalaryInput[] = golfersWithRankings.map((g: any) => ({
+          id: g.id,
+          full_name: g.full_name,
+          world_ranking: g.world_ranking,
+          form_modifier: 'average' as const,
         }));
 
-        const totalWeight = calculations.reduce((sum, c) => sum + c.weight, 0);
+        // Calculate salaries using enhanced system (£60,000 budget)
+        const { calculations } = calculateAllSalaries(golferInputs, golfersWithRankings.length);
 
-        // Calculate actual salaries and round to nearest £100
-        const inserts = calculations.map(c => {
-          const rawSalary = (budget / totalWeight) * c.weight;
-          const salary = Math.round(rawSalary / 100) * 100; // Round to nearest £100
-          return {
-            competition_id: competitionId,
-            golfer_id: c.golfer_id,
-            salary: salary,
-          };
-        });
+        // Create inserts for competition_golfers
+        const inserts = calculations.map(c => ({
+          competition_id: competitionId,
+          golfer_id: c.golfer_id,
+          salary: c.calculated_salary,
+        }));
 
         // Add golfers without rankings with default salary
         const golfersWithoutRankings = members

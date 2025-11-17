@@ -47,7 +47,7 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
     color: '#3b82f6',
   });
   const [showSalaryCalculator, setShowSalaryCalculator] = useState(false);
-  const [salaryBudget, setSalaryBudget] = useState('50000');
+  const [salaryBudget, setSalaryBudget] = useState('60000');
   const [salaryPreview, setSalaryPreview] = useState<any>(null);
   const [calculatingSalaries, setCalculatingSalaries] = useState(false);
   const [selectedCompetitionForSalary, setSelectedCompetitionForSalary] = useState('');
