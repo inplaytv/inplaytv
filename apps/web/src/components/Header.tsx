@@ -146,15 +146,12 @@ export default function Header() {
         </button>
 
         <nav style={styles.nav} className="desktop-nav">
-          <Link href="/tournaments" style={styles.link}>
+          <span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>
             Tournaments
-          </Link>
-          <button 
-            onClick={() => scrollToSection('how-it-works')} 
-            style={{...styles.link, background: 'none', border: 'none', cursor: 'pointer'}}
-          >
+          </span>
+          <span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>
             How it works
-          </button>
+          </span>
 
           {userEmail ? (
             <>
@@ -167,27 +164,35 @@ export default function Header() {
             </>
           ) : (
             <>
-              <Link href="/login" style={styles.link}>
+              <span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>
                 Login
-              </Link>
-              <Link href="/signup" style={styles.buttonPrimary}>
+              </span>
+              <span style={{...styles.buttonPrimary, opacity: 0.5, cursor: 'not-allowed', position: 'relative'}}>
                 Sign up
-              </Link>
+                <span style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-8px',
+                  background: '#fbbf24',
+                  color: '#000',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '9px',
+                  fontWeight: 600
+                }}>SOON</span>
+              </span>
             </>
           )}
         </nav>
 
         {isMenuOpen && (
           <nav style={styles.navMobile} className="mobile-nav">
-            <Link href="/tournaments" style={styles.link} onClick={() => setIsMenuOpen(false)}>
+            <span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>
               Tournaments
-            </Link>
-            <button 
-              onClick={() => scrollToSection('how-it-works')} 
-              style={{...styles.link, background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left'}}
-            >
+            </span>
+            <span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>
               How it works
-            </button>
+            </span>
 
             {userEmail ? (
               <>
@@ -200,12 +205,23 @@ export default function Header() {
               </>
             ) : (
               <>
-                <Link href="/login" style={styles.link} onClick={() => setIsMenuOpen(false)}>
+                <span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>
                   Login
-                </Link>
-                <Link href="/signup" style={styles.buttonPrimary} onClick={() => setIsMenuOpen(false)}>
+                </span>
+                <span style={{...styles.buttonPrimary, opacity: 0.5, cursor: 'not-allowed', position: 'relative'}}>
                   Sign up
-                </Link>
+                  <span style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-8px',
+                    background: '#fbbf24',
+                    color: '#000',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '9px',
+                    fontWeight: 600
+                  }}>SOON</span>
+                </span>
               </>
             )}
           </nav>

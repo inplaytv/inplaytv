@@ -20,7 +20,8 @@ export async function POST(request: Request) {
     }
 
     // Call the database function to update statuses
-    const { data, error } = await supabase.rpc('update_tournament_status');
+    // Use the correct function name from 2025-01-auto-status-updater.sql
+    const { data, error } = await supabase.rpc('auto_update_tournament_statuses');
 
     if (error) {
       console.error('Error updating tournament statuses:', error);
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
     // Fetch updated tournaments to return
     const { data: tournaments, error: fetchError } = await supabase
       .from('tournaments')
-      .select('id, name, status, start_date, end_date, registration_open_date, registration_close_date')
+      .select('id, name, status, start_date, end_date')
       .order('start_date', { ascending: false });
 
     if (fetchError) {

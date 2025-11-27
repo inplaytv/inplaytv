@@ -11,7 +11,7 @@ export async function GET() {
       .from('tournament_competitions')
       .select(`
         *,
-        tournaments (
+        tournaments!tournament_competitions_tournament_id_fkey (
           id,
           name,
           location

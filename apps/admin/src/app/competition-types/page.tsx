@@ -12,6 +12,7 @@ interface CompetitionType {
   default_entrants_cap: number | null;
   default_admin_fee_percent: number | null;
   default_reg_open_days_before: number | null;
+  rounds_count: number | null;
   is_template: boolean;
   created_at: string;
 }
@@ -30,6 +31,7 @@ export default function CompetitionTypesPage() {
     default_entrants_cap: '',
     default_admin_fee_percent: '',
     default_reg_open_days_before: '',
+    rounds_count: '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -44,6 +46,7 @@ export default function CompetitionTypesPage() {
     default_entrants_cap: '',
     default_admin_fee_percent: '',
     default_reg_open_days_before: '',
+    rounds_count: '',
   });
 
   useEffect(() => {
@@ -79,6 +82,7 @@ export default function CompetitionTypesPage() {
         slug: formData.slug,
         description: formData.description || null,
         is_template: formData.is_template,
+        rounds_count: formData.rounds_count ? parseInt(formData.rounds_count) : null,
         default_entry_fee_pennies: formData.default_entry_fee_pounds ? Math.round(parseFloat(formData.default_entry_fee_pounds) * 100) : null,
         default_entrants_cap: formData.default_entrants_cap ? parseInt(formData.default_entrants_cap) : null,
         default_admin_fee_percent: formData.default_admin_fee_percent ? parseFloat(formData.default_admin_fee_percent) : null,
@@ -114,6 +118,7 @@ export default function CompetitionTypesPage() {
       slug: type.slug,
       description: type.description || '',
       is_template: type.is_template || false,
+      rounds_count: type.rounds_count !== null ? type.rounds_count.toString() : '',
       default_entry_fee_pounds: type.default_entry_fee_pennies ? (type.default_entry_fee_pennies / 100).toFixed(2) : '',
       default_entrants_cap: type.default_entrants_cap !== null ? type.default_entrants_cap.toString() : '',
       default_admin_fee_percent: type.default_admin_fee_percent !== null ? type.default_admin_fee_percent.toString() : '',
@@ -246,6 +251,32 @@ export default function CompetitionTypesPage() {
                 }}
                 placeholder="e.g., full-course, round-1"
               />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                Number of Rounds <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="4"
+                value={formData.rounds_count}
+                onChange={(e) => setFormData({ ...formData, rounds_count: e.target.value })}
+                required
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '4px',
+                  color: '#fff',
+                }}
+                placeholder="e.g., 4 for Full Course, 2 for Beat The Cut, 1 for Final Strike"
+              />
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                Specify how many rounds this competition type covers (1-4)
+              </p>
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>

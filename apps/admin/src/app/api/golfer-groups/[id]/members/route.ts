@@ -30,7 +30,7 @@ export async function GET(
           full_name,
           image_url,
           external_id,
-          world_ranking
+          world_rank
         )
       `)
       .eq('group_id', params.id)

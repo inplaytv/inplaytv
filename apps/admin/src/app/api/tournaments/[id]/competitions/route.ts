@@ -29,7 +29,18 @@ export async function GET(
 
     if (error) throw error;
 
-    return NextResponse.json(data || []);
+    console.log(`🔍 Tournament ${params.id} competitions:`, data?.length);
+    data?.forEach((c: any) => {
+      console.log(`  - ${c.competition_types?.name} (${c.status}) - Created: ${c.created_at}`);
+    });
+
+    return NextResponse.json(data || [], {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch (error: any) {
     console.error('GET tournament competitions error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

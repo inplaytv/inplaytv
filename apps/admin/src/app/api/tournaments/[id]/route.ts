@@ -50,6 +50,10 @@ export async function PUT(
       external_id,
       image_url,
       featured_competition_id,
+      round1_tee_time,
+      round2_tee_time,
+      round3_tee_time,
+      round4_tee_time,
     } = body;
 
     if (!name || !slug || !start_date || !end_date) {
@@ -75,6 +79,10 @@ export async function PUT(
         external_id: external_id || null,
         image_url: image_url || null,
         featured_competition_id: featured_competition_id || null,
+        round1_tee_time: round1_tee_time || null,
+        round2_tee_time: round2_tee_time || null,
+        round3_tee_time: round3_tee_time || null,
+        round4_tee_time: round4_tee_time || null,
       })
       .eq('id', params.id)
       .select()
@@ -116,6 +124,46 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('DELETE tournament error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// PATCH - Partial update (e.g., visibility toggle)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await assertAdminOrRedirect();
+    
+    const body = await request.json();
+    const { is_visible } = body;
+
+    console.log('🔄 PATCH visibility - Tournament ID:', params.id);
+    console.log('🔄 PATCH visibility - New value:', is_visible);
+
+    if (typeof is_visible !== 'boolean') {
+      return NextResponse.json(
+        { error: 'is_visible must be a boolean' },
+        { status: 400 }
+      );
+    }
+
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient
+      .from('tournaments')
+      .update({ is_visible })
+      .eq('id', params.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    console.log('✅ PATCH visibility - Updated tournament:', data.name, 'is_visible:', data.is_visible);
+
+    return NextResponse.json(data);
+  } catch (error: any) {
+    console.error('PATCH tournament error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

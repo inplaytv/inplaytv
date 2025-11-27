@@ -14,6 +14,7 @@ interface Tournament {
   start_date: string;
   end_date: string;
   updated_at: string;
+  is_visible: boolean;
 }
 
 async function getTournaments(): Promise<Tournament[]> {
@@ -21,7 +22,7 @@ async function getTournaments(): Promise<Tournament[]> {
   
   const { data, error } = await adminClient
     .from('tournaments')
-    .select('id, name, slug, location, status, start_date, end_date, updated_at')
+    .select('id, name, slug, location, status, start_date, end_date, updated_at, is_visible')
     .order('start_date', { ascending: false });
 
   if (error) {

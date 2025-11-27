@@ -171,6 +171,44 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
   const playersSelected = lineup.filter(slot => slot.golfer !== null).length;
   const averageSalary = playersSelected > 0 ? usedBudget / playersSelected : 0;
   const captain = lineup.find(slot => slot.isCaptain);
+  const spotsLeft = 6 - playersSelected;
+  const avgPerSpot = spotsLeft > 0 ? remainingBudget / spotsLeft : 0;
+  const isOverBudget = remainingBudget < 0;
+
+  // Budget status logic with color coding
+  const getBudgetStatus = () => {
+    // Team complete - always show positive status
+    if (playersSelected === 6) {
+      return { label: 'Your Score Card Is Full', color: '#10b981', status: 'complete' };
+    }
+    // Budget checks for incomplete teams
+    if (remainingBudget < 0) {
+      return { label: 'Over Budget', color: '#ef4444', status: 'critical' };
+    } else if (remainingBudget < totalBudget * 0.1) {
+      return { label: 'Critical', color: '#ef4444', status: 'critical' };
+    } else if (remainingBudget < totalBudget * 0.2) {
+      return { label: 'Tight Budget', color: '#fbbf24', status: 'warning' };
+    } else {
+      return { label: 'Good', color: '#10b981', status: 'safe' };
+    }
+  };
+
+  const budgetStatus = getBudgetStatus();
+
+  // Check if player uses >25% of budget (flag expensive players)
+  const isExpensivePlayer = (salary: number) => {
+    return (salary / totalBudget) > 0.25;
+  };
+
+  // Submission validation
+  const canSubmit = () => {
+    return (
+      playersSelected === 6 &&
+      captain !== undefined &&
+      remainingBudget >= 0 &&
+      !saving
+    );
+  };
 
   // Budget health indicator
   const getBudgetHealth = () => {
@@ -186,6 +224,36 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
   };
 
   const budgetHealth = getBudgetHealth();
+
+  // Get available players by salary tier (that fit in remaining budget)
+  const getTopTierPlayers = (count: number = 3) => {
+    const selectedIds = lineup.filter(slot => slot.golfer).map(slot => slot.golfer!.id);
+    return availableGolfers
+      .filter(g => !selectedIds.includes(g.id) && g.salary >= 10000 && g.salary <= remainingBudget)
+      .sort((a, b) => b.salary - a.salary) // Highest salary first
+      .slice(0, count);
+  };
+
+  const getMidTierPlayers = (count: number = 3) => {
+    const selectedIds = lineup.filter(slot => slot.golfer).map(slot => slot.golfer!.id);
+    return availableGolfers
+      .filter(g => !selectedIds.includes(g.id) && g.salary >= 7000 && g.salary < 10000 && g.salary <= remainingBudget)
+      .sort((a, b) => b.salary - a.salary)
+      .slice(0, count);
+  };
+
+  const getValuePickPlayers = (count: number = 3) => {
+    const selectedIds = lineup.filter(slot => slot.golfer).map(slot => slot.golfer!.id);
+    return availableGolfers
+      .filter(g => !selectedIds.includes(g.id) && g.salary < 7000 && g.salary <= remainingBudget)
+      .sort((a, b) => b.salary - a.salary)
+      .slice(0, count);
+  };
+
+  // Get player lists for budget optimizer
+  const topTierPlayers = playersSelected < 6 ? getTopTierPlayers(3) : [];
+  const midTierPlayers = playersSelected < 6 ? getMidTierPlayers(3) : [];
+  const valuePickPlayers = playersSelected < 6 ? getValuePickPlayers(3) : [];
 
   // Filter and sort golfers
   const filteredGolfers = availableGolfers
@@ -426,295 +494,985 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
 
   return (
     <RequireAuth>
-      <div className={styles.wrap}>
-        {/* Page Header */}
-        <div className={styles.pageHeader}>
-          <div className={styles.headerTop}>
-            <button onClick={() => router.back()} className={styles.backButton}>
-              <i className="fas fa-arrow-left"></i>
-              Back
-            </button>
-            <div className={styles.headerContent}>
-              <h1 className={styles.pageTitle}>{competition?.tournament_name}</h1>
-              <p className={styles.pageSubtitle}>
-                {competition?.competition_type_name} • Entry Fee: £{(competition?.entry_fee_pennies || 0) / 100}
-              </p>
-            </div>
-          </div>
-
-          {/* Entry Name Input */}
-          <div className={styles.entryNameSection}>
-            <label htmlFor="entryName">Team Name (Optional)</label>
-            <input
-              id="entryName"
-              type="text"
-              value={entryName}
-              onChange={(e) => setEntryName(e.target.value)}
-              placeholder="e.g., Tiger's Revenge"
-              maxLength={50}
-              className={styles.entryNameInput}
-            />
-          </div>
-        </div>
-
+      <div style={{ 
+        maxWidth: '1800px', 
+        margin: '0 auto', 
+        padding: '0 40px 40px 40px',
+        paddingTop: 'max(20px, calc(70px - 150px))',
+        minHeight: '100vh'
+      }}>
         {error && (
-          <div className={styles.errorBanner}>
-            <i className="fas fa-exclamation-circle"></i>
-            {error}
+          <div style={{
+            position: 'fixed',
+            top: '90px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+            borderRadius: '12px',
+            padding: '16px 24px',
+            color: '#ef4444',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            fontSize: '15px',
+            fontWeight: 500,
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 8px 32px rgba(239, 68, 68, 0.2)'
+          }}>
+            <i className="fas fa-exclamation-circle" style={{ fontSize: '18px' }}></i>
+            <span>{error}</span>
           </div>
         )}
 
-        <div className={styles.container}>
-          {/* Left Panel - Available Golfers */}
-          <section className={styles.leftPanel}>
-            <div className={`${styles.filtersCard} ${styles.glass}`}>
-              <div className={styles.searchRow}>
-                <div className={styles.searchBox}>
-                  <i className="fas fa-search"></i>
-                  <input
-                    type="text"
-                    placeholder="Search golfers..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
+        {/* Page Header - Above All Containers */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '12px',
+          gap: '20px'
+        }}>
+          <button 
+            onClick={() => router.back()}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: 500,
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.9)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              flexShrink: 0
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+            }}
+          >
+            ← Back To Tournaments
+          </button>
+        </div>
+
+        <div style={{ 
+          display: 'grid',
+          gridTemplateColumns: '300px 2fr 1fr',
+          gap: '30px',
+          alignItems: 'start'
+        }}>
+          {/* Column 1: Budget Tools Sidebar */}
+          <div style={{ marginTop: '-30px' }}>
+            {/* Empty spacer for alignment */}
+            <div style={{ height: '37px', marginBottom: '12px' }}></div>
+            
+            <div style={{
+              position: 'sticky',
+              top: '90px',
+              padding: '20px',
+            height: 'fit-content',
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%)',
+            border: '1px solid rgba(212, 175, 55, 0.18)',
+            borderRadius: '16px',
+            backdropFilter: 'blur(16px)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
+          }}>
+            {/* Header Section */}
+            <div style={{
+              marginBottom: '20px',
+              paddingBottom: '16px',
+              borderBottom: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <div style={{ fontSize: '18px', fontWeight: 600, color: '#fbbf24', marginBottom: '4px' }}>
+                💰 Budget Tools
               </div>
-
-              <div className={styles.filterRow}>
-                <div className={styles.salaryFilters}>
-                  <button
-                    className={`${styles.filterBtn} ${salaryFilter === 'all' ? styles.active : ''}`}
-                    onClick={() => setSalaryFilter('all')}
-                  >
-                    All Golfers
-                  </button>
-                  <button
-                    className={`${styles.filterBtn} ${salaryFilter === 'premium' ? styles.active : ''}`}
-                    onClick={() => setSalaryFilter('premium')}
-                  >
-                    Premium (£10K+)
-                  </button>
-                  <button
-                    className={`${styles.filterBtn} ${salaryFilter === 'mid' ? styles.active : ''}`}
-                    onClick={() => setSalaryFilter('mid')}
-                  >
-                    Mid-Range
-                  </button>
-                  <button
-                    className={`${styles.filterBtn} ${salaryFilter === 'value' ? styles.active : ''}`}
-                    onClick={() => setSalaryFilter('value')}
-                  >
-                    Value (&lt;£7K)
-                  </button>
-                </div>
-
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className={styles.sortSelect}
-                >
-                  <option value="ranking">Sort by Ranking</option>
-                  <option value="salary">Sort by Salary</option>
-                  <option value="points">Sort by Points</option>
-                  <option value="name">Sort by Name</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Budget Tracker */}
-            <div className={`${styles.budgetCard} ${styles.glass}`}>
-              <div className={styles.budgetHeader}>
-                <div className={styles.budgetTitle}>
-                  <i className="fas fa-wallet"></i>
-                  <span>Budget Management</span>
-                </div>
-                <div className={styles.budgetHealth} style={{ background: `${budgetHealth.color}20`, color: budgetHealth.color, border: `1px solid ${budgetHealth.color}40` }}>
-                  {budgetHealth.label}
-                </div>
-              </div>
-
-              <div className={styles.budgetStats}>
-                <div className={styles.budgetStat}>
-                  <span className={styles.budgetLabel}>Remaining</span>
-                  <span className={styles.budgetValue}>{formatCurrency(remainingBudget)}</span>
-                </div>
-                <div className={styles.budgetStat}>
-                  <span className={styles.budgetLabel}>Players</span>
-                  <span className={styles.budgetValue}>{playersSelected}/6</span>
-                </div>
-                <div className={styles.budgetStat}>
-                  <span className={styles.budgetLabel}>Avg Salary</span>
-                  <span className={styles.budgetValue}>{formatCurrency(Math.round(averageSalary))}</span>
-                </div>
-              </div>
-
-              <div className={styles.progressContainer}>
-                <div className={styles.progressBar}>
-                  <div
-                    className={styles.progressFill}
-                    style={{ width: `${budgetPercentage}%` }}
-                  ></div>
-                </div>
-                <span className={styles.progressLabel}>{budgetPercentage.toFixed(0)}% Used</span>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+                Track spending & optimize your team
               </div>
             </div>
 
-            {/* Available Golfers List */}
-            <div className={`${styles.golfersCard} ${styles.glass}`}>
-              <div className={styles.cardHeader}>
-                <h3>Available Golfers</h3>
-                <span className={styles.golferCount}>{filteredGolfers.length} golfers</span>
+            {/* Remaining Budget Display */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ 
+                fontSize: '24px', 
+                fontWeight: 700,
+                color: budgetStatus.color,
+                marginBottom: '8px'
+              }}>
+                £{remainingBudget.toLocaleString()} left
+              </div>
+              <div style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: budgetStatus.color,
+                marginBottom: '12px'
+              }}>
+                {playersSelected === 6 ? 'Your Score Card Is Full' :
+                 budgetStatus.label === 'Over Budget' ? 'Over Budget!' : 
+                 budgetPercentage >= 80 ? 'Budget Getting Full' :
+                 budgetPercentage >= 50 ? 'Budget Half Used' :
+                 'Budget Available'}
+              </div>
+              <div style={{ 
+                fontSize: '11px', 
+                color: 'rgba(255,255,255,0.6)',
+                marginBottom: '8px'
+              }}>
+                Used: £{usedBudget.toLocaleString()}
               </div>
 
-              <div className={styles.golfersList}>
-                {availableGolfers.length === 0 ? (
-                  <div className={styles.emptyState}>
-                    <i className="fas fa-users-slash"></i>
-                    <p>No golfers assigned to this competition yet</p>
-                    <small style={{marginTop: '0.5rem', opacity: 0.7}}>Assign golfers in the admin panel</small>
+              {/* Progress Bar with Player Count */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '6px'
+              }}>
+                <div style={{
+                  flex: 1,
+                  height: '8px',
+                  background: 'rgba(255,255,255,0.1)',
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${Math.min(budgetPercentage, 100)}%`,
+                    height: '100%',
+                    background: playersSelected === 6 ? '#10b981' : 
+                                playersSelected >= 3 ? budgetStatus.color : '#3b82f6',
+                    transition: 'width 0.3s ease, background 0.3s ease'
+                  }}></div>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-end',
+                  minWidth: '40px'
+                }}>
+                  <div style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'rgba(255,255,255,0.7)',
+                    lineHeight: '1'
+                  }}>
+                    {playersSelected}/6
                   </div>
-                ) : filteredGolfers.length === 0 ? (
-                  <div className={styles.emptyState}>
-                    <i className="fas fa-filter"></i>
-                    <p>No golfers match your current filters</p>
-                    <small style={{marginTop: '0.5rem', opacity: 0.7}}>
-                      Try adjusting your search or filters
-                    </small>
+                  <div style={{
+                    fontSize: '10px',
+                    color: 'rgba(255,255,255,0.5)',
+                    lineHeight: '1.2'
+                  }}>
+                    Players
+                  </div>
+                </div>
+              </div>
+              <div style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.8)'
+              }}>
+                {budgetPercentage.toFixed(0)}%
+              </div>
+            </div>
+
+            {/* No Players Available Warning */}
+            {playersSelected < 6 && topTierPlayers.length === 0 && midTierPlayers.length === 0 && valuePickPlayers.length === 0 && (
+              <div style={{
+                marginBottom: '20px',
+                padding: '12px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px'
+              }}>
+                <div style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: '#ef4444',
+                  marginBottom: '8px'
+                }}>
+                  Budget Almost Full ({budgetPercentage.toFixed(0)}%)
+                </div>
+                <div style={{
+                  fontSize: '10px',
+                  color: 'rgba(255,255,255,0.7)',
+                  marginBottom: '8px'
+                }}>
+                  £{remainingBudget.toLocaleString()} remaining for {spotsLeft} player{spotsLeft !== 1 ? 's' : ''}
+                </div>
+                <div style={{
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  color: '#fbbf24'
+                }}>
+                  ⚠️ No more players available for this amount - rearrange your selections
+                </div>
+              </div>
+            )}
+
+            {/* Salary Tier Players - Available to Select */}
+            {(topTierPlayers.length > 0 || midTierPlayers.length > 0 || valuePickPlayers.length > 0) && playersSelected > 0 && playersSelected < 6 && (
+              <div style={{
+                marginBottom: '20px',
+                padding: '14px',
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                borderRadius: '8px'
+              }}>
+                {/* Header */}
+                <div style={{
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#3b82f6',
+                  marginBottom: '12px',
+                  paddingBottom: '10px',
+                  borderBottom: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  💎 Available Players by Salary Tier
+                </div>
+
+                {/* Budget Status Message */}
+                <div style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: budgetStatus.color,
+                  marginBottom: '8px'
+                }}>
+                  💰 Budget {budgetPercentage >= 90 ? 'Almost Full' : budgetPercentage >= 70 ? 'Well Used' : 'Available'} ({budgetPercentage.toFixed(0)}%)
+                </div>
+                <div style={{
+                  fontSize: '10px',
+                  color: 'rgba(255,255,255,0.6)',
+                  marginBottom: '14px'
+                }}>
+                  £{remainingBudget.toLocaleString()} remaining for {spotsLeft} player{spotsLeft !== 1 ? 's' : ''}
+                </div>
+
+                {/* Top Tier Players (£10k-£12k) */}
+                {topTierPlayers.length > 0 && (
+                  <div style={{ marginBottom: (midTierPlayers.length > 0 || valuePickPlayers.length > 0) ? '14px' : '0' }}>
+                    <div style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#a855f7',
+                      marginBottom: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <span>🌟</span>
+                      <span>Top 5 Players (£10k-£12k):</span>
+                    </div>
+                    {topTierPlayers.map((golfer) => (
+                      <div
+                        key={golfer.id}
+                        style={{
+                          fontSize: '10px',
+                          color: 'rgba(255,255,255,0.8)',
+                          marginBottom: '4px',
+                          paddingLeft: '18px',
+                          cursor: 'pointer',
+                          transition: 'color 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = '#a855f7';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                        }}
+                        onClick={() => addGolfer(golfer)}
+                      >
+                        {golfer.full_name} (£{golfer.salary.toLocaleString()})
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Mid Tier Players (£7k-£9.9k) */}
+                {midTierPlayers.length > 0 && (
+                  <div style={{ marginBottom: valuePickPlayers.length > 0 ? '14px' : '0' }}>
+                    <div style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#3b82f6',
+                      marginBottom: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <span>⭐</span>
+                      <span>Mid Tier Players (£7k-£10k):</span>
+                    </div>
+                    {midTierPlayers.map((golfer) => (
+                      <div
+                        key={golfer.id}
+                        style={{
+                          fontSize: '10px',
+                          color: 'rgba(255,255,255,0.8)',
+                          marginBottom: '4px',
+                          paddingLeft: '18px',
+                          cursor: 'pointer',
+                          transition: 'color 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = '#3b82f6';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                        }}
+                        onClick={() => addGolfer(golfer)}
+                      >
+                        {golfer.full_name} (£{golfer.salary.toLocaleString()})
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Value Pick Players (Under £7k) */}
+                {valuePickPlayers.length > 0 && (
+                  <div>
+                    <div style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#10b981',
+                      marginBottom: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <span>💰</span>
+                      <span>Value Picks (Under £7k):</span>
+                    </div>
+                    {valuePickPlayers.map((golfer) => (
+                      <div
+                        key={golfer.id}
+                        style={{
+                          fontSize: '10px',
+                          color: 'rgba(255,255,255,0.8)',
+                          marginBottom: '4px',
+                          paddingLeft: '18px',
+                          cursor: 'pointer',
+                          transition: 'color 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = '#10b981';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                        }}
+                        onClick={() => addGolfer(golfer)}
+                      >
+                        {golfer.full_name} (£{golfer.salary.toLocaleString()})
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Team Overview Stats Box */}
+            <div style={{
+              marginTop: '20px',
+              padding: '16px',
+              background: 'rgba(0,0,0,0.2)',
+              borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <div style={{ 
+                fontSize: '13px', 
+                fontWeight: 600, 
+                color: '#fbbf24',
+                marginBottom: '12px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Team Overview
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Players Selected</span>
+                  <span style={{ 
+                    fontSize: '14px', 
+                    fontWeight: 600, 
+                    color: playersSelected === 6 ? '#10b981' : '#3b82f6'
+                  }}>
+                    {playersSelected}/6
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Budget Used</span>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#fbbf24' }}>
+                    £{usedBudget.toLocaleString()}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Avg. Cost per Player</span>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#6366f1' }}>
+                    £{playersSelected > 0 ? Math.round(averageSalary).toLocaleString() : '0'}
+                  </span>
+                </div>
+                {spotsLeft > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Avg. per Remaining Spot</span>
+                    <span style={{ 
+                      fontSize: '14px', 
+                      fontWeight: 600, 
+                      color: avgPerSpot < 5000 ? '#ef4444' : avgPerSpot < 7000 ? '#fbbf24' : '#10b981'
+                    }}>
+                      £{Math.floor(avgPerSpot).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          </div>
+
+          {/* Column 2: Available Golfers */}
+          <div style={{ marginTop: '-30px' }}>
+            {/* Entry Details - Inline with Available Golfers Header */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              gap: '18px',
+              marginBottom: '12px'
+            }}>
+              {competition && (
+                <div style={{
+                  flex: 1,
+                  padding: '8px 16px',
+                  background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(251, 191, 36, 0.04) 100%)',
+                  border: '1px solid rgba(251, 191, 36, 0.25)',
+                  borderRadius: '8px',
+                  backdropFilter: 'blur(12px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '20px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
+                    <div style={{ 
+                      fontSize: '15px', 
+                      fontWeight: 600, 
+                      color: '#fbbf24'
+                    }}>
+                      {competition.tournament_name}
+                    </div>
+                    <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.15)' }}></div>
+                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
+                      {competition.competition_type_name}
+                    </div>
+                    <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.15)' }}></div>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#10b981' }}>
+                      {competition.entry_fee_pennies === 0 ? 'FREE ENTRY' : `£${(competition.entry_fee_pennies / 100).toFixed(2)}`}
+                    </div>
+                    <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.15)' }}></div>
+                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
+                      Max: <span style={{ fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>{competition.entrants_cap.toLocaleString()}</span> Entries
+                    </div>
+                  </div>
+                  <div style={{
+                    padding: '4px 10px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    color: '#10b981',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    Registration Open
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Glass Container */}
+            <div style={{
+              padding: '24px',
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%)',
+              border: '1px solid rgba(212, 175, 55, 0.18)',
+              borderRadius: '16px',
+              backdropFilter: 'blur(16px)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
+            }}>
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                  <div style={{
+                    padding: '4px 12px',
+                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#10b981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span>👥</span>
+                    <span>{availableGolfers.length}</span>
+                  </div>
+                  <h2 style={{ 
+                    fontSize: '20px', 
+                    fontWeight: 600, 
+                    color: '#10b981', 
+                    margin: 0
+                  }}>
+                    Available Golfers
+                  </h2>
+                </div>
+                <p style={{ 
+                  fontSize: '14px', 
+                  color: 'rgba(255,255,255,0.6)', 
+                  margin: 0 
+                }}>
+                  (Click to add to your scorecard)
+                </p>
+              </div>
+
+              {/* Golfers List */}
+              <div style={{
+                display: 'grid',
+                gap: '8px',
+                maxHeight: '600px',
+                overflowY: 'auto',
+                paddingRight: '8px'
+              }}>
+                {availableGolfers.length === 0 ? (
+                  <div style={{
+                    padding: '60px 20px',
+                    textAlign: 'center',
+                    color: 'rgba(255,255,255,0.4)'
+                  }}>
+                    <i className="fas fa-users-slash" style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}></i>
+                    <p style={{ fontSize: '14px', margin: '0 0 8px 0' }}>No golfers assigned to this competition yet</p>
+                    <small style={{ fontSize: '12px', opacity: 0.7 }}>Assign golfers in the admin panel</small>
                   </div>
                 ) : (
-                  filteredGolfers.map(golfer => (
-                    <div key={golfer.id} className={styles.golferCard}>
-                      <div className={styles.golferLeft}>
-                        <img 
-                          src={golfer.image_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'} 
-                          alt={golfer.full_name} 
-                          className={styles.golferAvatar} 
-                        />
-                        <div className={styles.golferInfo}>
-                          <div className={styles.golferName}>{golfer.full_name}</div>
-                          <div className={styles.golferMeta}>
-                            {golfer.world_ranking && (
-                              <span className={styles.ranking}>
-                                <i className="fas fa-medal"></i>
-                                #{golfer.world_ranking}
-                              </span>
-                            )}
+                  availableGolfers.map(golfer => {
+                    const isSelected = lineup.some(slot => slot.golfer?.id === golfer.id);
+                    const canAfford = golfer.salary <= remainingBudget;
+                    const isExpensive = isExpensivePlayer(golfer.salary);
+                    const isFull = playersSelected >= 6;
+                    
+                    return (
+                      <div
+                        key={golfer.id}
+                        id={`golfer-${golfer.id}`}
+                        onClick={() => !isSelected && canAfford && !isFull && addGolfer(golfer)}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '12px 16px',
+                          background: isSelected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${isSelected ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.06)'}`,
+                          borderRadius: '8px',
+                          cursor: isSelected || !canAfford || isFull ? 'not-allowed' : 'pointer',
+                          opacity: isSelected || !canAfford || isFull ? 0.5 : 1,
+                          transition: 'all 0.2s ease',
+                          position: 'relative'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected && canAfford && !isFull) {
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                            e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                          }
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                          <img 
+                            src={golfer.image_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'} 
+                            alt={golfer.full_name}
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              objectFit: 'cover',
+                              border: '2px solid rgba(255,255,255,0.1)'
+                            }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#f9fafb', marginBottom: '2px' }}>
+                              {golfer.full_name}
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+                              {golfer.world_ranking && (
+                                <>
+                                  Rank #{golfer.world_ranking}
+                                  {' • '}
+                                </>
+                              )}
+                              Recent Form
+                            </div>
                           </div>
                         </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ 
+                            fontSize: '14px', 
+                            fontWeight: 600, 
+                            color: '#fbbf24',
+                            marginRight: '4px'
+                          }}>
+                            £{golfer.salary.toLocaleString()}
+                          </div>
+                          {isExpensive && !isSelected && (
+                            <div style={{
+                              fontSize: '10px',
+                              padding: '2px 6px',
+                              background: 'rgba(239, 68, 68, 0.2)',
+                              border: '1px solid rgba(239, 68, 68, 0.4)',
+                              borderRadius: '4px',
+                              color: '#ef4444',
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap'
+                            }}>
+                              PREMIUM
+                            </div>
+                          )}
+                          {!canAfford && !isSelected && (
+                            <div style={{
+                              fontSize: '10px',
+                              padding: '2px 6px',
+                              background: 'rgba(239, 68, 68, 0.2)',
+                              border: '1px solid rgba(239, 68, 68, 0.4)',
+                              borderRadius: '4px',
+                              color: '#ef4444',
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap'
+                            }}>
+                              TOO EXPENSIVE
+                            </div>
+                          )}
+                          {isSelected && (
+                            <div style={{
+                              fontSize: '10px',
+                              padding: '2px 6px',
+                              background: 'rgba(16, 185, 129, 0.2)',
+                              border: '1px solid rgba(16, 185, 129, 0.4)',
+                              borderRadius: '4px',
+                              color: '#10b981',
+                              fontWeight: 600
+                            }}>
+                              SELECTED
+                            </div>
+                          )}
+                        </div>
                       </div>
-
-                      <div className={styles.golferRight}>
-                        <div className={styles.golferSalary}>{formatCurrency(golfer.salary)}</div>
-                        <button
-                          onClick={() => addGolfer(golfer)}
-                          className={styles.addBtn}
-                        >
-                          <i className="fas fa-plus"></i>
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
-          </section>
+          </div>
 
-          {/* Right Panel - My Lineup */}
-          <section className={styles.rightPanel}>
-            <div className={`${styles.lineupCard} ${styles.glass}`}>
-              <div className={styles.lineupHeader}>
-                <div>
-                  <h3>Your Lineup ({playersSelected}/6)</h3>
-                  <p className={styles.captainHint}>
-                    <i className="fas fa-crown"></i>
-                    {captain ? `${captain.golfer?.full_name} is your captain!` : 'Select a captain to earn 2x points'}
-                  </p>
+          {/* Column 3: Your Scorecard */}
+          <div style={{ marginTop: '-30px' }}>
+            {/* Section Header */}
+            <div style={{ marginBottom: '12px' }}>
+              <h1 style={{ fontSize: '28px', fontWeight: 600, color: '#f9fafb', margin: 0 }}>
+                Your Scorecard
+              </h1>
+            </div>
+
+            {/* Glass Container */}
+            <div style={{
+              padding: '24px',
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%)',
+              border: '1px solid rgba(212, 175, 55, 0.18)',
+              borderRadius: '16px',
+              backdropFilter: 'blur(16px)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
+            }}>
+              {/* Header Row */}
+              <div style={{ marginBottom: '8px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginBottom: '8px'
+                }}>
+                  <h2 style={{ 
+                    fontSize: '20px', 
+                    fontWeight: 600, 
+                    color: '#fbbf24', 
+                    margin: 0 
+                  }}>
+                    Your Scorecard ({playersSelected}/6)
+                  </h2>
+                  {playersSelected > 0 && (
+                    <button
+                      onClick={clearLineup}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        borderRadius: '6px',
+                        background: '#ef4444',
+                        border: 'none',
+                        color: 'white',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#dc2626';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = '#ef4444';
+                      }}
+                    >
+                      Clear All
+                    </button>
+                  )}
                 </div>
-                {playersSelected > 0 && (
-                  <button onClick={clearLineup} className={styles.clearBtn}>
-                    <i className="fas fa-trash-alt"></i>
-                    Clear All
-                  </button>
-                )}
+                <p style={{ 
+                  fontSize: '17px', 
+                  fontWeight: 500, 
+                  color: captain ? '#10b981' : 'rgba(255,255,255,0.7)',
+                  margin: 0 
+                }}>
+                  {captain ? `⭐ ${captain.golfer?.full_name} is your captain!` : 'Select a captain to earn 2x points!'}
+                </p>
               </div>
 
-              <div className={styles.lineupSlots}>
+              {/* Team Slots */}
+              <div style={{ display: 'grid', gap: '10px', marginBottom: '20px' }}>
                 {lineup.map(slot => (
                   <div
                     key={slot.slotNumber}
-                    className={`${styles.lineupSlot} ${slot.golfer ? styles.filled : styles.empty} ${slot.isCaptain ? styles.captain : ''}`}
+                    style={{
+                      minHeight: '52px',
+                      padding: slot.golfer ? '10px' : '14px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: slot.isCaptain 
+                        ? 'rgba(251, 191, 36, 0.15)' 
+                        : slot.golfer 
+                        ? 'rgba(255,255,255,0.03)' 
+                        : 'rgba(255,255,255,0.02)',
+                      border: slot.isCaptain
+                        ? '2px solid rgba(251, 191, 36, 0.4)'
+                        : slot.golfer
+                        ? '1px solid rgba(255,255,255,0.06)'
+                        : '2px dashed rgba(255,255,255,0.2)',
+                      transition: 'all 0.2s ease'
+                    }}
                   >
                     {slot.golfer ? (
                       <>
-                        {slot.isCaptain && (
-                          <div className={styles.captainBadge}>
-                            <i className="fas fa-crown"></i>
-                            CAPTAIN - 2X POINTS
-                          </div>
-                        )}
-                        <div className={styles.slotContent}>
-                          <img 
-                            src={slot.golfer.image_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'} 
-                            alt={slot.golfer.full_name} 
-                            className={styles.slotAvatar} 
-                          />
-                          <div className={styles.slotInfo}>
-                            <div className={styles.slotName}>{slot.golfer.full_name}</div>
-                            <div className={styles.slotMeta}>
-                              {slot.golfer.world_ranking && (
-                                <span>Rank #{slot.golfer.world_ranking}</span>
-                              )}
-                              <span>{formatCurrency(slot.golfer.salary)}</span>
+                        <div style={{ flex: 1 }}>
+                          {slot.isCaptain && (
+                            <div style={{
+                              display: 'inline-block',
+                              background: '#fbbf24',
+                              color: 'black',
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              marginBottom: '6px',
+                              letterSpacing: '0.5px'
+                            }}>
+                              CAPTAIN
                             </div>
+                          )}
+                          <div style={{ 
+                            fontSize: '14px', 
+                            fontWeight: 600, 
+                            color: '#f9fafb',
+                            marginBottom: '4px'
+                          }}>
+                            {slot.golfer.full_name}
                           </div>
-                          <div className={styles.slotActions}>
-                            {!slot.isCaptain && (
-                              <button
-                                onClick={() => setCaptain(slot.slotNumber)}
-                                className={styles.captainBtn}
-                                title="Set as Captain"
-                              >
-                                <i className="fas fa-crown"></i>
-                              </button>
-                            )}
+                          <div style={{ 
+                            fontSize: '12px', 
+                            color: 'rgba(255,255,255,0.6)' 
+                          }}>
+                            {slot.golfer.world_ranking && `Rank #${slot.golfer.world_ranking}`}
+                          </div>
+                        </div>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '6px',
+                          marginLeft: '12px'
+                        }}>
+                          <div style={{ 
+                            fontSize: '14px', 
+                            fontWeight: 600, 
+                            color: '#fbbf24',
+                            marginRight: '6px'
+                          }}>
+                            £{slot.golfer.salary.toLocaleString()}
+                          </div>
+                          {!slot.isCaptain && (
                             <button
-                              onClick={() => removeGolfer(slot.slotNumber)}
-                              className={styles.removeBtn}
-                              title="Remove"
+                              onClick={() => setCaptain(slot.slotNumber)}
+                              style={{
+                                padding: '4px 8px',
+                                fontSize: '11px',
+                                borderRadius: '4px',
+                                background: 'rgba(251, 191, 36, 0.2)',
+                                border: '1px solid rgba(251, 191, 36, 0.3)',
+                                color: '#fbbf24',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                whiteSpace: 'nowrap'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(251, 191, 36, 0.3)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(251, 191, 36, 0.2)';
+                              }}
                             >
-                              <i className="fas fa-times"></i>
+                              Set Captain
                             </button>
-                          </div>
+                          )}
+                          {slot.isCaptain && (
+                            <span style={{
+                              padding: '4px 8px',
+                              fontSize: '11px',
+                              borderRadius: '4px',
+                              background: 'rgba(251, 191, 36, 0.3)',
+                              border: '1px solid rgba(251, 191, 36, 0.5)',
+                              color: '#fbbf24',
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap'
+                            }}>
+                              ⭐ Captain
+                            </span>
+                          )}
+                          <button
+                            onClick={() => removeGolfer(slot.slotNumber)}
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: '11px',
+                              borderRadius: '4px',
+                              background: '#ef4444',
+                              border: 'none',
+                              color: 'white',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#dc2626';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = '#ef4444';
+                            }}
+                          >
+                            Remove
+                          </button>
                         </div>
                       </>
                     ) : (
-                      <div className={styles.emptySlot}>
-                        <i className="fas fa-user-plus"></i>
-                        <span>Select Golfer {slot.slotNumber}</span>
+                      <div style={{ 
+                        textAlign: 'center', 
+                        width: '100%',
+                        color: 'rgba(255,255,255,0.4)', 
+                        fontSize: '14px',
+                        fontWeight: 500
+                      }}>
+                        Empty Slot {slot.slotNumber}/6
                       </div>
                     )}
                   </div>
                 ))}
               </div>
 
-              {/* Action Buttons */}
-              <div className={styles.actionsContainer}>
-                {playersSelected === 6 && captain && (
-                  <button onClick={submitLineup} disabled={saving} className={styles.submitBtn}>
-                    <i className="fas fa-check-circle"></i>
-                    {saving ? 'Processing...' : 'Purchase Scorecard'}
-                  </button>
-                )}
-              </div>
-
+              {/* Captain Warning Box */}
               {playersSelected === 6 && !captain && (
-                <div className={styles.warningContainer}>
-                  <i className="fas fa-exclamation-triangle"></i>
-                  <span>Select a captain to continue</span>
+                <div style={{
+                  marginTop: '20px',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  border: '2px solid rgba(251, 191, 36, 0.3)',
+                  background: 'rgba(251, 191, 36, 0.15)'
+                }}>
+                  <div style={{ 
+                    fontSize: '16px', 
+                    fontWeight: 600, 
+                    color: '#fbbf24',
+                    marginBottom: '8px'
+                  }}>
+                    ⚠️ Select a Captain to Continue
+                  </div>
+                  <div style={{ 
+                    fontSize: '14px', 
+                    color: 'rgba(255,255,255,0.8)' 
+                  }}>
+                    Your captain will earn double points for their performance. Choose wisely!
+                  </div>
                 </div>
               )}
+
+              {/* Submit Button - Only show when team is complete with captain OR when over budget */}
+              {((playersSelected === 6 && captain) || isOverBudget) && (
+                <button
+                  onClick={submitLineup}
+                  disabled={!canSubmit()}
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    marginTop: '20px',
+                    background: canSubmit() && remainingBudget >= 0
+                      ? '#10b981' 
+                      : isOverBudget
+                      ? '#ef4444'
+                      : '#6b7280',
+                    border: 'none',
+                    color: 'white',
+                    cursor: canSubmit() ? 'pointer' : 'not-allowed',
+                    opacity: canSubmit() ? 1 : 0.6,
+                    boxShadow: canSubmit() && remainingBudget >= 0
+                      ? '0 4px 12px rgba(16, 185, 129, 0.3)' 
+                      : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (canSubmit()) {
+                      e.currentTarget.style.background = remainingBudget >= 0 ? '#059669' : '#dc2626';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = remainingBudget >= 0 ? '0 6px 16px rgba(16, 185, 129, 0.4)' : '0 6px 16px rgba(239, 68, 68, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (canSubmit()) {
+                      e.currentTarget.style.background = remainingBudget >= 0 ? '#10b981' : '#ef4444';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = remainingBudget >= 0 ? '0 4px 12px rgba(16, 185, 129, 0.3)' : 'none';
+                    }
+                  }}
+                >
+                  {saving ? 'Processing...' : 
+                   isOverBudget ? 'Over Budget - Remove Players' :
+                   'Purchase Scorecard'}
+                </button>
+              )}
             </div>
-          </section>
+          </div>
         </div>
       </div>
     </RequireAuth>

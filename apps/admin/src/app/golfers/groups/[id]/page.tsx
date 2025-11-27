@@ -12,7 +12,7 @@ interface Golfer {
   full_name: string;
   external_id: string | null;
   image_url: string | null;
-  world_ranking: number | null;
+  world_rank: number | null;
 }
 
 interface GolferGroup {
@@ -637,6 +637,14 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
             }}>
               {allGolfers
                 .filter(g => !golfers.some(existing => existing.id === g.id))
+                .filter(g => {
+                  // Filter out corrupted golfers (binary data from Excel files)
+                  const name = g.full_name || '';
+                  return !name.match(/[\x00-\x08\x0B\x0C\x0E-\x1F]/) && 
+                         !name.includes('PK!') && 
+                         !name.includes('xl/') &&
+                         name.length < 100; // Reasonable name length
+                })
                 .map((golfer) => (
                   <label
                     key={golfer.id}
@@ -667,7 +675,7 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
                         {golfer.full_name}
                       </div>
                       <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.6)' }}>
-                        {golfer.world_ranking ? `World Ranking #${golfer.world_ranking}` : 'No Ranking'}
+                        {golfer.world_rank ? `World Ranking #${golfer.world_rank}` : 'No Ranking'}
                       </div>
                     </div>
                   </label>
@@ -724,7 +732,16 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '0.75rem' }}>
-            {golfers.map((golfer) => (
+            {golfers
+              .filter(g => {
+                // Filter out corrupted golfers (binary data from Excel files)
+                const name = g.full_name || '';
+                return !name.match(/[\x00-\x08\x0B\x0C\x0E-\x1F]/) && 
+                       !name.includes('PK!') && 
+                       !name.includes('xl/') &&
+                       name.length < 100; // Reasonable name length
+              })
+              .map((golfer) => (
               <div
                 key={golfer.id}
                 style={{
@@ -818,8 +835,8 @@ export default function GolferGroupDetailPage({ params }: { params: { id: string
                         {golfer.full_name}
                       </div>
                       <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.6)' }}>
-                        {golfer.world_ranking ? (
-                          <span>World Ranking #{golfer.world_ranking}</span>
+                        {golfer.world_rank ? (
+                          <span>World Ranking #{golfer.world_rank}</span>
                         ) : (
                           <span style={{ color: 'rgba(255,255,255,0.4)' }}>No Ranking</span>
                         )}

@@ -28,19 +28,35 @@ export async function GET(
     }
 
     // Fetch competitions for this tournament
+    // First, let's see ALL competitions to debug
+    const { data: allComps } = await supabase
+      .from('tournament_competitions')
+      .select('id, status, competition_type_id, entry_fee_pennies')
+      .eq('tournament_id', tournament.id);
+    
+    console.log(`🔍 All competitions for ${tournament.name}:`, allComps);
+
     const { data: competitions, error: competitionsError } = await supabase
       .from('tournament_competitions')
       .select(`
         *,
-        competition_types (
+        competition_types!inner (
           id,
           name,
-          slug
+          slug,
+          rounds_count
         )
       `)
       .eq('tournament_id', tournament.id)
       .in('status', ['upcoming', 'reg_open', 'reg_closed', 'live'])
       .order('entry_fee_pennies', { ascending: false });
+
+    console.log(`✅ Filtered competitions (${competitions?.length || 0}):`, competitions?.map(c => ({ 
+      name: c.competition_types?.name, 
+      status: c.status,
+      type_id: c.competition_type_id,
+      fee: c.entry_fee_pennies 
+    })));
 
     if (competitionsError) {
       console.error('Error fetching competitions:', competitionsError);

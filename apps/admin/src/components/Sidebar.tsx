@@ -37,11 +37,11 @@ const navSections: NavSection[] = [
     icon: '◆',
     items: [
       { label: 'All Tournaments', href: '/tournaments' },
+      { label: 'AI Tournament Creator', href: '/ai-tournament-creator' },
       { label: 'Featured Competitions', href: '/featured-competitions' },
       { label: 'Promotional Cards', href: '/promotional-cards' },
       { label: 'Active Competitions', href: '/competitions' },
       { label: 'Competition Types', href: '/competition-types' },
-      { label: 'Manage Golfers', href: '/golfers' },
       { label: 'Tournament Golfers', href: '/golfers/groups' },
     ],
   },
@@ -55,10 +55,18 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    title: 'Results',
+    icon: '🏆',
+    items: [
+      { label: 'Competition Results', href: '/admin/results' },
+    ],
+  },
+  {
     title: 'Dev Notes',
     icon: '📝',
     items: [
       { label: 'Tasks & Reminders', href: '/dev-notes' },
+      { label: 'Ideas & Suggestions', href: '/ideas-suggestions' },
     ],
   },
   {

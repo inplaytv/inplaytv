@@ -1,0 +1,10 @@
+{
+  "name": "@repo/shared",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/salaryCalculator.ts",
+  "types": "./src/salaryCalculator.ts",
+  "exports": {
+    "./salaryCalculator": "./src/salaryCalculator.ts"
+  }
+}

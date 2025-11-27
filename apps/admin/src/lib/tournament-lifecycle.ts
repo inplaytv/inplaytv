@@ -14,7 +14,7 @@ export const TOURNAMENT_STATUS_LABELS: Record<TournamentStatus, string> = {
   [TOURNAMENT_STATUS.UPCOMING]: 'Upcoming',
   [TOURNAMENT_STATUS.REGISTRATION_OPEN]: 'Registration Open',
   [TOURNAMENT_STATUS.REGISTRATION_CLOSED]: 'Registration Closed',
-  [TOURNAMENT_STATUS.LIVE_INPLAY]: 'Live In-Play',
+  [TOURNAMENT_STATUS.LIVE_INPLAY]: 'In-Play', // Changed from "Live In-Play"
   [TOURNAMENT_STATUS.COMPLETED]: 'Completed',
   [TOURNAMENT_STATUS.CANCELLED]: 'Cancelled',
 };

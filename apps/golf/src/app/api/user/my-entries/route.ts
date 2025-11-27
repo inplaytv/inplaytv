@@ -13,8 +13,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('🔍 Fetching entries for user:', user.id);
-
     // Fetch basic entries first
     const { data: entries, error } = await supabase
       .from('competition_entries')
@@ -27,14 +25,10 @@ export async function GET() {
       throw error;
     }
 
-    console.log('✅ Found entries:', entries?.length || 0);
-
     // Fetch all related data separately
     if (entries && entries.length > 0) {
       const entryIds = entries.map(e => e.id);
-      const competitionIds = [...new Set(entries.map(e => e.competition_id))];
-      
-      console.log('📋 Fetching picks for', entryIds.length, 'entries');
+      const competitionIds = Array.from(new Set(entries.map(e => e.competition_id)));
       
       // Fetch entry picks
       const { data: allPicks } = await supabase
@@ -42,13 +36,8 @@ export async function GET() {
         .select('*')
         .in('entry_id', entryIds);
 
-      console.log('⛳ Found', allPicks?.length || 0, 'picks');
-
       // Get golfer IDs from picks
-      const golferIds = [...new Set(allPicks?.map(p => p.golfer_id) || [])];
-      
-      console.log('👥 Fetching', golferIds.length, 'golfers');
-      console.log('🔍 Golfer IDs:', golferIds);
+      const golferIds = Array.from(new Set(allPicks?.map(p => p.golfer_id) || []));
       
       // Fetch golfers (removed country column as it doesn't exist)
       const { data: golfers, error: golfersError } = await supabase
@@ -57,12 +46,8 @@ export async function GET() {
         .in('id', golferIds);
 
       if (golfersError) {
-        console.error('❌ Error fetching golfers:', golfersError);
+        throw golfersError;
       }
-
-      console.log('🏌️ Found', golfers?.length || 0, 'golfers');
-      console.log('🏆 Fetching', competitionIds.length, 'competitions');
-      console.log('🔍 Competition IDs:', competitionIds);
 
       // Fetch tournament_competitions
       const { data: competitions, error: competitionsError } = await supabase
@@ -71,19 +56,17 @@ export async function GET() {
         .in('id', competitionIds);
 
       if (competitionsError) {
-        console.error('❌ Error fetching competitions:', competitionsError);
+        throw competitionsError;
       }
 
-      console.log('🎯 Found', competitions?.length || 0, 'competitions');
-
       if (competitions && competitions.length > 0) {
-        const tournamentIds = [...new Set(competitions.map(c => c.tournament_id))];
-        const typeIds = [...new Set(competitions.map(c => c.competition_type_id))];
+        const tournamentIds = Array.from(new Set(competitions.map(c => c.tournament_id)));
+        const typeIds = Array.from(new Set(competitions.map(c => c.competition_type_id)));
 
         // Fetch tournaments and competition types
-        const { data: tournaments } = await supabase
+        const { data: tournaments, error: tournamentsError } = await supabase
           .from('tournaments')
-          .select('id, name, start_at, end_at, status')
+          .select('id, name, start_date, end_date, status')
           .in('id', tournamentIds);
 
         const { data: types } = await supabase
@@ -95,15 +78,14 @@ export async function GET() {
         const golferMap = new Map(golfers?.map(g => [g.id, {
           id: g.id,
           name: `${g.first_name} ${g.last_name}`,
-          country: g.country,
           salary: 0, // Will need to get from tournament_golfers
           owgr_rank: g.world_ranking
         }]));
         const tournamentMap = new Map(tournaments?.map(t => [t.id, {
           id: t.id,
           name: t.name,
-          start_date: t.start_at,
-          end_date: t.end_at,
+          start_date: t.start_date,
+          end_date: t.end_date,
           status: t.status
         }]));
         const typeMap = new Map(types?.map(t => [t.id, t]));
@@ -123,12 +105,14 @@ export async function GET() {
         // Merge competition data with tournaments and types
         const competitionMap = new Map();
         competitions.forEach(comp => {
+          const tournament = tournamentMap.get(comp.tournament_id);
+          const compType = typeMap.get(comp.competition_type_id);
           competitionMap.set(comp.id, {
             ...comp,
             start_date: comp.start_at,
             end_date: comp.end_at,
-            tournaments: tournamentMap.get(comp.tournament_id),
-            competition_types: typeMap.get(comp.competition_type_id)
+            tournaments: tournament,
+            competition_types: compType
           });
         });
 
@@ -137,8 +121,6 @@ export async function GET() {
           entry.tournament_competitions = competitionMap.get(entry.competition_id);
           entry.entry_picks = picksByEntry.get(entry.id) || [];
         });
-
-        console.log('✅ Merged all data successfully');
       }
     }
 

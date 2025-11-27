@@ -98,6 +98,21 @@
 .scoreValue { font-size: 1.4rem; font-weight: 700; color: rgba(255,255,255,0.6); }
 .pickAction { color: rgba(255,255,255,0.3); transition: all 0.2s ease; }
 .pickCard:hover .pickAction { color: #b19cd9; transform: translateX(4px); }
+
+/* Responsive Design - Mobile & Tablet */
+@media (max-width: 768px) {
+  .container { padding: 1rem; }
+  .title { font-size: 2rem; }
+  .subtitle { font-size: 1rem; }
+  .filters { flex-direction: column; }
+  .filterTabs { flex-direction: column; }
+  .filterTab { justify-content: center; }
+  .quickStats { grid-template-columns: 1fr 1fr; }
+  .pickCard { grid-template-columns: 40px 1fr auto; gap: 0.75rem; padding: 1rem; }
+  .pickPosition { width: 40px; height: 40px; font-size: 1rem; }
+  .pickScores { flex-direction: column; gap: 0.5rem; }
+  .scoreBox { min-width: auto; width: 100%; }
+}
 .noResults { padding: 3rem 2rem; text-align: center; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.03); border-radius: 12px; }
 @media (max-width: 1024px) { .entryHeader { grid-template-columns: 1fr; gap: 1rem; } .golfersPreview { margin-right: 0; justify-content: center; } .quickStats { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) { .container { padding: 1rem; } .header { flex-direction: column; align-items: flex-start; gap: 1rem; } .title { font-size: 2rem; } .filters { flex-direction: column; } .filterTabs { width: 100%; } .filterTab { flex: 1; padding: 0.625rem 0.75rem; font-size: 0.9rem; } .tournamentBadge { min-width: unset; width: 100%; } .pickCard { grid-template-columns: 40px 1fr; gap: 0.875rem; } .pickScores { grid-column: 1 / -1; margin-top: 0.75rem; justify-content: space-around; } .pickAction { display: none; } .golferAvatar { width: 40px; height: 40px; margin-left: -10px; } }

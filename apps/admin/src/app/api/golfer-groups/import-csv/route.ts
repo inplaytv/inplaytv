@@ -6,6 +6,25 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+/**
+ * Calculate golfer salary based on world ranking and skill rating
+ * Formula: Base salary (rank-based) + Skill bonus
+ * Range: £10.00 to £150.00
+ */
+function calculateSalary(worldRank: number, skillRating?: number): number {
+  // Base salary: Higher rank = lower salary
+  // Rank 1 = £150, Rank 300+ = £10
+  const baseSalary = Math.max(1000, 15000 - (worldRank * 45)); // In pennies
+
+  // Skill bonus: Add up to £30 for high skill ratings
+  const skillBonus = skillRating ? Math.round(skillRating * 300) : 0;
+
+  // Total: Min £10, Max £150
+  const totalSalary = Math.min(15000, Math.max(1000, baseSalary + skillBonus));
+  
+  return totalSalary;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { groupName, golfers } = await request.json();
@@ -71,23 +90,82 @@ export async function POST(request: NextRequest) {
 
     // Separate new vs existing golfers
     const newGolfers: any[] = [];
+    const golfersToUpdate: { id: string; updates: any }[] = [];
+    
+    console.log('Processing golfers, first 3:', golfers.slice(0, 3));
     
     for (const golfer of golfers) {
-      const { firstName, lastName, worldRanking, pointsWon } = golfer;
+      const { firstName, lastName, worldRanking, skillRating, pointsWon } = golfer;
       const key = firstName + '___' + lastName;
       
       if (existingMap.has(key)) {
-        // Use existing golfer
+        const golferId = existingMap.get(key)!;
+        
+        // Use existing golfer and add to group
         groupMembers.push({
           group_id: group.id,
-          golfer_id: existingMap.get(key)!,
+          golfer_id: golferId,
         });
+
+        // If rankings provided, update the golfer
+        if (worldRanking || skillRating) {
+          const updates: any = {};
+          
+          if (worldRanking) {
+            updates.world_rank = worldRanking;
+          }
+          if (skillRating) {
+            updates.skill_rating = skillRating;
+          }
+          
+          // Calculate salary if we have ranking data
+          if (worldRanking) {
+            updates.salary_pennies = calculateSalary(worldRanking, skillRating);
+          }
+          
+          if (Object.keys(updates).length > 0) {
+            updates.last_ranking_update = new Date().toISOString();
+            updates.ranking_source = 'manual';
+            golfersToUpdate.push({ id: golferId, updates });
+          }
+        }
       } else {
+        // Calculate salary for new golfer
+        const salaryPennies = worldRanking 
+          ? calculateSalary(worldRanking, skillRating)
+          : 10000; // Default £100 if no ranking
+        
         // Prepare for batch insert
         newGolfers.push({
           first_name: firstName,
           last_name: lastName,
-          world_ranking: worldRanking || null,
+          world_rank: worldRanking || null,
+          skill_rating: skillRating || null,
+          salary_pennies: salaryPennies,
+          last_ranking_update: worldRanking ? new Date().toISOString() : null,
+          ranking_source: worldRanking ? 'manual' : null,
+        });
+      }
+    }
+
+    // Update existing golfers with new rankings
+    for (const { id, updates } of golfersToUpdate) {
+      const { error: updateError } = await supabase
+        .from('golfers')
+        .update(updates)
+        .eq('id', id);
+
+      if (updateError) {
+        console.warn(`Failed to update golfer ${id}:`, updateError);
+      } else {
+        // Log to history
+        await supabase.from('golfer_ranking_history').insert({
+          golfer_id: id,
+          world_rank: updates.world_rank,
+          skill_rating: updates.skill_rating,
+          salary_pennies: updates.salary_pennies,
+          source: 'manual',
+          recorded_at: new Date().toISOString(),
         });
       }
     }
@@ -137,12 +215,30 @@ export async function POST(request: NextRequest) {
 
     console.log(`Import complete: ${golfersCreated} new golfers created, ${groupMembers.length} total in group`);
 
+    // Log the ranking sync if rankings were provided
+    const golfersWithRankings = golfers.filter((g: any) => g.worldRanking);
+    if (golfersWithRankings.length > 0) {
+      await supabase.from('ranking_sync_logs').insert({
+        source: 'manual',
+        sync_type: 'csv_upload',
+        golfers_updated: golfersWithRankings.length,
+        status: 'success',
+        metadata: {
+          group_name: groupName,
+          total_golfers: golfers.length,
+          with_rankings: golfersWithRankings.length,
+        },
+        synced_at: new Date().toISOString(),
+      });
+    }
+
     return NextResponse.json({
       success: true,
       groupId: group.id,
       groupName: group.name,
       golfersCreated,
       totalGolfers: groupMembers.length,
+      rankingsUpdated: golfersWithRankings.length,
     });
   } catch (error: any) {
     console.error('Import error:', error);

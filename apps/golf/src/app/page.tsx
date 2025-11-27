@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import RequireAuth from '@/components/RequireAuth';
-import Header from '@/components/Header';
 import { createClient } from '@/lib/supabaseClient';
 
 // Force dynamic rendering (requires auth)
@@ -22,7 +21,6 @@ export default function LobbyPage() {
 
   return (
     <RequireAuth>
-      <Header />
       <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
         <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Welcome to the Lobby</h1>
         {email && <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '2rem' }}>Signed in as: {email}</p>}

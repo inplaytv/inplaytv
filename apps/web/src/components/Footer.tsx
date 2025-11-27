@@ -18,27 +18,27 @@ export default function Footer() {
           <div style={styles.section}>
             <h3 style={styles.heading}>Product</h3>
             <ul style={styles.list}>
-              <li><a href="#how-it-works" style={styles.link}>How It Works</a></li>
-              <li><a href="/login" style={styles.link}>Tournaments</a></li>
-              <li><a href="/login" style={styles.link}>Pricing</a></li>
+              <li><span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>How It Works</span></li>
+              <li><span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>Tournaments</span></li>
+              <li><span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>Pricing</span></li>
             </ul>
           </div>
 
           <div style={styles.section}>
             <h3 style={styles.heading}>Company</h3>
             <ul style={styles.list}>
-              <li><a href="#" style={styles.link}>About Us</a></li>
-              <li><a href="#" style={styles.link}>Contact</a></li>
-              <li><a href="#" style={styles.link}>Careers</a></li>
+              <li><span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>About Us</span></li>
+              <li><span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>Contact</span></li>
+              <li><span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>Careers</span></li>
             </ul>
           </div>
 
           <div style={styles.section}>
             <h3 style={styles.heading}>Legal</h3>
             <ul style={styles.list}>
-              <li><a href="#" style={styles.link}>Terms of Service</a></li>
-              <li><a href="#" style={styles.link}>Privacy Policy</a></li>
-              <li><a href="#" style={styles.link}>Responsible Gaming</a></li>
+              <li><span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>Terms of Service</span></li>
+              <li><span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>Privacy Policy</span></li>
+              <li><span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>Responsible Gaming</span></li>
             </ul>
           </div>
         </div>
@@ -48,9 +48,9 @@ export default function Footer() {
             © {currentYear} InPlay TV. All rights reserved.
           </p>
           <div style={styles.social}>
-            <a href="#" style={styles.socialLink} aria-label="Twitter">𝕏</a>
-            <a href="#" style={styles.socialLink} aria-label="Facebook">f</a>
-            <a href="#" style={styles.socialLink} aria-label="Instagram">📷</a>
+            <span style={{...styles.socialLink, opacity: 0.5, cursor: 'not-allowed'}} aria-label="Twitter">𝕏</span>
+            <span style={{...styles.socialLink, opacity: 0.5, cursor: 'not-allowed'}} aria-label="Facebook">f</span>
+            <span style={{...styles.socialLink, opacity: 0.5, cursor: 'not-allowed'}} aria-label="Instagram">📷</span>
           </div>
         </div>
       </div>

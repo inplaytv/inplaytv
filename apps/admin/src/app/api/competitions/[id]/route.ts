@@ -22,7 +22,7 @@ export async function GET(
           name,
           slug
         ),
-        tournaments (
+        tournaments!tournament_competitions_tournament_id_fkey (
           id,
           name,
           slug
@@ -83,14 +83,20 @@ export async function PUT(
 
     // If a golfer group was assigned, sync the golfers to competition_golfers
     if (assigned_golfer_group_id) {
+      console.log('🔄 Syncing golfers from group:', assigned_golfer_group_id);
+      
       // Get golfers from the group
       const { data: members, error: membersError } = await adminClient
         .from('golfer_group_members')
         .select('golfer_id')
-        .eq('group_id', assigned_golfer_group_id);
+        .eq('group_id', assigned_golfer_group_id)
+        .limit(1000); // Support up to 1000 golfers in a group
+
+      console.log('📊 Found', members?.length || 0, 'golfers in group');
 
       if (!membersError && members && members.length > 0) {
         // First, remove existing golfers
+        console.log('🗑️ Deleting existing golfers from competition');
         await adminClient
           .from('competition_golfers')
           .delete()
@@ -102,9 +108,17 @@ export async function PUT(
           golfer_id: m.golfer_id,
         }));
 
-        await adminClient
+        console.log('➕ Inserting', inserts.length, 'golfers into competition');
+        const { error: insertError } = await adminClient
           .from('competition_golfers')
           .insert(inserts);
+
+        if (insertError) {
+          console.error('❌ Error inserting golfers:', insertError);
+          throw insertError;
+        }
+        
+        console.log('✅ Successfully synced', inserts.length, 'golfers');
       }
     }
 

@@ -15,10 +15,50 @@ interface Tournament {
   updated_at: string;
   registration_open_date?: string;
   registration_close_date?: string;
+  is_visible: boolean;
 }
 
 interface TournamentsListProps {
   initialTournaments: Tournament[];
+}
+
+// Calculate dynamic status based on tournament dates
+function calculateTournamentStatus(tournament: Tournament): string {
+  const now = new Date();
+  const startDate = new Date(tournament.start_date);
+  const endDate = new Date(tournament.end_date);
+  
+  // Set end date to end of day (23:59:59.999)
+  const tournamentEndOfDay = new Date(endDate);
+  tournamentEndOfDay.setHours(23, 59, 59, 999);
+  
+  // If tournament is in progress
+  if (now >= startDate && now <= tournamentEndOfDay) {
+    return 'live';
+  }
+  
+  // If tournament is completed
+  if (now > tournamentEndOfDay) {
+    return 'completed';
+  }
+  
+  // If registration dates are available, check registration status
+  if (tournament.registration_close_date) {
+    const regCloseDate = new Date(tournament.registration_close_date);
+    if (now > regCloseDate) {
+      return 'reg_closed';
+    }
+  }
+  
+  if (tournament.registration_open_date) {
+    const regOpenDate = new Date(tournament.registration_open_date);
+    if (now >= regOpenDate) {
+      return 'reg_open';
+    }
+  }
+  
+  // Default to upcoming
+  return 'upcoming';
 }
 
 function getStatusBadge(status: string) {
@@ -309,6 +349,32 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
     }
   };
 
+  const handleToggleVisibility = async (tournament: Tournament) => {
+    const newVisibility = !tournament.is_visible;
+    
+    try {
+      const res = await fetch(`/api/tournaments/${tournament.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_visible: newVisibility }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update visibility');
+      }
+
+      // Update local state
+      setTournaments(tournaments.map(t => 
+        t.id === tournament.id ? { ...t, is_visible: newVisibility } : t
+      ));
+      
+      router.refresh();
+    } catch (error: any) {
+      alert(`Error updating visibility: ${error.message}`);
+    }
+  };
+
   return (
     <>
       {/* Control Panel */}
@@ -586,6 +652,7 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: 'rgba(0, 0, 0, 0.2)' }}>
+              <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Visible</th>
               <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Title</th>
               <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Location</th>
               <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Status</th>
@@ -598,13 +665,32 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
         <tbody>
           {tournaments.length === 0 ? (
             <tr>
-              <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
+              <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
                 No tournaments yet. Create one to get started.
               </td>
             </tr>
           ) : (
-            tournaments.map((tournament) => (
-              <tr key={tournament.id} style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            tournaments.map((tournament) => {
+              const calculatedStatus = calculateTournamentStatus(tournament);
+              return (
+              <tr key={tournament.id} style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', opacity: tournament.is_visible ? 1 : 0.5 }}>
+                <td style={{ padding: '0.875rem' }}>
+                  <button
+                    onClick={() => handleToggleVisibility(tournament)}
+                    title={tournament.is_visible ? 'Hide from golf app' : 'Show on golf app'}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1.25rem',
+                      padding: '0.25rem',
+                      color: tournament.is_visible ? '#10b981' : 'rgba(255,255,255,0.3)',
+                      transition: 'color 0.2s',
+                    }}
+                  >
+                    {tournament.is_visible ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                </td>
                 <td style={{ padding: '0.875rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
                   {tournament.name}
                 </td>
@@ -612,7 +698,7 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
                   {tournament.location || '—'}
                 </td>
                 <td style={{ padding: '0.875rem' }}>
-                  {getStatusBadge(tournament.status)}
+                  {getStatusBadge(calculatedStatus)}
                 </td>
                 <td style={{ padding: '0.875rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem' }}>
                   {formatDate(tournament.start_date)}
@@ -659,7 +745,8 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
                   </div>
                 </td>
               </tr>
-            ))
+              );
+            })
           )}
         </tbody>
       </table>

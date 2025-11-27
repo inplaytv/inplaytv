@@ -4,6 +4,29 @@ import { assertAdminOrRedirect } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
+// GET - Fetch all tournaments
+export async function GET(request: NextRequest) {
+  try {
+    await assertAdminOrRedirect();
+    
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient
+      .from('tournaments')
+      .select('id, name, slug, status, is_visible')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching tournaments:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(data);
+  } catch (error: any) {
+    console.error('GET tournaments error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 // POST - Create new tournament
 export async function POST(request: NextRequest) {
   try {

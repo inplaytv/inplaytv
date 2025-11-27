@@ -190,106 +190,311 @@ export default function ConfirmLineupPage({ params }: { params: { competitionId:
 
   return (
     <RequireAuth>
-      <div className={styles.container}>
-        <div className={styles.confirmCard}>
-          <div className={styles.cardHeader}>
-            <h1>Confirm Your Scorecard</h1>
-            <p className={styles.subtitle}>Review your lineup before purchase</p>
-          </div>
-
-          {/* Competition Info */}
-          <div className={styles.infoSection}>
-            <h2>{competition.tournament_name}</h2>
-            <p className={styles.compType}>{competition.competition_type_name}</p>
-          </div>
-
-          {/* Team Name */}
-          {lineupData.entry_name && (
-            <div className={styles.teamName}>
-              <i className="fas fa-users"></i>
-              <span>{lineupData.entry_name}</span>
-            </div>
-          )}
-
-          {/* Lineup */}
-          <div className={styles.lineup}>
-            <h3>Your Lineup</h3>
-            <div className={styles.golfersList}>
-              {selectedGolfers.map((pick) => (
-                <div key={pick.golfer_id} className={styles.golferRow}>
-                  <div className={styles.golferLeft}>
-                    <span className={styles.position}>#{pick.slot_position}</span>
-                    <div className={styles.golferInfo}>
-                      <span className={styles.golferName}>{pick.golfer?.full_name || 'Unknown'}</span>
-                      {pick.golfer?.world_ranking && (
-                        <span className={styles.ranking}>Rank #{pick.golfer.world_ranking}</span>
-                      )}
-                    </div>
-                    {pick.golfer_id === lineupData.captain_golfer_id && (
-                      <span className={styles.captainBadge}>
-                        <i className="fas fa-crown"></i> Captain (2x points)
-                      </span>
-                    )}
-                  </div>
-                  <span className={styles.salary}>£{pick.salary_at_selection.toLocaleString()}</span>
-                </div>
-              ))}
+      <div style={{ 
+        maxWidth: '1400px', 
+        margin: '0 auto', 
+        padding: '40px',
+        minHeight: '100vh'
+      }}>
+        <div style={{ 
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '30px',
+          alignItems: 'start'
+        }}>
+          {/* Left Column: Purchase Details */}
+          <div style={{
+            padding: '24px',
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%)',
+            border: '1px solid rgba(212, 175, 55, 0.18)',
+            borderRadius: '16px',
+            backdropFilter: 'blur(16px)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
+          }}>
+            {/* Competition Info */}
+            <div style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#10b981', margin: '0 0 4px 0' }}>
+                {competition.tournament_name}
+              </h2>
+              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                {competition.competition_type_name}
+              </p>
             </div>
 
-            <div className={styles.total}>
-              <span>Total Salary Used:</span>
-              <strong>£{lineupData.total_salary.toLocaleString()} / £50,000</strong>
-            </div>
-          </div>
-
-          {/* Balance & Entry Fee */}
-          <div className={styles.payment}>
-            <div className={styles.balanceRow}>
-              <span>Your Wallet Balance:</span>
-              <strong className={insufficientFunds ? styles.insufficient : ''}>
-                {formatCurrency(userBalance)}
-              </strong>
-            </div>
-            <div className={styles.feeRow}>
-              <span>Entry Fee:</span>
-              <strong>{formatCurrency(competition.entry_fee_pennies)}</strong>
-            </div>
-            {!insufficientFunds && (
-              <div className={styles.remainingRow}>
-                <span>Remaining Balance:</span>
-                <strong>{formatCurrency(userBalance - competition.entry_fee_pennies)}</strong>
+            {/* Team Name */}
+            {lineupData.entry_name && (
+              <div style={{
+                marginBottom: '20px',
+                padding: '12px',
+                background: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <i className="fas fa-users" style={{ color: '#3b82f6', fontSize: '14px' }}></i>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
+                  {lineupData.entry_name}
+                </span>
               </div>
             )}
+
+            {/* Lineup */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#fbbf24', margin: 0 }}>
+                  Your Lineup
+                </h3>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                  Review your lineup before purchase
+                </p>
+              </div>
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {selectedGolfers.map((pick) => (
+                  <div key={pick.golfer_id} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '10px 12px',
+                    background: pick.golfer_id === lineupData.captain_golfer_id 
+                      ? 'rgba(251, 191, 36, 0.1)' 
+                      : 'rgba(255,255,255,0.03)',
+                    border: pick.golfer_id === lineupData.captain_golfer_id
+                      ? '1px solid rgba(251, 191, 36, 0.3)'
+                      : '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+                          #{pick.slot_position}
+                        </span>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
+                          {pick.golfer?.full_name || 'Unknown'}
+                        </span>
+                        {pick.golfer_id === lineupData.captain_golfer_id && (
+                          <span style={{
+                            fontSize: '10px',
+                            padding: '2px 6px',
+                            background: '#fbbf24',
+                            color: 'black',
+                            borderRadius: '4px',
+                            fontWeight: 700
+                          }}>
+                            CAPTAIN
+                          </span>
+                        )}
+                      </div>
+                      {pick.golfer?.world_ranking && (
+                        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+                          Rank #{pick.golfer.world_ranking}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#fbbf24' }}>
+                      £{pick.salary_at_selection.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Payment Details */}
+            <div style={{
+              marginBottom: '20px',
+              padding: '16px',
+              background: 'rgba(0,0,0,0.2)',
+              borderRadius: '8px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Your Wallet Balance:</span>
+                <strong style={{ 
+                  fontSize: '14px', 
+                  color: insufficientFunds ? '#ef4444' : '#10b981'
+                }}>
+                  {formatCurrency(userBalance)}
+                </strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Entry Fee:</span>
+                <strong style={{ fontSize: '14px', color: 'rgba(255,255,255,0.9)' }}>
+                  {formatCurrency(competition.entry_fee_pennies)}
+                </strong>
+              </div>
+              {!insufficientFunds && (
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  paddingTop: '8px',
+                  borderTop: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Remaining Balance:</span>
+                  <strong style={{ fontSize: '14px', color: '#3b82f6' }}>
+                    {formatCurrency(userBalance - competition.entry_fee_pennies)}
+                  </strong>
+                </div>
+              )}
+            </div>
+
+            {insufficientFunds && (
+              <div style={{
+                marginBottom: '20px',
+                padding: '12px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <i className="fas fa-exclamation-circle" style={{ color: '#ef4444' }}></i>
+                <span style={{ fontSize: '12px', color: '#ef4444' }}>
+                  Insufficient funds. Please add money to your wallet to continue.
+                </span>
+              </div>
+            )}
+
+            {error && (
+              <div style={{
+                marginBottom: '20px',
+                padding: '12px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <i className="fas fa-times-circle" style={{ color: '#ef4444' }}></i>
+                <span style={{ fontSize: '12px', color: '#ef4444' }}>{error}</span>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={goBack}
+                disabled={submitting}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'rgba(255,255,255,0.9)',
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  opacity: submitting ? 0.5 : 1,
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!submitting) e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!submitting) e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                }}
+              >
+                <i className="fas fa-arrow-left" style={{ marginRight: '8px' }}></i>
+                Go Back
+              </button>
+              <button
+                onClick={confirmPurchase}
+                disabled={submitting || insufficientFunds}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  background: (!submitting && !insufficientFunds) ? '#10b981' : '#6b7280',
+                  border: 'none',
+                  color: 'white',
+                  cursor: (!submitting && !insufficientFunds) ? 'pointer' : 'not-allowed',
+                  opacity: (!submitting && !insufficientFunds) ? 1 : 0.6,
+                  boxShadow: (!submitting && !insufficientFunds) ? '0 4px 12px rgba(16, 185, 129, 0.3)' : 'none',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!submitting && !insufficientFunds) {
+                    e.currentTarget.style.background = '#059669';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!submitting && !insufficientFunds) {
+                    e.currentTarget.style.background = '#10b981';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                  }
+                }}
+              >
+                <i className="fas fa-check-circle" style={{ marginRight: '8px' }}></i>
+                {submitting ? 'Processing...' : 'Confirm & Purchase'}
+              </button>
+            </div>
           </div>
 
-          {insufficientFunds && (
-            <div className={styles.warning}>
-              <i className="fas fa-exclamation-circle"></i>
-              <span>Insufficient funds. Please add money to your wallet to continue.</span>
+          {/* Right Column: Advertising Containers */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Ad Container 1 */}
+            <div style={{
+              padding: '24px',
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%)',
+              border: '1px solid rgba(212, 175, 55, 0.18)',
+              borderRadius: '16px',
+              backdropFilter: 'blur(16px)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+              textAlign: 'center',
+              minHeight: '150px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <i className="fas fa-ad" style={{ fontSize: '32px', color: 'rgba(255,255,255,0.3)', marginBottom: '12px' }}></i>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>Advertisement Space 1</p>
             </div>
-          )}
 
-          {error && (
-            <div className={styles.errorBanner}>
-              <i className="fas fa-times-circle"></i>
-              {error}
+            {/* Ad Container 2 */}
+            <div style={{
+              padding: '24px',
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%)',
+              border: '1px solid rgba(212, 175, 55, 0.18)',
+              borderRadius: '16px',
+              backdropFilter: 'blur(16px)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+              textAlign: 'center',
+              minHeight: '150px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <i className="fas fa-ad" style={{ fontSize: '32px', color: 'rgba(255,255,255,0.3)', marginBottom: '12px' }}></i>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>Advertisement Space 2</p>
             </div>
-          )}
 
-          {/* Actions */}
-          <div className={styles.actions}>
-            <button onClick={goBack} className={styles.cancelBtn} disabled={submitting}>
-              <i className="fas fa-arrow-left"></i>
-              Go Back
-            </button>
-            <button 
-              onClick={confirmPurchase} 
-              className={styles.confirmBtn}
-              disabled={submitting || insufficientFunds}
-            >
-              <i className="fas fa-check-circle"></i>
-              {submitting ? 'Processing...' : 'Confirm & Purchase'}
-            </button>
+            {/* Ad Container 3 */}
+            <div style={{
+              padding: '24px',
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%)',
+              border: '1px solid rgba(212, 175, 55, 0.18)',
+              borderRadius: '16px',
+              backdropFilter: 'blur(16px)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+              textAlign: 'center',
+              minHeight: '150px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <i className="fas fa-ad" style={{ fontSize: '32px', color: 'rgba(255,255,255,0.3)', marginBottom: '12px' }}></i>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>Advertisement Space 3</p>
+            </div>
           </div>
         </div>
       </div>
@@ -299,7 +504,6 @@ export default function ConfirmLineupPage({ params }: { params: { competitionId:
         amount={competition?.entry_fee_pennies || 0}
         onClose={() => {
           setShowSuccessModal(false);
-          // Force a full page reload to refresh balance and entries
           window.location.href = '/entries';
         }}
       />

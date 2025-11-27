@@ -42,6 +42,7 @@ const BASE_RANGE = MAX_SALARY - MIN_SALARY; // £7,500
 /**
  * OWGR Factor Lookup Table
  * Maps world ranking to salary factor (0.0 to 1.0)
+ * Based on specifications for £60k budget with £12.5k max
  */
 const OWGR_FACTORS: { [key: number]: number } = {
   1: 1.0,    // £12,500

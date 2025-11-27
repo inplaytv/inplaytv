@@ -323,7 +323,6 @@ export default function ProfilePage() {
 
   return (
     <>
-      <Header />
       <div className="background-container"></div>
       
       <main className="profile-container">
