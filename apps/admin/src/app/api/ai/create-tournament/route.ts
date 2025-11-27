@@ -283,6 +283,14 @@ export async function POST(request: NextRequest) {
     // This would be done based on golfer rankings and competition type
     console.log('💰 Salary calculation would happen here');
     
+    // Step 7: Update tournament status based on registration dates
+    const { error: statusUpdateError } = await supabase.rpc('auto_update_tournament_statuses');
+    if (statusUpdateError) {
+      console.warn('⚠️ Failed to auto-update tournament status:', statusUpdateError);
+    } else {
+      console.log('✅ Tournament status auto-updated');
+    }
+    
     return NextResponse.json({
       success: true,
       tournament: {
