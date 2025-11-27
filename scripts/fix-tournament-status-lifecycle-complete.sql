@@ -15,6 +15,64 @@
 -- 5. completed → (end_date reached)
 -- ===================================================================
 
+-- STEP 1: Ensure registration date columns exist
+-- ===================================================================
+ALTER TABLE public.tournaments 
+ADD COLUMN IF NOT EXISTS registration_open_date TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS registration_close_date TIMESTAMPTZ;
+
+-- Update existing tournaments to have default registration dates if NULL
+-- Registration opens 30 days before start, closes 1 hour before start
+UPDATE public.tournaments
+SET 
+  registration_open_date = COALESCE(registration_open_date, start_date - INTERVAL '30 days'),
+  registration_close_date = COALESCE(registration_close_date, start_date - INTERVAL '1 hour')
+WHERE registration_open_date IS NULL OR registration_close_date IS NULL;
+
+-- Make registration dates NOT NULL (only if not already set)
+DO $$
+BEGIN
+  -- Check if column is already NOT NULL, if not, make it NOT NULL
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'tournaments' 
+    AND column_name = 'registration_open_date' 
+    AND is_nullable = 'YES'
+  ) THEN
+    ALTER TABLE public.tournaments ALTER COLUMN registration_open_date SET NOT NULL;
+  END IF;
+  
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'tournaments' 
+    AND column_name = 'registration_close_date' 
+    AND is_nullable = 'YES'
+  ) THEN
+    ALTER TABLE public.tournaments ALTER COLUMN registration_close_date SET NOT NULL;
+  END IF;
+END $$;
+
+-- Update status constraint to include registration states
+ALTER TABLE public.tournaments 
+DROP CONSTRAINT IF EXISTS tournaments_status_check;
+
+ALTER TABLE public.tournaments
+ADD CONSTRAINT tournaments_status_check 
+CHECK (status IN ('draft', 'upcoming', 'registration_open', 'registration_closed', 'live', 'live_inplay', 'completed', 'cancelled'));
+
+-- Create indexes for registration dates
+CREATE INDEX IF NOT EXISTS idx_tournaments_registration_open 
+ON public.tournaments(registration_open_date);
+
+CREATE INDEX IF NOT EXISTS idx_tournaments_registration_close 
+ON public.tournaments(registration_close_date);
+
+CREATE INDEX IF NOT EXISTS idx_tournaments_status_dates 
+ON public.tournaments(status, start_date, end_date);
+
+-- STEP 2: Update status detection and auto-update functions
+-- ===================================================================
+
 -- Drop and recreate detect_tournament_status_mismatches with registration support
 DROP FUNCTION IF EXISTS detect_tournament_status_mismatches();
 CREATE OR REPLACE FUNCTION detect_tournament_status_mismatches()
