@@ -52,13 +52,24 @@ BEGIN
   END IF;
 END $$;
 
+-- Update existing status values to match new convention before applying constraint
+-- Map old status values to new lifecycle states
+UPDATE public.tournaments
+SET status = CASE
+  WHEN status = 'reg_open' THEN 'registration_open'
+  WHEN status = 'reg_closed' THEN 'registration_closed'
+  WHEN status = 'live_inplay' THEN 'live'
+  ELSE status
+END
+WHERE status IN ('reg_open', 'reg_closed', 'live_inplay');
+
 -- Update status constraint to include registration states
 ALTER TABLE public.tournaments 
 DROP CONSTRAINT IF EXISTS tournaments_status_check;
 
 ALTER TABLE public.tournaments
 ADD CONSTRAINT tournaments_status_check 
-CHECK (status IN ('draft', 'upcoming', 'registration_open', 'registration_closed', 'live', 'live_inplay', 'completed', 'cancelled'));
+CHECK (status IN ('draft', 'upcoming', 'registration_open', 'registration_closed', 'live', 'completed', 'cancelled'));
 
 -- Create indexes for registration dates
 CREATE INDEX IF NOT EXISTS idx_tournaments_registration_open 
