@@ -111,6 +111,18 @@ function UpcomingTournamentCard({
   const isClosed = countdown === 'Registration Closed';
   
   const tour = extractTour(tournament.description, tournament.name);
+  
+  // Get display text for tournament status
+  const getStatusDisplay = () => {
+    switch (tournament.status) {
+      case 'registration_open': return 'REGISTRATION OPEN';
+      case 'registration_closed': return 'REGISTRATION CLOSED';
+      case 'live': return 'LIVE NOW';
+      case 'completed': return 'COMPLETED';
+      case 'upcoming': return 'UPCOMING TOURNAMENT';
+      default: return 'UPCOMING TOURNAMENT';
+    }
+  };
 
   // Log for debugging
   console.log('🎯 Tournament:', tournament.name);
@@ -123,7 +135,7 @@ function UpcomingTournamentCard({
       <div className={styles.upcomingBanner} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <i className="fas fa-star"></i>
-          <span>UPCOMING TOURNAMENT</span>
+          <span>{getStatusDisplay()}</span>
         </div>
         {tour && (
           <div className={`${styles.tourBadge} ${
