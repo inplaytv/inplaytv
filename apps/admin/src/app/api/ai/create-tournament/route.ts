@@ -131,6 +131,8 @@ export async function POST(request: NextRequest) {
         timezone: timezone,
         admin_fee_percent: 10.00,
         is_visible: true,
+        registration_open_date: regOpenDate.toISOString(),
+        registration_close_date: regCloseDate.toISOString(),
       })
       .select()
       .single();

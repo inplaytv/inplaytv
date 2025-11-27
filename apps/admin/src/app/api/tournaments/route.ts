@@ -54,6 +54,12 @@ export async function POST(request: NextRequest) {
     }
 
     const adminClient = createAdminClient();
+    
+    // Calculate registration dates: 10 days before start, 15 minutes before start
+    const startDateObj = new Date(start_date);
+    const registrationOpenDate = new Date(startDateObj.getTime() - 10 * 24 * 60 * 60 * 1000);
+    const registrationCloseDate = new Date(startDateObj.getTime() - 15 * 60 * 1000);
+    
     const { data, error } = await adminClient
       .from('tournaments')
       .insert({
@@ -67,6 +73,8 @@ export async function POST(request: NextRequest) {
         status: status || 'draft',
         external_id: external_id || null,
         image_url: image_url || null,
+        registration_open_date: registrationOpenDate.toISOString(),
+        registration_close_date: registrationCloseDate.toISOString(),
       })
       .select()
       .single();
