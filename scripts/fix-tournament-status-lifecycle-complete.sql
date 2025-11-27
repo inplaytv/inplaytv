@@ -83,7 +83,7 @@ ON public.tournaments(registration_close_date);
 CREATE INDEX IF NOT EXISTS idx_tournaments_status_dates 
 ON public.tournaments(status, start_date, end_date);
 
--- STEP 2: Update status detection and auto-update functions
+-- STEP 6: Update status detection and auto-update functions
 -- ===================================================================
 
 -- Drop and recreate detect_tournament_status_mismatches with registration support
