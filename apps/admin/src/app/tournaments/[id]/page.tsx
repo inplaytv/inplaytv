@@ -784,8 +784,8 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
               >
                 <option value="draft">Draft</option>
                 <option value="upcoming">Upcoming</option>
-                <option value="reg_open">Registration Open</option>
-                <option value="reg_closed">Registration Closed</option>
+                <option value="registration_open">Registration Open</option>
+                <option value="registration_closed">Registration Closed</option>
                 <option value="live">Live</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
