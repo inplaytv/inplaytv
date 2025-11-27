@@ -22,11 +22,11 @@ ADD COLUMN IF NOT EXISTS registration_open_date TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS registration_close_date TIMESTAMPTZ;
 
 -- Update existing tournaments to have default registration dates if NULL
--- Registration opens 30 days before start, closes 1 hour before start
+-- Registration opens 10 days before start, closes 15 minutes before start
 UPDATE public.tournaments
 SET 
-  registration_open_date = COALESCE(registration_open_date, start_date - INTERVAL '30 days'),
-  registration_close_date = COALESCE(registration_close_date, start_date - INTERVAL '1 hour')
+  registration_open_date = COALESCE(registration_open_date, start_date - INTERVAL '10 days'),
+  registration_close_date = COALESCE(registration_close_date, start_date - INTERVAL '15 minutes')
 WHERE registration_open_date IS NULL OR registration_close_date IS NULL;
 
 -- Make registration dates NOT NULL (only if not already set)
