@@ -53,15 +53,11 @@ BEGIN
 END $$;
 
 -- Update existing status values to match new convention before applying constraint
--- STRICT mapping - only known values
+-- Your database currently has: completed, live, reg_open
+-- Only reg_open needs to be converted
 UPDATE public.tournaments
-SET status = CASE
-  WHEN status = 'reg_open' THEN 'registration_open'
-  WHEN status = 'reg_closed' THEN 'registration_closed'
-  WHEN status = 'live_inplay' THEN 'live'
-  ELSE status  -- Keep other values as-is (draft, upcoming, live, completed, cancelled)
-END
-WHERE status IN ('reg_open', 'reg_closed', 'live_inplay');
+SET status = 'registration_open'
+WHERE status = 'reg_open';
 
 -- Drop existing constraint
 ALTER TABLE public.tournaments 
