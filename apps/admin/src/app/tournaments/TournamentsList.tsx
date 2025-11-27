@@ -46,14 +46,14 @@ function calculateTournamentStatus(tournament: Tournament): string {
   if (tournament.registration_close_date) {
     const regCloseDate = new Date(tournament.registration_close_date);
     if (now > regCloseDate) {
-      return 'reg_closed';
+      return 'registration_closed';
     }
   }
   
   if (tournament.registration_open_date) {
     const regOpenDate = new Date(tournament.registration_open_date);
     if (now >= regOpenDate) {
-      return 'reg_open';
+      return 'registration_open';
     }
   }
   
