@@ -29,6 +29,27 @@ SET
   registration_close_date = COALESCE(registration_close_date, start_date - INTERVAL '15 minutes')
 WHERE registration_open_date IS NULL OR registration_close_date IS NULL;
 
+-- STEP 2: Drop constraint FIRST (before status migration)
+-- ===================================================================
+ALTER TABLE public.tournaments 
+DROP CONSTRAINT IF EXISTS tournaments_status_check;
+
+-- STEP 3: Convert status values (now safe without constraint)
+-- ===================================================================
+-- Your database currently has: completed, live, reg_open
+-- Only reg_open needs to be converted
+UPDATE public.tournaments
+SET status = 'registration_open'
+WHERE status = 'reg_open';
+
+-- STEP 4: Now apply the new constraint (after status migration complete)
+-- ===================================================================
+ALTER TABLE public.tournaments
+ADD CONSTRAINT tournaments_status_check 
+CHECK (status IN ('draft', 'upcoming', 'registration_open', 'registration_closed', 'live', 'completed', 'cancelled'));
+
+-- STEP 5: Set NOT NULL and create indexes
+-- ===================================================================
 -- Make registration dates NOT NULL (only if not already set)
 DO $$
 BEGIN
@@ -51,22 +72,6 @@ BEGIN
     ALTER TABLE public.tournaments ALTER COLUMN registration_close_date SET NOT NULL;
   END IF;
 END $$;
-
--- Update existing status values to match new convention before applying constraint
--- Your database currently has: completed, live, reg_open
--- Only reg_open needs to be converted
-UPDATE public.tournaments
-SET status = 'registration_open'
-WHERE status = 'reg_open';
-
--- Drop existing constraint
-ALTER TABLE public.tournaments 
-DROP CONSTRAINT IF EXISTS tournaments_status_check;
-
--- Apply strict constraint with only valid lifecycle values
-ALTER TABLE public.tournaments
-ADD CONSTRAINT tournaments_status_check 
-CHECK (status IN ('draft', 'upcoming', 'registration_open', 'registration_closed', 'live', 'completed', 'cancelled'));
 
 -- Create indexes for registration dates
 CREATE INDEX IF NOT EXISTS idx_tournaments_registration_open 
