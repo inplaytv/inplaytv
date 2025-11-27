@@ -53,20 +53,21 @@ BEGIN
 END $$;
 
 -- Update existing status values to match new convention before applying constraint
--- Map old status values to new lifecycle states
+-- STRICT mapping - only known values
 UPDATE public.tournaments
 SET status = CASE
   WHEN status = 'reg_open' THEN 'registration_open'
   WHEN status = 'reg_closed' THEN 'registration_closed'
   WHEN status = 'live_inplay' THEN 'live'
-  ELSE status
+  ELSE status  -- Keep other values as-is (draft, upcoming, live, completed, cancelled)
 END
 WHERE status IN ('reg_open', 'reg_closed', 'live_inplay');
 
--- Update status constraint to include registration states
+-- Drop existing constraint
 ALTER TABLE public.tournaments 
 DROP CONSTRAINT IF EXISTS tournaments_status_check;
 
+-- Apply strict constraint with only valid lifecycle values
 ALTER TABLE public.tournaments
 ADD CONSTRAINT tournaments_status_check 
 CHECK (status IN ('draft', 'upcoming', 'registration_open', 'registration_closed', 'live', 'completed', 'cancelled'));
