@@ -23,44 +23,6 @@ interface TournamentsListProps {
 }
 
 // Calculate dynamic status based on tournament dates
-function calculateTournamentStatus(tournament: Tournament): string {
-  const now = new Date();
-  const startDate = new Date(tournament.start_date);
-  const endDate = new Date(tournament.end_date);
-  
-  // Set end date to end of day (23:59:59.999)
-  const tournamentEndOfDay = new Date(endDate);
-  tournamentEndOfDay.setHours(23, 59, 59, 999);
-  
-  // If tournament is in progress
-  if (now >= startDate && now <= tournamentEndOfDay) {
-    return 'live';
-  }
-  
-  // If tournament is completed
-  if (now > tournamentEndOfDay) {
-    return 'completed';
-  }
-  
-  // If registration dates are available, check registration status
-  if (tournament.registration_close_date) {
-    const regCloseDate = new Date(tournament.registration_close_date);
-    if (now > regCloseDate) {
-      return 'registration_closed';
-    }
-  }
-  
-  if (tournament.registration_open_date) {
-    const regOpenDate = new Date(tournament.registration_open_date);
-    if (now >= regOpenDate) {
-      return 'registration_open';
-    }
-  }
-  
-  // Default to upcoming
-  return 'upcoming';
-}
-
 function getStatusBadge(status: string) {
   const styles: Record<string, { bg: string; border: string; color: string; label: string }> = {
     draft: { bg: 'rgba(100, 100, 100, 0.2)', border: 'rgba(100, 100, 100, 0.4)', color: '#9ca3af', label: 'Draft' },
@@ -671,7 +633,6 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
             </tr>
           ) : (
             tournaments.map((tournament) => {
-              const calculatedStatus = calculateTournamentStatus(tournament);
               return (
               <tr key={tournament.id} style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', opacity: tournament.is_visible ? 1 : 0.5 }}>
                 <td style={{ padding: '0.875rem' }}>
@@ -698,7 +659,7 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
                   {tournament.location || '—'}
                 </td>
                 <td style={{ padding: '0.875rem' }}>
-                  {getStatusBadge(calculatedStatus)}
+                  {getStatusBadge(tournament.status)}
                 </td>
                 <td style={{ padding: '0.875rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem' }}>
                   {formatDate(tournament.start_date)}
