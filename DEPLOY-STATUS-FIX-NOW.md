@@ -2,6 +2,8 @@
 
 ## ⚡ Run This Now in Supabase Dashboard
 
+**IMPORTANT**: This script now includes column creation, so it works even if you haven't run the lifecycle migration yet!
+
 1. **Open Supabase Dashboard**
    - Go to your project
    - Click **SQL Editor** in left sidebar
