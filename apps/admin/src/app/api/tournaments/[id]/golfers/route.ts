@@ -17,10 +17,15 @@ export async function GET(
       .from('tournament_golfers')
       .select(`
         golfer_id,
+        status,
         golfers (
           id,
+          name,
           first_name,
           last_name,
+          country,
+          dg_id,
+          pga_tour_id,
           full_name,
           image_url,
           external_id
@@ -31,8 +36,20 @@ export async function GET(
 
     if (error) throw error;
 
-    // Flatten the structure
-    const golfers = (data || []).map(tg => tg.golfers).filter(Boolean);
+    // Flatten the structure and ensure name field exists
+    const golfers = (data || []).map(tg => {
+      const golfer = tg.golfers;
+      if (!golfer) return null;
+      
+      return {
+        id: golfer.id,
+        name: golfer.name || golfer.full_name || `${golfer.first_name} ${golfer.last_name}`.trim(),
+        country: golfer.country,
+        dg_id: golfer.dg_id,
+        pga_tour_id: golfer.pga_tour_id,
+        status: tg.status || 'confirmed',
+      };
+    }).filter(Boolean);
 
     return NextResponse.json(golfers);
   } catch (error: any) {

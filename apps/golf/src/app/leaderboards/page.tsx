@@ -178,7 +178,8 @@ export default function LeaderboardsPage() {
   async function loadCompetitions() {
     try {
       setLoading(true);
-      const response = await fetch('/api/tournaments');
+      // Add context parameter to only fetch live or recently completed tournaments
+      const response = await fetch('/api/tournaments?context=leaderboard');
       if (!response.ok) throw new Error('Failed to fetch tournaments');
       
       const data = await response.json();

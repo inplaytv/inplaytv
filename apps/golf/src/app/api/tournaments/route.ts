@@ -10,8 +10,12 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch all visible tournaments
-    const { data: tournaments, error } = await supabase
+    // Get query parameter for context-specific filtering
+    const searchParams = request.nextUrl.searchParams;
+    const context = searchParams.get('context'); // 'leaderboard' or default (all tournaments)
+
+    // Base query
+    let query = supabase
       .from('tournaments')
       .select(`
         id,
@@ -26,8 +30,21 @@ export async function GET(request: NextRequest) {
         created_at,
         featured_competition_id
       `)
-      .eq('is_visible', true)
-      .order('start_date', { ascending: true });
+      .eq('is_visible', true);
+
+    // For leaderboard context: Show only live tournaments or recently completed (within 4 days)
+    if (context === 'leaderboard') {
+      const fourDaysAgo = new Date();
+      fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+      const fourDaysAgoISO = fourDaysAgo.toISOString().split('T')[0];
+      
+      // Use OR filter: status is live OR (status is completed AND end_date is recent)
+      query = query.or(`status.eq.live,and(status.eq.completed,end_date.gte.${fourDaysAgoISO})`);
+    }
+
+    query = query.order('start_date', { ascending: true });
+
+    const { data: tournaments, error } = await query;
 
     if (error) {
       console.error('Error fetching tournaments:', error);

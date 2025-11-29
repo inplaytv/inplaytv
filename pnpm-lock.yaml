@@ -21,6 +21,9 @@ importers:
 
   apps/admin:
     dependencies:
+      '@inplaytv/scoring-service':
+        specifier: workspace:*
+        version: link:../../packages/scoring-service
       '@supabase/ssr':
         specifier: ^0.5.2
         version: 0.5.2(@supabase/supabase-js@2.75.0)
@@ -58,6 +61,9 @@ importers:
 
   apps/golf:
     dependencies:
+      '@inplaytv/scoring-service':
+        specifier: workspace:*
+        version: link:../../packages/scoring-service
       '@supabase/ssr':
         specifier: ^0.5.2
         version: 0.5.2(@supabase/supabase-js@2.75.0)
@@ -128,6 +134,15 @@ importers:
         version: 5.9.3
 
   packages/config: {}
+
+  packages/scoring-service:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.21
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
 
   packages/shared: {}
 

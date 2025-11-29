@@ -450,7 +450,26 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
         >
           ← Back to Tournaments
         </Link>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>{tournament.name}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>{tournament.name}</h1>
+          <Link
+            href={`/tournaments/${params.id}/manage-golfers`}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#10b981',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            ⛳ Manage Golfers
+          </Link>
+        </div>
       </div>
 
       {error && (

@@ -76,26 +76,29 @@ export async function GET(
   { params }: { params: { competitionId: string } }
 ) {
   try {
-    console.log('🏌️ Fetching golfers for competition:', params.competitionId);
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // First, let's check if there are ANY rows in competition_golfers for this competition
-    const { data: checkData, error: checkError } = await supabase
-      .from('competition_golfers')
-      .select('golfer_id, salary')
-      .eq('competition_id', params.competitionId);
+    // First, get the competition to find its assigned_golfer_group_id
+    const { data: competition, error: compError } = await supabase
+      .from('tournament_competitions')
+      .select('assigned_golfer_group_id, tournament_id')
+      .eq('id', params.competitionId)
+      .single();
 
-    console.log('🔍 competition_golfers rows:', checkData?.length || 0);
-    if (checkData && checkData.length > 0) {
-      console.log('📝 Sample row:', checkData[0]);
+    if (compError) {
+      console.error('Error fetching competition:', compError);
+      throw compError;
     }
 
-    // Get golfers assigned to this competition with their salaries
+    if (!competition?.assigned_golfer_group_id) {
+      return NextResponse.json([]);
+    }
+
+    // Get golfers from the assigned golfer group
     const { data, error } = await supabase
-      .from('competition_golfers')
+      .from('golfer_group_members')
       .select(`
         golfer_id,
-        salary,
         golfers (
           id,
           first_name,
@@ -105,31 +108,43 @@ export async function GET(
           image_url
         )
       `)
-      .eq('competition_id', params.competitionId)
-      .order('golfers(world_rank)', { ascending: true, nullsFirst: false })
-      .limit(500); // Support tournaments with up to 500 golfers
+      .eq('group_id', competition.assigned_golfer_group_id);
 
     if (error) {
-      console.error('❌ Error fetching competition golfers:', error);
+      console.error('Error fetching group golfers:', error);
       throw error;
     }
 
-    console.log('📊 Raw data from DB:', data?.length, 'rows');
+    // Try to get salaries from tournament_golfer_salaries if they exist
+    const golferIds = (data || []).map((m: any) => m.golfer_id).filter(Boolean);
+    
+    let salariesMap: { [key: string]: number } = {};
+    if (golferIds.length > 0 && competition.tournament_id) {
+      const { data: salariesData } = await supabase
+        .from('tournament_golfer_salaries')
+        .select('golfer_id, salary')
+        .eq('tournament_id', competition.tournament_id)
+        .in('golfer_id', golferIds);
+      
+      if (salariesData) {
+        salariesData.forEach((s: any) => {
+          salariesMap[s.golfer_id] = s.salary;
+        });
+      }
+    }
 
-    // Flatten the data structure and calculate salaries dynamically based on world ranking
+    // Flatten the data structure and calculate salaries
     const golfers = (data || [])
-      .filter((cg: any) => cg.golfers)
-      .map((cg: any) => {
-        const golfer = cg.golfers;
+      .filter((member: any) => member.golfers)
+      .map((member: any) => {
+        const golfer = member.golfers;
         
-        // Use DB salary if it exists, otherwise calculate based on world ranking
-        let finalSalary = MIN_SALARY; // Default minimum salary
+        // Priority: 1. DB salary, 2. Calculate from world rank, 3. Default
+        let finalSalary = MIN_SALARY;
         
-        if (cg.salary && cg.salary > 0) {
-          // Use the salary from database (set manually or by scripts)
-          finalSalary = cg.salary;
+        if (salariesMap[member.golfer_id] && salariesMap[member.golfer_id] > 0) {
+          finalSalary = salariesMap[member.golfer_id];
         } else if (golfer.world_rank && golfer.world_rank > 0) {
-          // Fall back to calculating from world ranking if no DB salary
           finalSalary = calculateSalary(golfer.world_rank);
         }
         
@@ -138,13 +153,12 @@ export async function GET(
           first_name: golfer.first_name,
           last_name: golfer.last_name,
           full_name: golfer.full_name,
-          world_ranking: golfer.world_rank, // Map world_rank to world_ranking for frontend
+          world_ranking: golfer.world_rank,
           image_url: golfer.image_url,
-          salary: finalSalary, // Use DB salary first, then calculated
+          salary: finalSalary,
         };
       });
 
-    console.log('✅ Returning', golfers.length, 'golfers (using DB salaries where available)');
     return NextResponse.json(golfers);
   } catch (error: any) {
     console.error('GET competition golfers error:', error);

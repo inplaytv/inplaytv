@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name: tournament.name,
         slug: tournament.slug,
+        tour: tournament.tour.toLowerCase(), // Store normalized tour identifier
         start_date: tournament.startDate,
         end_date: tournament.endDate,
         location: `${tournament.venue}, ${tournament.location}`,

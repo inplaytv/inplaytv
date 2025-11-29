@@ -41,31 +41,34 @@ export default function TeamBuilderPage() {
   const [showOptimalTeam, setShowOptimalTeam] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Mock data - will be replaced with API calls
+  // Fetch real golfers from API
   useEffect(() => {
-    const mockPlayers: Player[] = [
-      { id: '1', name: 'Scottie Scheffler', country: 'USA', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face', salary: 12500, worldRanking: 1, recentForm: 68.2, ownership: 78, avgScore: 69.1 },
-      { id: '2', name: 'Rory McIlroy', country: 'NIR', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face', salary: 11800, worldRanking: 2, recentForm: 69.1, ownership: 72, avgScore: 69.5 },
-      { id: '3', name: 'Jon Rahm', country: 'ESP', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop&crop=face', salary: 11200, worldRanking: 3, recentForm: 68.8, ownership: 65, avgScore: 69.3 },
-      { id: '4', name: 'Viktor Hovland', country: 'NOR', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop&crop=face', salary: 9200, worldRanking: 5, recentForm: 69.8, ownership: 54, avgScore: 70.1 },
-      { id: '5', name: 'Xander Schauffele', country: 'USA', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face', salary: 10400, worldRanking: 4, recentForm: 69.2, ownership: 61, avgScore: 69.7 },
-      { id: '6', name: 'Justin Thomas', country: 'USA', avatar: 'https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=100&h=100&fit=crop&crop=face', salary: 8900, worldRanking: 7, recentForm: 70.1, ownership: 48, avgScore: 70.3 },
-      { id: '7', name: 'Hideki Matsuyama', country: 'JPN', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop&crop=face', salary: 7600, worldRanking: 9, recentForm: 70.5, ownership: 42, avgScore: 70.6 },
-      { id: '8', name: 'Collin Morikawa', country: 'USA', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face', salary: 9500, worldRanking: 6, recentForm: 69.6, ownership: 56, avgScore: 69.9 },
-      { id: '9', name: 'Patrick Cantlay', country: 'USA', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face', salary: 8800, worldRanking: 8, recentForm: 70.2, ownership: 45, avgScore: 70.4 },
-      { id: '10', name: 'Bryson DeChambeau', country: 'USA', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop&crop=face', salary: 8500, worldRanking: 10, recentForm: 70.8, ownership: 38, avgScore: 70.9 },
-      { id: '11', name: 'Tony Finau', country: 'USA', avatar: 'https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=100&h=100&fit=crop&crop=face', salary: 7100, worldRanking: 12, recentForm: 71.1, ownership: 35, avgScore: 71.2 },
-      { id: '12', name: 'Justin Rose', country: 'ENG', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face', salary: 6800, worldRanking: 15, recentForm: 71.5, ownership: 28, avgScore: 71.6 },
-      { id: '13', name: 'Tommy Fleetwood', country: 'ENG', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop&crop=face', salary: 7300, worldRanking: 11, recentForm: 70.9, ownership: 32, avgScore: 71.0 },
-      { id: '14', name: 'Sam Burns', country: 'USA', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face', salary: 5700, worldRanking: 18, recentForm: 71.8, ownership: 24, avgScore: 71.9 },
-      { id: '15', name: 'Max Homa', country: 'USA', avatar: 'https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=100&h=100&fit=crop&crop=face', salary: 6900, worldRanking: 13, recentForm: 71.3, ownership: 30, avgScore: 71.4 },
-      { id: '16', name: 'Cameron Smith', country: 'AUS', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face', salary: 8700, worldRanking: 9, recentForm: 70.4, ownership: 41, avgScore: 70.5 },
-      { id: '17', name: 'Will Zalatoris', country: 'USA', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop&crop=face', salary: 7500, worldRanking: 14, recentForm: 71.0, ownership: 33, avgScore: 71.1 },
-      { id: '18', name: 'Corey Conners', country: 'CAN', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face', salary: 6600, worldRanking: 16, recentForm: 71.6, ownership: 27, avgScore: 71.7 },
-    ];
+    async function fetchGolfers() {
+      try {
+        setLoading(true);
+        // TODO: Get competition ID from URL or tournament context
+        // For now, this will need to be passed from the tournament/competition selection
+        const competitionId = 'your-competition-id'; // This needs to come from router or context
+        
+        const res = await fetch(`/api/competitions/${competitionId}/available-golfers`);
+        const data = await res.json();
+        
+        if (res.ok && data.golfers) {
+          setAvailablePlayers(data.golfers);
+        } else {
+          console.error('Failed to fetch golfers:', data.error);
+          // Fallback to empty or show error
+          setAvailablePlayers([]);
+        }
+      } catch (error) {
+        console.error('Error fetching golfers:', error);
+        setAvailablePlayers([]);
+      } finally {
+        setLoading(false);
+      }
+    }
     
-    setAvailablePlayers(mockPlayers);
-    setLoading(false);
+    fetchGolfers();
   }, []);
 
   // Calculate budget stats

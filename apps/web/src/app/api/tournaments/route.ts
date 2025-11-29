@@ -10,9 +10,15 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status') || 'active';
+    const statusParam = searchParams.get('status') || 'upcoming,live';
+
+    console.log('🔍 Tournaments API - Requested status:', statusParam);
+
+    // Handle multiple statuses separated by comma
+    const statuses = statusParam.split(',').map(s => s.trim());
 
     // Fetch tournaments with their competitions
+    // Only show tournaments that are marked as visible and have upcoming or live status
     const { data: tournaments, error } = await supabase
       .from('tournaments')
       .select(`
@@ -27,8 +33,11 @@ export async function GET(request: NextRequest) {
         image_url,
         created_at
       `)
-      .eq('status', status)
+      .in('status', statuses)
+      .eq('is_visible', true)
       .order('start_date', { ascending: true });
+
+    console.log('🔍 Tournaments API - Found', tournaments?.length || 0, 'tournaments with statuses:', statuses, 'and is_visible=true');
 
     if (error) {
       console.error('Error fetching tournaments:', error);
