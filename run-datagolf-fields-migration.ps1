@@ -1,4 +1,4 @@
-# Run Tournament DataGolf Fields Migration
+pnpm# Run Tournament DataGolf Fields Migration
 # Adds event_id and tour columns to tournaments table
 
 Write-Host "`n========================================" -ForegroundColor Cyan

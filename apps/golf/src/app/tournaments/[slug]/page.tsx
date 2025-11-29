@@ -338,7 +338,24 @@ export default function TournamentDetailPage() {
       cancelled: { label: 'Cancelled', icon: 'fa-times-circle', color: '#ef4444' },
     };
 
-    // Determine actual status based on current time and competition dates
+    // PRIORITY 1: Check database status field FIRST - it always takes precedence
+    if (competition.status === 'reg_open') {
+      return statusConfig.reg_open;
+    }
+    
+    if (competition.status === 'live') {
+      return statusConfig.live;
+    }
+    
+    if (competition.status === 'completed') {
+      return statusConfig.completed;
+    }
+    
+    if (competition.status === 'cancelled') {
+      return statusConfig.cancelled;
+    }
+
+    // PRIORITY 2: Only calculate from dates if status is not explicitly set
     const now = new Date();
     const regCloseAt = competition.reg_close_at ? new Date(competition.reg_close_at) : null;
     const regOpenAt = competition.reg_open_at ? new Date(competition.reg_open_at) : null;
@@ -362,14 +379,12 @@ export default function TournamentDetailPage() {
     }
     
     // Check if registration is closed but tournament hasn't started
-    if (regCloseAt && now >= regCloseAt && tournamentStart && now < tournamentStart && competition.status !== 'reg_open') {
+    if (regCloseAt && now >= regCloseAt && tournamentStart && now < tournamentStart) {
       return statusConfig.reg_closed;
     }
     
-    // Check if registration is open (check status field first, then fall back to dates)
-    const isRegOpenByStatus = competition.status === 'reg_open';
-    const isRegOpenByDate = regOpenAt && now >= regOpenAt && regCloseAt && now < regCloseAt;
-    if (isRegOpenByStatus || isRegOpenByDate) {
+    // Check if registration is open by dates
+    if (regOpenAt && now >= regOpenAt && regCloseAt && now < regCloseAt) {
       return statusConfig.reg_open;
     }
     
