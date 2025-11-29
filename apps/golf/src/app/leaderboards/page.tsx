@@ -119,11 +119,14 @@ export default function LeaderboardsPage() {
   async function loadTournamentLeaderboard(tournamentId: string) {
     try {
       setTournamentLoading(true);
-      console.log('🏌️ Loading tournament leaderboard for:', tournamentId);
+      console.log('🏌️ Loading tournament leaderboard for ID:', tournamentId);
       
       // Find tournament to get slug for live scores
       const tournament = tournaments.find((t: any) => t.id === tournamentId);
       const tournamentSlug = tournament?.slug || tournamentId;
+      
+      console.log('🏌️ Tournament found:', tournament?.name || 'Not found');
+      console.log('🏌️ Using slug:', tournamentSlug);
       
       // Fetch from DataGolf live scores
       console.log('🔴 LIVE: Fetching real-time scores from DataGolf...');
@@ -154,14 +157,16 @@ export default function LeaderboardsPage() {
       }
       
       // Use database for completed or upcoming tournaments
-      console.log('📊 Loading from database...');
+      console.log('📊 Loading from database with ID:', tournamentId);
       const response = await fetch(`/api/tournaments/${encodeURIComponent(tournamentId)}/leaderboard`);
       if (!response.ok) {
-        console.error('❌ Failed to fetch tournament leaderboard');
+        console.error('❌ Failed to fetch tournament leaderboard, status:', response.status);
         throw new Error('Failed to fetch tournament leaderboard');
       }
       const data = await response.json();
-      console.log('✅ Database leaderboard loaded:', data);
+      console.log('✅ Database leaderboard loaded for tournament:', data.tournament?.name);
+      console.log('✅ Golfer count:', data.leaderboard?.length);
+      console.log('✅ First golfer:', data.leaderboard?.[0]?.name);
       
       setTournamentLeaderboard({
         ...data,
@@ -179,13 +184,22 @@ export default function LeaderboardsPage() {
     try {
       setLoading(true);
       // Add context parameter to only fetch live or recently completed tournaments
-      const response = await fetch('/api/tournaments?context=leaderboard');
+      // Add cache buster to force fresh data
+      const cacheBuster = new Date().getTime();
+      const response = await fetch(`/api/tournaments?context=leaderboard&_=${cacheBuster}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch tournaments');
       
       const data = await response.json();
       // API returns { tournaments: [...] }, not just an array
       const tournaments = data.tournaments || [];
       console.log('📊 Tournaments loaded:', tournaments.length);
+      console.log('📊 Tournament names:', tournaments.map((t: any) => t.name));
       
       // Extract all competitions from all tournaments
       const allCompetitions: any[] = [];
@@ -207,6 +221,9 @@ export default function LeaderboardsPage() {
 
       console.log('🎯 Total competitions found:', allCompetitions.length);
       setCompetitions(allCompetitions);
+      
+      // Clear old tournament leaderboard data to prevent showing stale data
+      setTournamentLeaderboard(null);
       
       // Store tournaments for Tournament tab dropdown
       console.log('🏆 Setting tournaments array:', tournaments.length, 'tournaments');
