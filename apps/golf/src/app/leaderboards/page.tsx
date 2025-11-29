@@ -1237,17 +1237,26 @@ export default function LeaderboardsPage() {
                   // Determine current round for this golfer
                   let currentRound: string | number = tournamentCurrentRound;
                   
-                  // If golfer has finished (thru === 'F'), they're on the current round but done
-                  if (golfer.thru === 'F') {
-                    // Check if they've completed all rounds
-                    const roundsCompleted = golfer.rounds?.length || 0;
-                    if (roundsCompleted >= 4) {
-                      currentRound = 'F'; // Tournament finished
-                    } else {
-                      currentRound = tournamentCurrentRound; // Just finished this round
-                    }
+                  // Check how many rounds the golfer has actually completed
+                  const roundsCompleted = golfer.rounds?.length || 0;
+                  
+                  // If golfer thru shows they finished the round but we don't have all scores yet
+                  if (golfer.thru === 'F' || golfer.thru === '18' || golfer.thru === 18) {
+                    // They finished a round - show the round they just completed
+                    currentRound = roundsCompleted;
                   } else if (golfer.thru === 'CUT') {
                     currentRound = 'CUT';
+                  } else if (typeof golfer.thru === 'number' && golfer.thru > 0) {
+                    // They're currently playing - show which round based on rounds completed
+                    currentRound = roundsCompleted + 1;
+                  } else {
+                    // Default to tournament round, but cap at rounds completed + 1
+                    currentRound = Math.min(tournamentCurrentRound, roundsCompleted + 1);
+                  }
+                  
+                  // If all 4 rounds are completed, show F
+                  if (roundsCompleted >= 4) {
+                    currentRound = 'F';
                   }
 
                   return (
