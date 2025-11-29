@@ -34,15 +34,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log('🔍 API: Total tournaments fetched:', tournaments?.length);
-    console.log('🔍 API: Tournament names:', tournaments?.map(t => t.name));
-    console.log('🔍 API: Filter was: is_visible = true');
-
-    console.log(`🏌️ Found ${tournaments?.length || 0} tournaments in database`);
-    if (tournaments && tournaments.length > 0) {
-      console.log('Tournament statuses:', tournaments.map(t => `${t.name}: ${t.status}`));
-    }
-
     // For each tournament, fetch its competitions and featured competition details
     const tournamentsWithCompetitions = await Promise.all(
       (tournaments || []).map(async (tournament) => {
@@ -75,26 +66,23 @@ export async function GET(request: NextRequest) {
           console.error(`Competition fetch error for tournament ${tournament.name}:`, compError);
         }
 
-        console.log(`Tournament: ${tournament.name} (${tournament.status})`);
-        console.log(`  Competitions found: ${competitions?.length || 0}`);
-        if (competitions && competitions.length > 0) {
-          competitions.forEach(c => {
-            const types: any = c.competition_types;
-            const typeName = Array.isArray(types) ? types[0]?.name : types?.name;
-            console.log(`  - ${typeName}: status=${c.status}, fee=${c.entry_fee_pennies}p`);
-          });
-        }
-
         // Auto-select featured competition based on current round
-        // Priority: Full Course (before R1) → THE WEEKENDER (R3-4 available) → Final Strike (R4 only)
+        // Logic: Show competition for rounds that are still playable
         let featuredCompetition = null;
         
-        if (competitions && competitions.length > 0 && tournament.start_date) {
+        if (competitions && competitions.length > 0 && tournament.start_date && tournament.end_date) {
           const now = new Date();
           const tournamentStart = new Date(tournament.start_date);
+          const tournamentEnd = new Date(tournament.end_date);
           
-          // Calculate days since tournament started
+          // Calculate which day of the tournament we're on (1-4)
+          // For a 4-day tournament: Day 1 = Round 1, Day 2 = Round 2, Day 3 = Round 3, Day 4 = Round 4
           const daysSinceStart = Math.floor((now.getTime() - tournamentStart.getTime()) / (1000 * 60 * 60 * 24));
+          const tournamentDayNumber = daysSinceStart + 1; // Day 1, 2, 3, or 4
+          
+          // Calculate rounds remaining (what rounds can still be played)
+          // If we're on Day 3 (Round 3 playing/just finished), only Round 4 remains
+          const roundsRemaining = Math.max(0, 4 - tournamentDayNumber);
           
           // Helper to safely get competition type name
           const getCompName = (comp: any) => {
@@ -104,22 +92,28 @@ export async function GET(request: NextRequest) {
           
           // Find competitions by name
           const fullCourse = competitions.find(c => getCompName(c) === 'Full Course');
+          const firstStrike = competitions.find(c => getCompName(c) === 'First To Strike');
+          const beatTheCut = competitions.find(c => getCompName(c) === 'Beat The Cut');
           const weekender = competitions.find(c => getCompName(c) === 'THE WEEKENDER');
           const finalStrike = competitions.find(c => getCompName(c) === 'Final Strike');
           
-          // Auto-rotation logic based on which rounds are still available
-          if (daysSinceStart < 0) {
-            // Before tournament starts: Show Full Course
+          // Select based on rounds remaining:
+          // 3+ rounds left → Full Course (all 4 rounds)
+          // 2 rounds left → THE WEEKENDER (last 2 rounds)
+          // 1 round left → Final Strike (last round only)
+          // 0 rounds left → Full Course (tournament complete, show results)
+          if (roundsRemaining >= 3) {
+            // 3-4 rounds remaining: Show Full Course
             featuredCompetition = fullCourse;
-          } else if (daysSinceStart >= 0 && daysSinceStart < 2) {
-            // Day 0-1 (Rounds 1-2): Show Full Course
-            featuredCompetition = fullCourse;
-          } else if (daysSinceStart >= 2 && daysSinceStart < 3) {
-            // Day 2 (Round 3): Show THE WEEKENDER (Rounds 3-4)
-            featuredCompetition = weekender || finalStrike || fullCourse;
-          } else if (daysSinceStart >= 3) {
-            // Day 3+ (Round 4): Show Final Strike
+          } else if (roundsRemaining === 2) {
+            // 2 rounds remaining: Show THE WEEKENDER
+            featuredCompetition = weekender || fullCourse;
+          } else if (roundsRemaining === 1) {
+            // 1 round remaining: Show Final Strike
             featuredCompetition = finalStrike || fullCourse;
+          } else {
+            // Tournament finished: Show Full Course for results
+            featuredCompetition = fullCourse;
           }
           
           // Fallback to full course if no match

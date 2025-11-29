@@ -55,9 +55,9 @@ export async function POST(request: NextRequest) {
 
     const adminClient = createAdminClient();
     
-    // Calculate registration dates: 10 days before start, 15 minutes before start
+    // Calculate registration dates: 6 days before start, 15 minutes before start
     const startDateObj = new Date(start_date);
-    const registrationOpenDate = new Date(startDateObj.getTime() - 10 * 24 * 60 * 60 * 1000);
+    const registrationOpenDate = new Date(startDateObj.getTime() - 6 * 24 * 60 * 60 * 1000);
     const registrationCloseDate = new Date(startDateObj.getTime() - 15 * 60 * 1000);
     
     const { data, error } = await adminClient

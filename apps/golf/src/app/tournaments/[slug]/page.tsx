@@ -105,7 +105,8 @@ function CompetitionCard({
   formatDateRange
 }: any) {
   const countdown = useCountdown(competition.reg_close_at);
-  const isClosed = countdown === 'Registration Closed';
+  // Override countdown if status is reg_open (handles cases where date passed but status still open)
+  const isClosed = competition.status === 'reg_open' ? false : countdown === 'Registration Closed';
   
   const tour = extractTour(tournament.description, tournament.name);
 
@@ -252,7 +253,27 @@ export default function TournamentDetailPage() {
       if (!res.ok) throw new Error('Tournament not found');
       
       const data = await res.json();
-      setTournament(data);
+      
+      // Sort competitions: Registration Open first, then by status priority
+      const sortedCompetitions = [...data.competitions].sort((a, b) => {
+        // Priority order: reg_open > live > reg_closed > upcoming > completed
+        const statusPriority: Record<string, number> = {
+          'reg_open': 1,
+          'live': 2,
+          'reg_closed': 3,
+          'upcoming': 4,
+          'completed': 5,
+          'cancelled': 6,
+          'draft': 7
+        };
+        
+        const aPriority = statusPriority[a.status] || 99;
+        const bPriority = statusPriority[b.status] || 99;
+        
+        return aPriority - bPriority;
+      });
+      
+      setTournament({ ...data, competitions: sortedCompetitions });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -327,12 +348,14 @@ export default function TournamentDetailPage() {
     }
     
     // Check if registration is closed but tournament hasn't started
-    if (regCloseAt && now >= regCloseAt && tournamentStart && now < tournamentStart) {
+    if (regCloseAt && now >= regCloseAt && tournamentStart && now < tournamentStart && competition.status !== 'reg_open') {
       return statusConfig.reg_closed;
     }
     
-    // Check if registration is open
-    if (regOpenAt && now >= regOpenAt && regCloseAt && now < regCloseAt) {
+    // Check if registration is open (check status field first, then fall back to dates)
+    const isRegOpenByStatus = competition.status === 'reg_open';
+    const isRegOpenByDate = regOpenAt && now >= regOpenAt && regCloseAt && now < regCloseAt;
+    if (isRegOpenByStatus || isRegOpenByDate) {
       return statusConfig.reg_open;
     }
     
@@ -434,10 +457,8 @@ export default function TournamentDetailPage() {
               const firstPlacePrize = isWinnerTakesAll ? prizePool : prizePool * 0.25;
               const statusBadge = getStatusBadge(competition, tournament);
               
-              // Check if registration is actually open based on time
-              const now = new Date();
-              const regCloseAt = competition.reg_close_at ? new Date(competition.reg_close_at) : null;
-              const canRegister = statusBadge.label === 'Registration Open' && regCloseAt && now < regCloseAt;
+              // Check if registration is actually open (based on status badge which already handles status field + dates)
+              const canRegister = statusBadge.label === 'Registration Open';
 
               return (
                 <CompetitionCard

@@ -29,9 +29,9 @@ function generateSlug(name: string): string {
 function calculateRegDates(startDate: string): { regOpenAt: string; regCloseAt: string } {
   const start = new Date(startDate);
   
-  // Registration opens 30 days before tournament
+  // Registration opens 6 days before tournament
   const regOpen = new Date(start);
-  regOpen.setDate(regOpen.getDate() - 30);
+  regOpen.setDate(regOpen.getDate() - 6);
   
   // Registration closes at 6:30 AM on tournament day (most tournaments start ~7 AM)
   const regClose = new Date(start);

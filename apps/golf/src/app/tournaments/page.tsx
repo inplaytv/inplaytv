@@ -124,11 +124,6 @@ function UpcomingTournamentCard({
     }
   };
 
-  // Log for debugging
-  console.log('🎯 Tournament:', tournament.name);
-  console.log('📅 reg_close_at:', regCloseAt);
-  console.log('⏱️ Countdown:', countdown);
-
   return (
     <div className={`${styles.upcomingCard} ${styles.glass}`} style={{ position: 'relative' }}>
       {/* Status Banner at Top with Tour Badge inline */}
@@ -277,14 +272,10 @@ export default function TournamentsPage() {
       
       const data = await res.json();
       
-      console.log('Fetched tournaments:', data);
-      
       if (data && typeof data === 'object') {
         if (Array.isArray(data.tournaments)) {
-          console.log('Setting tournaments from data.tournaments:', data.tournaments.length);
           setTournaments(data.tournaments);
         } else if (Array.isArray(data)) {
-          console.log('Setting tournaments from data:', data.length);
           setTournaments(data);
         } else {
           setError('Invalid data format received from server');
@@ -422,26 +413,27 @@ export default function TournamentsPage() {
         ) : (
           <>
             {(() => {
-              // Filter out tournaments that have already started or are completed
+              // Filter tournaments that have open registration OR live competitions
               const now = new Date();
               const upcomingTournaments = tournaments.filter(tournament => {
-                const tournamentStart = tournament.start_date ? new Date(tournament.start_date) : null;
                 const tournamentEnd = tournament.end_date ? new Date(tournament.end_date) : null;
                 const tournamentEndOfDay = tournamentEnd ? new Date(tournamentEnd) : null;
                 if (tournamentEndOfDay) {
                   tournamentEndOfDay.setHours(23, 59, 59, 999);
                 }
                 
-                // Show only if tournament hasn't started yet OR if all competitions have open registration
+                // Show if tournament has open registration by EITHER status OR future date
                 const hasOpenRegistration = tournament.competitions.some(comp => {
                   const regCloseAt = comp.reg_close_at ? new Date(comp.reg_close_at) : null;
-                  return regCloseAt && now < regCloseAt;
+                  // Show if status is reg_open OR registration close date is in the future
+                  return comp.status === 'reg_open' || (regCloseAt && now < regCloseAt);
                 });
                 
-                // Hide if tournament is live or completed
-                const isLiveOrCompleted = tournamentStart && tournamentEndOfDay && now >= tournamentStart;
+                // Hide only if tournament is fully completed (past end date)
+                const isCompleted = tournamentEndOfDay && now > tournamentEndOfDay;
                 
-                return !isLiveOrCompleted && hasOpenRegistration;
+                // Show tournaments that are either upcoming OR live with open registration
+                return !isCompleted && hasOpenRegistration;
               });
               
               if (upcomingTournaments.length === 0) {
