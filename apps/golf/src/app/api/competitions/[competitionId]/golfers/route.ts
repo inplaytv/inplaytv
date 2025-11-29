@@ -105,10 +105,17 @@ export async function GET(
           last_name,
           full_name,
           world_rank,
+          salary_pennies,
           image_url
         )
       `)
       .eq('group_id', competition.assigned_golfer_group_id);
+    
+    console.log('📊 Sample golfer data:', data?.slice(0, 3).map((m: any) => ({
+      name: m.golfers?.full_name,
+      world_rank: m.golfers?.world_rank,
+      salary_pennies: m.golfers?.salary_pennies
+    })));
 
     if (error) {
       console.error('Error fetching group golfers:', error);
@@ -139,17 +146,27 @@ export async function GET(
       .map((member: any) => {
         const golfer = member.golfers;
         
-        // Priority: 1. tournament_golfer_salaries table, 2. Calculate from world_rank
+        // Priority: 1. tournament_golfer_salaries, 2. world_rank calculation, 3. salary_pennies from DB
         let finalSalary = MIN_SALARY;
+        let salarySource = 'default';
         
         if (salariesMap[member.golfer_id] && salariesMap[member.golfer_id] > 0) {
           // Use tournament-specific salary from tournament_golfer_salaries table
           finalSalary = salariesMap[member.golfer_id];
+          salarySource = 'tournament_table';
         } else if (golfer.world_rank && golfer.world_rank > 0) {
           // Calculate from world ranking
           finalSalary = calculateSalary(golfer.world_rank);
+          salarySource = `world_rank_${golfer.world_rank}`;
+        } else if (golfer.salary_pennies && golfer.salary_pennies > 0) {
+          // Use salary from database (likely synced from DataGolf)
+          finalSalary = Math.round(golfer.salary_pennies / 100);
+          salarySource = 'salary_pennies';
         }
-        // If no world_rank, fallback to MIN_SALARY (£5000)
+        
+        if (finalSalary === MIN_SALARY) {
+          console.log(`⚠️  ${golfer.full_name}: Using default £${MIN_SALARY} (rank: ${golfer.world_rank || 'none'}, pennies: ${golfer.salary_pennies || 'none'})`);
+        }
         
         return {
           id: golfer.id,
