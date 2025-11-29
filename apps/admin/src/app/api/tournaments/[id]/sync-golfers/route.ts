@@ -58,21 +58,63 @@ export async function POST(
     );
 
     if (!dgRes.ok) {
+      console.error(`❌ DataGolf API error: ${dgRes.status} ${dgRes.statusText}`);
       throw new Error(`DataGolf API returned ${dgRes.status}`);
     }
 
-    const fieldData = await dgRes.json();
+    let fieldData = await dgRes.json();
+    console.log(`📡 DataGolf field-updates response:`, {
+      event: fieldData.event_name,
+      fieldCount: fieldData.field?.length || 0,
+      tour: tourParam,
+    });
+
+    // If field-updates returns no data, try live-tournament-stats as fallback
+    if (!fieldData.field || fieldData.field.length === 0) {
+      console.log('⚠️ No field data from field-updates, trying live-tournament-stats...');
+      
+      const liveStatsRes = await fetch(
+        `https://feeds.datagolf.com/preds/live-tournament-stats?tour=${tourParam}&file_format=json&key=${apiKey}`
+      );
+      
+      if (liveStatsRes.ok) {
+        const liveStatsData = await liveStatsRes.json();
+        console.log(`📡 DataGolf live-tournament-stats response:`, {
+          event: liveStatsData.event_name,
+          playerCount: liveStatsData.live_stats?.length || 0,
+        });
+        
+        if (liveStatsData.live_stats && liveStatsData.live_stats.length > 0) {
+          // Convert live stats format to field format
+          fieldData = {
+            event_name: liveStatsData.event_name,
+            course_name: liveStatsData.course_name,
+            field: liveStatsData.live_stats.map((player: any) => ({
+              dg_id: player.dg_id,
+              player_name: player.player_name,
+              country: player.country || 'USA', // Default if not provided
+            })),
+          };
+          console.log(`✅ Converted ${fieldData.field.length} players from live stats`);
+        }
+      }
+    }
 
     if (!fieldData.field || fieldData.field.length === 0) {
+      console.warn('⚠️ No field data from any DataGolf endpoint:', fieldData);
       return NextResponse.json({
         success: false,
         error: 'No field data available from DataGolf',
-        message: 'Tournament field may not be announced yet or tournament is not current',
+        message: 'Tournament field may not be announced yet or tournament is not current. Tried field-updates and live-tournament-stats endpoints.',
+        dataGolfResponse: fieldData,
       });
     }
 
     console.log(`✅ Found ${fieldData.field.length} golfers from DataGolf`);
     console.log(`📋 Event: ${fieldData.event_name}`);
+    console.log(`🔍 First player sample:`, fieldData.field[0]);
+    console.log(`🔍 DataGolf response keys:`, Object.keys(fieldData));
+    console.log(`🔍 Field is array:`, Array.isArray(fieldData.field));
 
     // Extract tee times from field data (find earliest tee time for each round)
     const roundTeeTimes = {
@@ -150,20 +192,30 @@ export async function POST(
       let golferId;
 
       if (!existingGolfer) {
-        // Create new golfer
-        const { data: newGolfer } = await supabase
+        // Create new golfer - split name into first and last
+        const nameParts = player.player_name.split(' ');
+        const firstName = nameParts[0] || player.player_name;
+        const lastName = nameParts.slice(1).join(' ') || '-';
+        
+        const { data: newGolfer, error: insertError } = await supabase
           .from('golfers')
           .insert({
             dg_id: player.dg_id,
-            name: player.player_name,
+            name: player.player_name, // REQUIRED: Full name
+            first_name: firstName,
+            last_name: lastName,
             country: player.country,
             pga_tour_id: player.pga_number?.toString(),
           })
           .select('id')
           .single();
 
-        golferId = newGolfer?.id;
-        created++;
+        if (insertError) {
+          console.error(`⚠️ Error creating golfer ${player.player_name}:`, insertError);
+        } else {
+          golferId = newGolfer?.id;
+          created++;
+        }
       } else {
         golferId = existingGolfer.id;
         existing++;
@@ -180,28 +232,146 @@ export async function POST(
 
     console.log(`📊 Golfers processed: ${created} new, ${existing} existing`);
 
-    // Insert tournament_golfers relationships
+    // Insert tournament_golfers relationships (use upsert to handle duplicates)
     let golfersAdded = 0;
     if (golfersToInsert.length > 0) {
+      // Use upsert to insert new and update existing (onConflict handles duplicates)
       const { data: addedGolfers, error: golfersError } = await supabase
         .from('tournament_golfers')
-        .insert(golfersToInsert)
+        .upsert(golfersToInsert, {
+          onConflict: 'tournament_id,golfer_id',
+          ignoreDuplicates: false, // Update if exists
+        })
         .select();
 
       if (golfersError) {
-        // Check if error is duplicate entry (already exists)
-        if (golfersError.code === '23505') {
-          console.log('⚠️ Some golfers already linked to this tournament');
-          // Count how many were actually added
-          golfersAdded = golfersToInsert.length;
-        } else {
-          throw golfersError;
-        }
+        console.error('❌ Error upserting golfers:', golfersError);
+        throw golfersError;
       } else if (addedGolfers) {
         golfersAdded = addedGolfers.length;
+        console.log(`✅ Upserted ${golfersAdded} golfers to tournament (new + existing)`);
+      }
+    }
+
+    // ========================================================================
+    // STEP 3: AUTO-CREATE GOLFER GROUP AND LINK TO COMPETITIONS
+    // ========================================================================
+    console.log('👥 Creating/updating golfer group...');
+    
+    const groupName = `${tournament.name} - Field`;
+    const groupSlug = `${tournament.slug}-field`;
+
+    // Check if group exists
+    const { data: existingGroup } = await supabase
+      .from('golfer_groups')
+      .select('id')
+      .eq('slug', groupSlug)
+      .single();
+
+    let groupId;
+
+    if (existingGroup) {
+      // Update existing group
+      groupId = existingGroup.id;
+      console.log(`♻️ Using existing group: ${groupId}`);
+      
+      // Clear existing golfers from group
+      await supabase
+        .from('golfer_group_members')
+        .delete()
+        .eq('group_id', groupId);
+      
+      console.log('🗑️ Cleared old group members');
+    } else {
+      // Create new group
+      const { data: newGroup, error: groupError } = await supabase
+        .from('golfer_groups')
+        .insert({
+          name: groupName,
+          slug: groupSlug,
+          description: `Tournament field for ${tournament.name}`,
+        })
+        .select('id')
+        .single();
+
+      if (groupError) {
+        console.error('⚠️ Error creating group:', groupError);
+      } else {
+        groupId = newGroup.id;
+        console.log(`✅ Created new group: ${groupId}`);
+      }
+    }
+
+    // Add all tournament golfers to the group
+    if (groupId) {
+      const { data: tournamentGolfers } = await supabase
+        .from('tournament_golfers')
+        .select('golfer_id')
+        .eq('tournament_id', tournamentId);
+
+      if (tournamentGolfers && tournamentGolfers.length > 0) {
+        const groupMembers = tournamentGolfers.map(tg => ({
+          group_id: groupId,
+          golfer_id: tg.golfer_id,
+        }));
+
+        const { error: membersError } = await supabase
+          .from('golfer_group_members')
+          .insert(groupMembers);
+
+        if (membersError) {
+          console.error('⚠️ Error adding golfers to group:', membersError);
+        } else {
+          console.log(`✅ Added ${groupMembers.length} golfers to group`);
+        }
       }
 
-      console.log(`✅ Added ${golfersAdded} golfers to tournament`);
+      // Link group to ALL competitions for this tournament
+      console.log('🔗 Linking group to tournament competitions...');
+      
+      const { data: competitions } = await supabase
+        .from('tournament_competitions')
+        .select('id')
+        .eq('tournament_id', tournamentId);
+
+      let competitionsLinked = 0;
+
+      if (competitions && competitions.length > 0) {
+        // Update each competition with assigned_golfer_group_id
+        const { error: linkError } = await supabase
+          .from('tournament_competitions')
+          .update({ assigned_golfer_group_id: groupId })
+          .in('id', competitions.map(c => c.id));
+
+        if (linkError) {
+          console.error('⚠️ Error linking group to competitions:', linkError);
+        } else {
+          competitionsLinked = competitions.length;
+          console.log(`✅ Linked group to ${competitionsLinked} competitions`);
+        }
+      } else {
+        console.log('⚠️ No competitions found for this tournament');
+      }
+
+      return NextResponse.json({
+        success: true,
+        tournament: {
+          id: tournament.id,
+          name: tournament.name,
+          slug: tournament.slug,
+        },
+        dataGolfEvent: fieldData.event_name,
+        golfersAdded,
+        golfersCreated: created,
+        golfersExisting: existing,
+        replaced: replace || false,
+        golferGroup: {
+          id: groupId,
+          name: groupName,
+          slug: groupSlug,
+        },
+        competitionsLinked,
+      });
     }
 
     return NextResponse.json({
@@ -216,6 +386,8 @@ export async function POST(
       golfersCreated: created,
       golfersExisting: existing,
       replaced: replace || false,
+      golferGroup: null,
+      competitionsLinked: 0,
     });
 
   } catch (error) {
