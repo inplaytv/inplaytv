@@ -105,7 +105,9 @@ function CompetitionCard({
   formatDateRange
 }: any) {
   const countdown = useCountdown(competition.reg_close_at);
-  // Override countdown if status is reg_open (handles cases where date passed but status still open)
+  
+  // Override countdown display based on competition status from database
+  // If status is reg_open, show countdown even if date has passed
   const isClosed = competition.status === 'reg_open' ? false : countdown === 'Registration Closed';
   
   const tour = extractTour(tournament.description, tournament.name);
@@ -204,7 +206,7 @@ function CompetitionCard({
               <div className={styles.countdownLabel}>{isClosed ? 'Registration' : 'Registration Closes'}</div>
               <div className={styles.countdownTimer} key={countdown} style={{
                 color: isClosed ? '#ef4444' : '#10b981'
-              }}>{countdown}</div>
+              }}>{isClosed && countdown === 'Registration Closed' ? 'Closed' : countdown}</div>
             </div>
           </div>
         )}
