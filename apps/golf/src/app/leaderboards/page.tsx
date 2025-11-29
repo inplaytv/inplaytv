@@ -93,7 +93,14 @@ export default function LeaderboardsPage() {
 
   // Load tournament leaderboard when tournament changes and set up auto-refresh
   useEffect(() => {
-    if (!selectedTournament) return;
+    if (!selectedTournament) {
+      // Clear tournament leaderboard when no tournament selected
+      setTournamentLeaderboard(null);
+      return;
+    }
+    
+    // Clear existing data immediately to prevent showing stale data
+    setTournamentLeaderboard(null);
     
     loadTournamentLeaderboard(selectedTournament);
     
@@ -616,6 +623,19 @@ export default function LeaderboardsPage() {
   // Determine actual tournament status based on dates and database status
   const getTournamentStatus = (tournament: any) => {
     if (!tournament) return { status: 'upcoming', display: '📅 Upcoming', color: '#9ca3af' };
+    
+    // If tournament has explicit status field from database, use it
+    if (tournament.status) {
+      if (tournament.status === 'live' || tournament.status === 'in_progress') {
+        return { status: 'in-progress', display: '🔴 Live', color: '#ef4444' };
+      }
+      if (tournament.status === 'completed') {
+        return { status: 'completed', display: '✅ Completed', color: '#10b981' };
+      }
+      if (tournament.status === 'registration_open' || tournament.status === 'reg_open') {
+        return { status: 'reg_open', display: '📝 Registration Open', color: '#667eea' };
+      }
+    }
     
     const now = new Date();
     const startDate = tournament.startDate ? new Date(tournament.startDate) : null;
