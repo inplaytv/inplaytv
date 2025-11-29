@@ -19,6 +19,8 @@ interface Competition {
   entry_fee_pennies: number;
   entrants_cap: number;
   admin_fee_percent: number;
+  guaranteed_prize_pool_pennies?: number;
+  first_place_prize_pennies?: number;
   reg_open_at: string | null;
   reg_close_at: string | null;
   start_at: string | null;
@@ -400,6 +402,11 @@ export default function TournamentDetailPage() {
   };
 
   const calculatePrizePool = (comp: Competition) => {
+    // Use guaranteed prize pool from database if available, otherwise calculate from max entries
+    if (comp.guaranteed_prize_pool_pennies && comp.guaranteed_prize_pool_pennies > 0) {
+      return comp.guaranteed_prize_pool_pennies / 100; // Convert pennies to pounds
+    }
+    // Fallback: calculate based on max entries
     return (comp.entry_fee_pennies / 100) * comp.entrants_cap * (1 - comp.admin_fee_percent / 100);
   };
 
@@ -489,7 +496,10 @@ export default function TournamentDetailPage() {
             {tournament.competitions.map((competition) => {
               const prizePool = calculatePrizePool(competition);
               const isWinnerTakesAll = competition.entrants_cap <= 2;
-              const firstPlacePrize = isWinnerTakesAll ? prizePool : prizePool * 0.25;
+              // Use first_place_prize_pennies from database if available
+              const firstPlacePrize = (competition.first_place_prize_pennies && competition.first_place_prize_pennies > 0)
+                ? competition.first_place_prize_pennies / 100
+                : (isWinnerTakesAll ? prizePool : prizePool * 0.25);
               const statusBadge = getStatusBadge(competition, tournament);
               
               // Check if registration is actually open (based on status badge which already handles status field + dates)
