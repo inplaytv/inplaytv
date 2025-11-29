@@ -51,7 +51,7 @@ function extractTour(description: string | null, name?: string): 'PGA' | 'LPGA' 
 }
 
 // Custom hook for individual countdown timer
-function useCountdown(targetDate: string | null) {
+function useCountdown(targetDate: string | null, status?: string) {
   const [countdown, setCountdown] = useState('Calculating...');
 
   useEffect(() => {
@@ -65,8 +65,13 @@ function useCountdown(targetDate: string | null) {
       const target = new Date(targetDate).getTime();
       const diff = target - now;
 
+      // If status is reg_open, never show as closed - show "Open" instead
       if (diff <= 0) {
-        setCountdown('Registration Closed');
+        if (status === 'reg_open') {
+          setCountdown('Open');
+        } else {
+          setCountdown('Registration Closed');
+        }
       } else {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -87,7 +92,7 @@ function useCountdown(targetDate: string | null) {
     const timer = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(timer);
-  }, [targetDate]);
+  }, [targetDate, status]);
 
   return countdown;
 }
@@ -104,7 +109,8 @@ function CompetitionCard({
   formatCurrency,
   formatDateRange
 }: any) {
-  const countdown = useCountdown(competition.reg_close_at);
+  // Pass status to countdown hook so it respects database status field
+  const countdown = useCountdown(competition.reg_close_at, competition.status);
   
   // Override countdown display based on competition status from database
   // If status is reg_open, show countdown even if date has passed
