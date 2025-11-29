@@ -143,10 +143,10 @@ export async function GET(
     // Flatten the data structure and calculate salaries
     const golfers = (data || [])
       .filter((member: any) => member.golfers)
-      .map((member: any) => {
+      .map((member: any, index: number) => {
         const golfer = member.golfers;
         
-        // Priority: 1. tournament_golfer_salaries, 2. world_rank calculation, 3. salary_pennies from DB
+        // Priority: 1. tournament_golfer_salaries, 2. world_rank calculation, 3. salary_pennies from DB, 4. distributed range
         let finalSalary = MIN_SALARY;
         let salarySource = 'default';
         
@@ -162,10 +162,16 @@ export async function GET(
           // Use salary from database (likely synced from DataGolf)
           finalSalary = Math.round(golfer.salary_pennies / 100);
           salarySource = 'salary_pennies';
-        }
-        
-        if (finalSalary === MIN_SALARY) {
-          console.log(`⚠️  ${golfer.full_name}: Using default £${MIN_SALARY} (rank: ${golfer.world_rank || 'none'}, pennies: ${golfer.salary_pennies || 'none'})`);
+        } else {
+          // Distribute evenly across range if no data available
+          // This gives a spread from £5000 to £12500
+          const totalGolfers = data.length;
+          const position = index / Math.max(totalGolfers - 1, 1); // 0 to 1
+          finalSalary = Math.round(MIN_SALARY + (BASE_RANGE * (1 - position)));
+          // Round to nearest 500
+          finalSalary = Math.round(finalSalary / 500) * 500;
+          finalSalary = Math.max(MIN_SALARY, Math.min(MAX_SALARY, finalSalary));
+          salarySource = 'distributed';
         }
         
         return {
