@@ -481,13 +481,6 @@ export default function TournamentsPage() {
                   const firstPlace = featuredComp && featuredComp.first_place_prize_pennies && featuredComp.first_place_prize_pennies > 0
                     ? featuredComp.first_place_prize_pennies / 100
                     : prizePool * 0.20;
-                  const entryFee = featuredComp ? (featuredComp.entry_fee_pennies || 0) / 100 : 0;
-                  const maxEntries = featuredComp ? (featuredComp.entrants_cap || 0) : tournament.competitions.reduce((sum, c) => sum + (c.entrants_cap || 0), 0);
-                  
-                  // Use first place prize from database if available, otherwise calculate
-                  const firstPlace = featuredComp && featuredComp.first_place_prize_pennies && featuredComp.first_place_prize_pennies > 0
-                    ? featuredComp.first_place_prize_pennies / 100
-                    : prizePool * 0.20; // 20% for 1st place
                   
                   const tour = extractTour(tournament.description, tournament.name);
                   
