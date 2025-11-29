@@ -21,6 +21,8 @@ interface Competition {
   entry_fee_pennies: number;
   entrants_cap: number;
   admin_fee_percent: number;
+  guaranteed_prize_pool_pennies?: number;
+  first_place_prize_pennies?: number;
   status: string;
   reg_close_at: string | null;
   competition_types: CompetitionType;
@@ -465,13 +467,27 @@ export default function TournamentsPage() {
                   const featuredComp = tournament.featured_competition || fullCourseComp;
                   const hasCompetitions = tournament.competitions.length > 0;
                   
+                  // Use guaranteed prize pool from database if available, otherwise calculate
                   const prizePool = featuredComp
-                    ? ((featuredComp.entry_fee_pennies || 0) / 100) * (featuredComp.entrants_cap || 0) * (1 - (featuredComp.admin_fee_percent || 0) / 100)
+                    ? (featuredComp.guaranteed_prize_pool_pennies && featuredComp.guaranteed_prize_pool_pennies > 0
+                        ? featuredComp.guaranteed_prize_pool_pennies / 100
+                        : ((featuredComp.entry_fee_pennies || 0) / 100) * (featuredComp.entrants_cap || 0) * (1 - (featuredComp.admin_fee_percent || 0) / 100))
                     : tournament.competitions.reduce((sum, c) => sum + ((c.entry_fee_pennies || 0) / 100) * (c.entrants_cap || 0) * (1 - (c.admin_fee_percent || 0) / 100), 0);
                   
                   const entryFee = featuredComp ? (featuredComp.entry_fee_pennies || 0) / 100 : 0;
                   const maxEntries = featuredComp ? (featuredComp.entrants_cap || 0) : tournament.competitions.reduce((sum, c) => sum + (c.entrants_cap || 0), 0);
-                  const firstPlace = prizePool * 0.20; // 20% for 1st place
+                  
+                  // Use first place prize from database if available, otherwise calculate
+                  const firstPlace = featuredComp && featuredComp.first_place_prize_pennies && featuredComp.first_place_prize_pennies > 0
+                    ? featuredComp.first_place_prize_pennies / 100
+                    : prizePool * 0.20;
+                  const entryFee = featuredComp ? (featuredComp.entry_fee_pennies || 0) / 100 : 0;
+                  const maxEntries = featuredComp ? (featuredComp.entrants_cap || 0) : tournament.competitions.reduce((sum, c) => sum + (c.entrants_cap || 0), 0);
+                  
+                  // Use first place prize from database if available, otherwise calculate
+                  const firstPlace = featuredComp && featuredComp.first_place_prize_pennies && featuredComp.first_place_prize_pennies > 0
+                    ? featuredComp.first_place_prize_pennies / 100
+                    : prizePool * 0.20; // 20% for 1st place
                   
                   const tour = extractTour(tournament.description, tournament.name);
                   
