@@ -270,10 +270,16 @@ export async function GET(
       };
     });
 
-    // Sort by position
+    // Sort by score (lowest to highest), then by position
     leaderboard.sort((a: any, b: any) => {
-      const posA = a.position === 'CUT' ? 999 : (a.position === '-' ? 1000 : parseInt(a.position));
-      const posB = b.position === 'CUT' ? 999 : (b.position === '-' ? 1000 : parseInt(b.position));
+      // First, sort by score (lowest score = best)
+      if (a.score !== b.score) {
+        return a.score - b.score;
+      }
+      
+      // If scores are equal, sort by position
+      const posA = a.position === 'CUT' ? 999 : (a.position === '-' ? 1000 : parseInt(a.position) || 1000);
+      const posB = b.position === 'CUT' ? 999 : (b.position === '-' ? 1000 : parseInt(b.position) || 1000);
       return posA - posB;
     });
 
