@@ -55,7 +55,11 @@ export async function GET(
       name: c.competition_types?.name, 
       status: c.status,
       type_id: c.competition_type_id,
-      fee: c.entry_fee_pennies 
+      fee: c.entry_fee_pennies,
+      entrants_cap: c.entrants_cap,
+      guaranteed_prize: c.guaranteed_prize_pool_pennies,
+      first_place_prize: c.first_place_prize_pennies,
+      admin_fee: c.admin_fee_percent
     })));
 
     if (competitionsError) {

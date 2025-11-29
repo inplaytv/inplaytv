@@ -502,6 +502,16 @@ export default function TournamentDetailPage() {
                 : (isWinnerTakesAll ? prizePool : prizePool * 0.25);
               const statusBadge = getStatusBadge(competition, tournament);
               
+              console.log('🎯 Competition Card:', {
+                type: competition.competition_types.name,
+                entry_fee: competition.entry_fee_pennies / 100,
+                max_entries: competition.entrants_cap,
+                guaranteed_pool: competition.guaranteed_prize_pool_pennies,
+                guaranteed_first: competition.first_place_prize_pennies,
+                calculated_pool: prizePool,
+                calculated_first: firstPlacePrize
+              });
+              
               // Check if registration is actually open (based on status badge which already handles status field + dates)
               const canRegister = statusBadge.label === 'Registration Open';
 
