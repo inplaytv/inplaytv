@@ -1204,7 +1204,7 @@ export default function LeaderboardsPage() {
             {/* Column Headers */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '40px 1fr 80px 80px 80px',
+              gridTemplateColumns: '40px 1fr 80px 80px 80px 80px',
               gap: '16px',
               padding: '12px 16px',
               background: 'rgba(255,255,255,0.05)',
@@ -1219,6 +1219,7 @@ export default function LeaderboardsPage() {
               <div>Golfer</div>
               <div style={{ textAlign: 'center' }}>Score</div>
               <div style={{ textAlign: 'center' }}>Today</div>
+              <div style={{ textAlign: 'center' }}>Round</div>
               <div style={{ textAlign: 'center' }}>Thru</div>
             </div>
 
@@ -1229,6 +1230,12 @@ export default function LeaderboardsPage() {
                 tournamentLeaderboard.leaderboard.map((golfer: any, index: number) => {
                   const position = typeof golfer.position === 'string' ? golfer.position : (index + 1);
                   const isTop3 = index < 3;
+                  
+                  // Determine current round based on rounds completed
+                  const roundsCompleted = golfer.rounds?.length || 0;
+                  const currentRound = roundsCompleted >= 4 ? 'F' : 
+                                      golfer.thru === 'F' ? (roundsCompleted + 1) : 
+                                      roundsCompleted + 1;
 
                   return (
                     <div key={golfer.id}>
@@ -1236,7 +1243,7 @@ export default function LeaderboardsPage() {
                         onClick={() => openTournamentPopup(golfer)}
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '40px 1fr 80px 80px 80px',
+                        gridTemplateColumns: '40px 1fr 80px 80px 80px 80px',
                         gap: '16px',
                         background: isTop3 ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255,255,255,0.03)',
                         border: `1px solid ${isTop3 ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255,255,255,0.08)'}`,
@@ -1295,6 +1302,21 @@ export default function LeaderboardsPage() {
                           color: golfer.today < 0 ? '#667eea' : golfer.today > 0 ? '#f59e0b' : '#9ca3af'
                         }}>
                           {golfer.today > 0 ? '+' : ''}{golfer.today}
+                        </div>
+                      </div>
+
+                      {/* Current Round */}
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ 
+                          fontSize: '13px', 
+                          fontWeight: 700, 
+                          color: currentRound === 'F' ? '#10b981' : '#667eea',
+                          background: currentRound === 'F' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(102, 126, 234, 0.1)',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          display: 'inline-block'
+                        }}>
+                          {currentRound === 'F' ? 'F' : `R${currentRound}`}
                         </div>
                       </div>
 
