@@ -272,8 +272,10 @@ export async function GET(
         status: tournament.status,
       },
       leaderboard,
+      currentRound: apiResponse.info?.current_round || null,
+      eventName: apiResponse.info?.event_name || null,
       source: 'datagolf',
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: apiResponse.info?.last_update || new Date().toISOString(),
       eventId: eventId
     });
 

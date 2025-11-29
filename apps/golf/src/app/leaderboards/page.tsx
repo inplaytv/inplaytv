@@ -1231,11 +1231,24 @@ export default function LeaderboardsPage() {
                   const position = typeof golfer.position === 'string' ? golfer.position : (index + 1);
                   const isTop3 = index < 3;
                   
-                  // Determine current round based on rounds completed
-                  const roundsCompleted = golfer.rounds?.length || 0;
-                  const currentRound = roundsCompleted >= 4 ? 'F' : 
-                                      golfer.thru === 'F' ? (roundsCompleted + 1) : 
-                                      roundsCompleted + 1;
+                  // Use tournament's current round from DataGolf API
+                  const tournamentCurrentRound = tournamentLeaderboard.currentRound || 4;
+                  
+                  // Determine current round for this golfer
+                  let currentRound: string | number = tournamentCurrentRound;
+                  
+                  // If golfer has finished (thru === 'F'), they're on the current round but done
+                  if (golfer.thru === 'F') {
+                    // Check if they've completed all rounds
+                    const roundsCompleted = golfer.rounds?.length || 0;
+                    if (roundsCompleted >= 4) {
+                      currentRound = 'F'; // Tournament finished
+                    } else {
+                      currentRound = tournamentCurrentRound; // Just finished this round
+                    }
+                  } else if (golfer.thru === 'CUT') {
+                    currentRound = 'CUT';
+                  }
 
                   return (
                     <div key={golfer.id}>
@@ -1310,13 +1323,13 @@ export default function LeaderboardsPage() {
                         <div style={{ 
                           fontSize: '13px', 
                           fontWeight: 700, 
-                          color: currentRound === 'F' ? '#10b981' : '#667eea',
-                          background: currentRound === 'F' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(102, 126, 234, 0.1)',
+                          color: currentRound === 'F' ? '#10b981' : currentRound === 'CUT' ? '#ef4444' : '#667eea',
+                          background: currentRound === 'F' ? 'rgba(16, 185, 129, 0.1)' : currentRound === 'CUT' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(102, 126, 234, 0.1)',
                           padding: '4px 8px',
                           borderRadius: '4px',
                           display: 'inline-block'
                         }}>
-                          {currentRound === 'F' ? 'F' : `R${currentRound}`}
+                          {currentRound === 'F' ? 'F' : currentRound === 'CUT' ? 'CUT' : `R${currentRound}`}
                         </div>
                       </div>
 
