@@ -105,6 +105,7 @@ export async function GET(
           last_name,
           full_name,
           world_rank,
+          salary_pennies,
           image_url
         )
       `)
@@ -139,12 +140,17 @@ export async function GET(
       .map((member: any) => {
         const golfer = member.golfers;
         
-        // Priority: 1. DB salary, 2. Calculate from world rank, 3. Default
+        // Priority: 1. tournament_golfer_salaries, 2. golfer.salary_pennies, 3. Calculate from world rank, 4. Default
         let finalSalary = MIN_SALARY;
         
         if (salariesMap[member.golfer_id] && salariesMap[member.golfer_id] > 0) {
+          // Use tournament-specific salary from tournament_golfer_salaries table
           finalSalary = salariesMap[member.golfer_id];
+        } else if (golfer.salary_pennies && golfer.salary_pennies > 0) {
+          // Convert pennies to pounds from golfers table
+          finalSalary = Math.round(golfer.salary_pennies / 100);
         } else if (golfer.world_rank && golfer.world_rank > 0) {
+          // Calculate from world ranking
           finalSalary = calculateSalary(golfer.world_rank);
         }
         
