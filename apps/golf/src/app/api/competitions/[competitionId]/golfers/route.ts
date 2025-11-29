@@ -105,7 +105,6 @@ export async function GET(
           last_name,
           full_name,
           world_rank,
-          salary_pennies,
           image_url
         )
       `)
@@ -140,24 +139,17 @@ export async function GET(
       .map((member: any) => {
         const golfer = member.golfers;
         
-        // Priority: 1. tournament_golfer_salaries, 2. Calculate from world rank, 3. golfer.salary_pennies as fallback, 4. Default
+        // Priority: 1. tournament_golfer_salaries table, 2. Calculate from world_rank
         let finalSalary = MIN_SALARY;
         
         if (salariesMap[member.golfer_id] && salariesMap[member.golfer_id] > 0) {
           // Use tournament-specific salary from tournament_golfer_salaries table
           finalSalary = salariesMap[member.golfer_id];
-          console.log(`${golfer.full_name}: Using tournament salary ${finalSalary}`);
         } else if (golfer.world_rank && golfer.world_rank > 0) {
-          // Calculate from world ranking - THIS IS PRIMARY
+          // Calculate from world ranking
           finalSalary = calculateSalary(golfer.world_rank);
-          console.log(`${golfer.full_name}: Calculated from rank ${golfer.world_rank} = £${finalSalary}`);
-        } else if (golfer.salary_pennies && golfer.salary_pennies > 0) {
-          // Only use salary_pennies if no world_rank available
-          finalSalary = Math.round(golfer.salary_pennies / 100);
-          console.log(`${golfer.full_name}: Using salary_pennies ${golfer.salary_pennies} = £${finalSalary}`);
-        } else {
-          console.log(`${golfer.full_name}: Using default ${finalSalary} (no rank: ${golfer.world_rank}, no pennies: ${golfer.salary_pennies})`);
         }
+        // If no world_rank, fallback to MIN_SALARY (£5000)
         
         return {
           id: golfer.id,
