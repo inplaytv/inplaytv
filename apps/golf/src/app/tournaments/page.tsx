@@ -485,10 +485,10 @@ export default function TournamentsPage() {
                   const entryFee = featuredComp ? (featuredComp.entry_fee_pennies || 0) / 100 : 0;
                   const maxEntries = featuredComp ? (featuredComp.entrants_cap || 0) : tournament.competitions.reduce((sum, c) => sum + (c.entrants_cap || 0), 0);
                   
-                  // Use first place prize from database if available, otherwise calculate
+                  // Use first place prize from database if available, otherwise calculate (25%)
                   const firstPlace = featuredComp && featuredComp.first_place_prize_pennies && featuredComp.first_place_prize_pennies > 0
                     ? featuredComp.first_place_prize_pennies / 100
-                    : prizePool * 0.20;
+                    : prizePool * 0.25;
                   
                   const tour = extractTour(tournament.description, tournament.name);
                   
@@ -723,10 +723,10 @@ export default function TournamentsPage() {
                   const entryFee = featuredComp ? featuredComp.entry_fee_pennies / 100 : 0;
                   const maxEntries = featuredComp ? featuredComp.entrants_cap : tournament.competitions.reduce((sum, c) => sum + c.entrants_cap, 0);
                   
-                  // Use first place prize from database if available, otherwise calculate
+                  // Use first place prize from database if available, otherwise calculate (25%)
                   const firstPlace = featuredComp && featuredComp.first_place_prize_pennies && featuredComp.first_place_prize_pennies > 0
                     ? featuredComp.first_place_prize_pennies / 100
-                    : prizePool * 0.20;
+                    : prizePool * 0.25;
                   
                   return (
                     <UpcomingTournamentCard 
