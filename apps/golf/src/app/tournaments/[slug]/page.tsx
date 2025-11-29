@@ -222,6 +222,18 @@ function CompetitionCard({
               </span>
               <div className={styles.btnShine}></div>
             </Link>
+          ) : statusBadge.label === 'Live' ? (
+            <Link 
+              href={`/leaderboards`}
+              className={styles.btnPlay}
+              style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}
+            >
+              <span className={styles.btnContent}>
+                <i className="fas fa-chart-line"></i>
+                <span>View Live Leaderboard</span>
+              </span>
+              <div className={styles.btnShine}></div>
+            </Link>
           ) : (
             <button className={styles.btnDisabled} disabled>
               <i className={`fas ${statusBadge.icon}`}></i>
