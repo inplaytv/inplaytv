@@ -57,10 +57,10 @@ export async function GET(
     // Check if it looks like a UUID
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.slug);
     
-    // Get tournament from database to find DataGolf event_id
+    // Get tournament from database with event_id and tour fields
     let query = supabase
       .from('tournaments')
-      .select('id, name, slug, status');
+      .select('id, name, slug, status, event_id, tour');
     
     if (isUuid) {
       // Try as UUID first
@@ -77,40 +77,44 @@ export async function GET(
       return NextResponse.json({ error: 'Tournament not found' }, { status: 404 });
     }
 
-    // Map tournament name/slug to DataGolf event_id and tour
-    // Use 2025 for current season tournaments
-    let eventId = '';
-    let tour = 'pga'; // Default to PGA tour
+    // Use database fields if available, otherwise fall back to mapping logic
+    let eventId = tournament.event_id || '';
+    let tour = tournament.tour || 'pga';
     
-    const tournamentName = tournament.name.toLowerCase();
-    const tournamentSlug = tournament.slug?.toLowerCase() || '';
-    
-    // Map common tournaments to DataGolf event IDs
-    if (tournamentName.includes('rsm') || tournamentSlug.includes('rsm')) {
-      eventId = 'rsm-classic-2025';
-      tour = 'pga';
-    } else if (tournamentName.includes('bmw australian pga') || tournamentSlug.includes('bmw-australian-pga')) {
-      eventId = 'australian-pga-championship-2025';
-      tour = 'euro';
-    } else if (tournamentName.includes('hero world')) {
-      eventId = 'hero-world-challenge-2024';
-      tour = 'pga';
-    } else if (tournamentName.includes('masters')) {
-      eventId = 'the-masters-2025';
-      tour = 'pga';
-    } else {
-      // Default fallback
-      console.warn('⚠️ No specific event mapping found, using slug as event ID');
-      eventId = tournamentSlug || 'unknown-event';
-      tour = 'pga';
+    // If no event_id in database, try to map based on tournament name/slug
+    if (!eventId) {
+      const tournamentName = tournament.name.toLowerCase();
+      const tournamentSlug = tournament.slug?.toLowerCase() || '';
+      
+      console.warn('⚠️ No event_id in database, attempting to map from name/slug');
+      
+      // Map common tournaments to DataGolf event IDs (fallback only)
+      if (tournamentName.includes('rsm') || tournamentSlug.includes('rsm')) {
+        eventId = 'rsm-classic-2025';
+        tour = 'pga';
+      } else if (tournamentName.includes('bmw australian pga') || tournamentSlug.includes('bmw-australian-pga')) {
+        eventId = 'australian-pga-championship-2025';
+        tour = 'euro';
+      } else if (tournamentName.includes('hero world')) {
+        eventId = 'hero-world-challenge-2024';
+        tour = 'pga';
+      } else if (tournamentName.includes('masters')) {
+        eventId = 'the-masters-2025';
+        tour = 'pga';
+      } else {
+        // Use slug as last resort
+        console.warn('⚠️ No event mapping found, using slug as event ID');
+        eventId = tournamentSlug || 'unknown-event';
+      }
     }
-    // Add more tournament mappings as needed
     
     console.log('📡 DataGolf API Request Details:');
     console.log('   Tournament Name:', tournament.name);
     console.log('   Tournament Slug:', tournament.slug);
-    console.log('   Event ID:', eventId);
-    console.log('   Tour:', tour);
+    console.log('   Event ID (from DB):', tournament.event_id || 'not set');
+    console.log('   Event ID (using):', eventId);
+    console.log('   Tour (from DB):', tournament.tour || 'not set');
+    console.log('   Tour (using):', tour);
     console.log('   Tournament Status:', tournament.status);
 
     // Fetch live scores from DataGolf using the in-play predictions endpoint
