@@ -163,7 +163,19 @@ export async function GET(
     // Log a sample golfer to see the data structure
     const sampleGolfer = apiResponse.data?.[0];
     if (sampleGolfer) {
-      console.log('📊 Sample golfer data:', JSON.stringify(sampleGolfer, null, 2));
+      console.log('📊 Sample golfer data:', {
+        name: sampleGolfer.player_name,
+        R1: sampleGolfer.R1,
+        R2: sampleGolfer.R2,
+        R3: sampleGolfer.R3,
+        R4: sampleGolfer.R4,
+        r1: sampleGolfer.r1,
+        r2: sampleGolfer.r2,
+        r3: sampleGolfer.r3,
+        r4: sampleGolfer.r4,
+        thru: sampleGolfer.thru,
+        today: sampleGolfer.today
+      });
     }
     
     // The in-play endpoint returns data in the 'data' array
