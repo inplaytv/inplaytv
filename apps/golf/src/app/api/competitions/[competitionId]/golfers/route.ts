@@ -110,12 +110,6 @@ export async function GET(
         )
       `)
       .eq('group_id', competition.assigned_golfer_group_id);
-    
-    console.log('📊 Sample golfer data:', data?.slice(0, 3).map((m: any) => ({
-      name: m.golfers?.full_name,
-      world_rank: m.golfers?.world_rank,
-      salary_pennies: m.golfers?.salary_pennies
-    })));
 
     if (error) {
       console.error('Error fetching group golfers:', error);
@@ -146,24 +140,21 @@ export async function GET(
       .map((member: any, index: number) => {
         const golfer = member.golfers;
         
-        // Priority: 1. tournament_golfer_salaries, 2. world_rank calculation, 3. salary_pennies from DB, 4. distributed range
+        // Priority: 1. tournament_golfer_salaries, 2. world_rank calculation, 3. salary_pennies, 4. distributed range
         let finalSalary = MIN_SALARY;
-        let salarySource = 'default';
         
         if (salariesMap[member.golfer_id] && salariesMap[member.golfer_id] > 0) {
           // Use tournament-specific salary from tournament_golfer_salaries table
           finalSalary = salariesMap[member.golfer_id];
-          salarySource = 'tournament_table';
         } else if (golfer.world_rank && golfer.world_rank > 0) {
-          // Calculate from world ranking
+          // Calculate from world ranking - THIS IS THE PRIMARY METHOD
           finalSalary = calculateSalary(golfer.world_rank);
-          salarySource = `world_rank_${golfer.world_rank}`;
-        } else if (golfer.salary_pennies && golfer.salary_pennies > 0) {
-          // Use salary from database (likely synced from DataGolf)
+        } else if (golfer.salary_pennies && golfer.salary_pennies > 0 && golfer.salary_pennies >= 500000 && golfer.salary_pennies <= 1250000) {
+          // Use salary_pennies ONLY if world_rank not available AND pennies value is reasonable (£5000-£12500)
+          // This filters out bad data like 10000 pennies (£100)
           finalSalary = Math.round(golfer.salary_pennies / 100);
-          salarySource = 'salary_pennies';
         } else {
-          // Distribute evenly across range if no data available
+          // Distribute evenly across range if no valid data available
           // This gives a spread from £5000 to £12500
           const totalGolfers = data.length;
           const position = index / Math.max(totalGolfers - 1, 1); // 0 to 1
@@ -171,7 +162,6 @@ export async function GET(
           // Round to nearest 500
           finalSalary = Math.round(finalSalary / 500) * 500;
           finalSalary = Math.max(MIN_SALARY, Math.min(MAX_SALARY, finalSalary));
-          salarySource = 'distributed';
         }
         
         return {
