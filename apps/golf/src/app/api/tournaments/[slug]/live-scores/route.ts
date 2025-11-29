@@ -77,9 +77,10 @@ export async function GET(
       return NextResponse.json({ error: 'Tournament not found' }, { status: 404 });
     }
 
-    // Map tournament name/slug to DataGolf event_id
+    // Map tournament name/slug to DataGolf event_id and tour
     // Use 2025 for current season tournaments
-    let eventId = 'rsm-classic-2025'; // Default for RSM Classic 2025
+    let eventId = '';
+    let tour = 'pga'; // Default to PGA tour
     
     const tournamentName = tournament.name.toLowerCase();
     const tournamentSlug = tournament.slug?.toLowerCase() || '';
@@ -87,10 +88,21 @@ export async function GET(
     // Map common tournaments to DataGolf event IDs
     if (tournamentName.includes('rsm') || tournamentSlug.includes('rsm')) {
       eventId = 'rsm-classic-2025';
+      tour = 'pga';
+    } else if (tournamentName.includes('bmw australian pga') || tournamentSlug.includes('bmw-australian-pga')) {
+      eventId = 'australian-pga-championship-2025';
+      tour = 'euro';
     } else if (tournamentName.includes('hero world')) {
       eventId = 'hero-world-challenge-2024';
+      tour = 'pga';
     } else if (tournamentName.includes('masters')) {
       eventId = 'the-masters-2025';
+      tour = 'pga';
+    } else {
+      // Default fallback
+      console.warn('⚠️ No specific event mapping found, using slug as event ID');
+      eventId = tournamentSlug || 'unknown-event';
+      tour = 'pga';
     }
     // Add more tournament mappings as needed
     
@@ -98,11 +110,12 @@ export async function GET(
     console.log('   Tournament Name:', tournament.name);
     console.log('   Tournament Slug:', tournament.slug);
     console.log('   Event ID:', eventId);
+    console.log('   Tour:', tour);
     console.log('   Tournament Status:', tournament.status);
 
     // Fetch live scores from DataGolf using the in-play predictions endpoint
     // This provides real-time scores updated every 5 minutes
-    const datagolfUrl = `https://feeds.datagolf.com/preds/in-play?tour=pga&file_format=json&key=${DATAGOLF_API_KEY}`;
+    const datagolfUrl = `https://feeds.datagolf.com/preds/in-play?tour=${tour}&file_format=json&key=${DATAGOLF_API_KEY}`;
     
     console.log('🌐 DataGolf URL:', datagolfUrl.replace(DATAGOLF_API_KEY, 'API_KEY_HIDDEN'));
     console.log('🕐 Fetching at:', new Date().toISOString());
@@ -160,7 +173,7 @@ export async function GET(
       console.log('⚠️ No golfers in DataGolf in-play - trying historical endpoint for completed tournament...');
       
       // Try historical data endpoint for completed tournaments
-      const historicalUrl = `https://feeds.datagolf.com/historical-raw-data/event-results?tour=pga&event_id=${eventId}&file_format=json&key=${DATAGOLF_API_KEY}`;
+      const historicalUrl = `https://feeds.datagolf.com/historical-raw-data/event-results?tour=${tour}&event_id=${eventId}&file_format=json&key=${DATAGOLF_API_KEY}`;
       console.log('🌐 Fetching historical data:', historicalUrl.replace(DATAGOLF_API_KEY, 'API_KEY_HIDDEN'));
       
       try {
@@ -208,11 +221,17 @@ export async function GET(
       const toPar = entry.total_score || entry.current_score || 0;
       
       // Build rounds array - include all non-null rounds
+      // DataGolf uses uppercase (R1, R2, R3, R4) for round scores
       const roundsArray = [];
-      if (entry.R1 !== null && entry.R1 !== undefined) roundsArray.push(entry.R1 || entry.r1);
-      if (entry.R2 !== null && entry.R2 !== undefined) roundsArray.push(entry.R2 || entry.r2);
-      if (entry.R3 !== null && entry.R3 !== undefined) roundsArray.push(entry.R3 || entry.r3);
-      if (entry.R4 !== null && entry.R4 !== undefined) roundsArray.push(entry.R4 || entry.r4);
+      const r1 = entry.R1 ?? entry.r1;
+      const r2 = entry.R2 ?? entry.r2;
+      const r3 = entry.R3 ?? entry.r3;
+      const r4 = entry.R4 ?? entry.r4;
+      
+      if (r1 !== null && r1 !== undefined) roundsArray.push(r1);
+      if (r2 !== null && r2 !== undefined) roundsArray.push(r2);
+      if (r3 !== null && r3 !== undefined) roundsArray.push(r3);
+      if (r4 !== null && r4 !== undefined) roundsArray.push(r4);
       
       // Position can be in position or current_pos
       const position = entry.position || entry.current_pos || '-';
@@ -228,10 +247,10 @@ export async function GET(
         thru: entry.thru || '-',
         rounds: roundsArray,
         // Include raw round scores for hole-by-hole calculation
-        r1: entry.R1 || entry.r1,
-        r2: entry.R2 || entry.r2,
-        r3: entry.R3 || entry.r3,
-        r4: entry.R4 || entry.r4,
+        r1: r1,
+        r2: r2,
+        r3: r3,
+        r4: r4,
       };
     });
 
