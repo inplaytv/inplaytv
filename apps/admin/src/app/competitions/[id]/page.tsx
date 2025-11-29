@@ -33,6 +33,8 @@ interface Competition {
   entry_fee_pennies: number;
   entrants_cap: number;
   admin_fee_percent: number;
+  guaranteed_prize_pool_pennies: number | null;
+  first_place_prize_pennies: number | null;
   reg_open_at: string | null;
   reg_close_at: string | null;
   start_at: string | null;
@@ -58,6 +60,8 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
     entry_fee_pounds: '0.00',
     entrants_cap: '0',
     admin_fee_percent: '10.00',
+    guaranteed_prize_pool_pounds: '',
+    first_place_prize_pounds: '',
     reg_open_at: '',
     reg_close_at: '',
     start_at: '',
@@ -96,6 +100,12 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
           entry_fee_pounds: (data.entry_fee_pennies / 100).toFixed(2),
           entrants_cap: data.entrants_cap.toString(),
           admin_fee_percent: data.admin_fee_percent.toString(),
+          guaranteed_prize_pool_pounds: data.guaranteed_prize_pool_pennies 
+            ? (data.guaranteed_prize_pool_pennies / 100).toFixed(2) 
+            : '',
+          first_place_prize_pounds: data.first_place_prize_pennies 
+            ? (data.first_place_prize_pennies / 100).toFixed(2) 
+            : '',
           reg_open_at: data.reg_open_at ? data.reg_open_at.slice(0, 16) : '',
           reg_close_at: data.reg_close_at ? data.reg_close_at.slice(0, 16) : '',
           start_at: data.start_at ? data.start_at.slice(0, 16) : '',
@@ -140,6 +150,12 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
 
     try {
       const entry_fee_pennies = Math.round(parseFloat(formData.entry_fee_pounds) * 100);
+      const guaranteed_prize_pool_pennies = formData.guaranteed_prize_pool_pounds 
+        ? Math.round(parseFloat(formData.guaranteed_prize_pool_pounds) * 100) 
+        : null;
+      const first_place_prize_pennies = formData.first_place_prize_pounds 
+        ? Math.round(parseFloat(formData.first_place_prize_pounds) * 100) 
+        : null;
 
       const res = await fetch(`/api/competitions/${params.id}`, {
         method: 'PUT',
@@ -148,6 +164,8 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
           entry_fee_pennies,
           entrants_cap: parseInt(formData.entrants_cap),
           admin_fee_percent: parseFloat(formData.admin_fee_percent),
+          guaranteed_prize_pool_pennies,
+          first_place_prize_pennies,
           reg_open_at: formData.reg_open_at || null,
           reg_close_at: formData.reg_close_at || null,
           start_at: formData.start_at || null,
@@ -362,6 +380,62 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
               />
             </div>
           </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                Guaranteed Prize Pool (£)
+                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
+                  (optional override)
+                </span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.guaranteed_prize_pool_pounds}
+                onChange={(e) => setFormData({ ...formData, guaranteed_prize_pool_pounds: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '4px',
+                  color: '#fff',
+                }}
+                placeholder="Auto-calculated if empty"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                First Place Prize (£)
+                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
+                  (optional override)
+                </span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.first_place_prize_pounds}
+                onChange={(e) => setFormData({ ...formData, first_place_prize_pounds: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '4px',
+                  color: '#fff',
+                }}
+                placeholder="Auto-calculated if empty"
+              />
+            </div>
+          </div>
+
+          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', margin: '0.5rem 0 0 0' }}>
+            💡 Leave these empty to auto-calculate based on entry fee, cap, and admin fee. Set custom values to override.
+          </p>
         </div>
 
         <div style={{
