@@ -2711,81 +2711,57 @@ export default function LeaderboardsPage() {
               }}>
                 {teeTimes.field && teeTimes.field.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {/* Tee Sheet by Round */}
-                    {Object.keys(teeTimes.teeSheet || {}).length > 0 ? (
-                      Object.entries(teeTimes.teeSheet).map(([round, groups]: [string, any]) => (
-                        <div key={round} style={{
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: '8px',
-                          padding: '16px'
-                        }}>
-                          <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#e5e7eb', marginBottom: '16px' }}>
-                            Round {round}
-                          </h3>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {Array.isArray(groups) && groups.map((group: any, idx: number) => (
-                              <div key={idx} style={{
-                                background: 'rgba(255,255,255,0.05)',
-                                borderRadius: '6px',
-                                padding: '12px',
-                                display: 'flex',
-                                gap: '12px',
-                                alignItems: 'center'
-                              }}>
-                                <div style={{
-                                  fontSize: '14px',
-                                  fontWeight: 600,
-                                  color: '#667eea',
-                                  minWidth: '60px'
-                                }}>
-                                  {group.tee_time || 'TBD'}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ fontSize: '14px', color: '#e5e7eb' }}>
-                                    {group.players?.join(', ') || 'Players TBD'}
-                                  </div>
-                                  {group.tee && (
-                                    <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-                                      Tee: {group.tee}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      /* Field List if no tee sheet */
+                    {/* Field List with tee times */}
+                    <div style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '8px',
+                      padding: '16px'
+                    }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#e5e7eb', marginBottom: '16px' }}>
+                        {teeTimes.eventInfo?.event_name || 'Tournament Field'} ({teeTimes.field.length} players)
+                      </h3>
                       <div style={{
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '8px',
-                        padding: '16px'
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                        gap: '8px'
                       }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#e5e7eb', marginBottom: '16px' }}>
-                          Tournament Field ({teeTimes.field.length} players)
-                        </h3>
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                          gap: '8px'
-                        }}>
-                          {teeTimes.field.map((player: any, idx: number) => (
-                            <div key={idx} style={{
-                              fontSize: '13px',
-                              color: '#e5e7eb',
-                              padding: '8px 12px',
-                              background: 'rgba(255,255,255,0.05)',
-                              borderRadius: '4px'
-                            }}>
-                              {player.player_name || player.name}
-                            </div>
-                          ))}
-                        </div>
+                        {teeTimes.field
+                          .sort((a: any, b: any) => {
+                            // Sort by tee time if available
+                            if (a.tee_time && b.tee_time) {
+                              return a.tee_time.localeCompare(b.tee_time);
+                            }
+                            return (a.player_name || '').localeCompare(b.player_name || '');
+                          })
+                          .map((player: any, idx: number) => (
+                          <div key={idx} style={{
+                            fontSize: '13px',
+                            color: '#e5e7eb',
+                            padding: '8px 12px',
+                            background: 'rgba(255,255,255,0.05)',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <span>{player.player_name || player.name}</span>
+                            {player.tee_time && (
+                              <span style={{ 
+                                fontSize: '12px', 
+                                color: '#667eea',
+                                fontWeight: 600,
+                                background: 'rgba(102, 126, 234, 0.2)',
+                                padding: '2px 8px',
+                                borderRadius: '4px'
+                              }}>
+                                {player.tee_time}
+                              </span>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    )}
+                    </div>
                   </div>
                 ) : (
                   <div style={{

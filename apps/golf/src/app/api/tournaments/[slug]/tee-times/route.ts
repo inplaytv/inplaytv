@@ -51,14 +51,15 @@ export async function GET(
     console.log('📡 DataGolf API Request for Tee Times:');
     console.log('  Tour:', tour);
     console.log('  Tournament:', tournament.name);
+    console.log('  Event ID:', tournament.event_id || 'not set');
 
-    // Fetch tee times from DataGolf
-    const datagolfUrl = `https://feeds.datagolf.com/field-updates?tour=${tour}&file_format=json&key=${DATAGOLF_API_KEY}`;
+    // First try to get from the in-play endpoint which includes tee times
+    let datagolfUrl = `https://feeds.datagolf.com/preds/in-play?tour=${tour}&file_format=json&key=${DATAGOLF_API_KEY}`;
     
     console.log('🌐 DataGolf URL:', datagolfUrl.replace(DATAGOLF_API_KEY, 'API_KEY_HIDDEN'));
     
     // Make request to DataGolf API
-    const response = await fetch(datagolfUrl, {
+    let response = await fetch(datagolfUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -67,7 +68,7 @@ export async function GET(
     });
 
     if (!response.ok) {
-      console.error('❌ DataGolf API error:', response.status, response.statusText);
+      console.error('❌ DataGolf in-play API error:', response.status, response.statusText);
       const errorText = await response.text();
       console.error('❌ Error details:', errorText);
       
@@ -81,19 +82,19 @@ export async function GET(
     // Parse DataGolf response
     const apiResponse: any = await response.json();
     
-    console.log('📦 DataGolf tee times response structure:', {
-      hasField: !!apiResponse.field,
-      fieldLength: apiResponse.field?.length || 0,
-      hasTeeSheet: !!apiResponse.tee_sheet,
-      samplePlayer: apiResponse.field?.[0]
+    console.log('📦 DataGolf response structure:', {
+      hasInfo: !!apiResponse.info,
+      hasData: !!apiResponse.data,
+      dataLength: apiResponse.data?.length || 0,
+      eventName: apiResponse.info?.event_name
     });
 
-    // Extract tee times data
-    const field = apiResponse.field || [];
-    const teeSheet = apiResponse.tee_sheet || {};
+    // Extract field and tee times from in-play data
+    const leaderboardData = apiResponse.data || [];
+    const eventInfo = apiResponse.info || {};
     
-    if (field.length === 0) {
-      console.log('⚠️ No field data returned from DataGolf');
+    if (leaderboardData.length === 0) {
+      console.log('⚠️ No data returned from DataGolf');
       return NextResponse.json({
         tournament: {
           name: tournament.name,
@@ -107,8 +108,18 @@ export async function GET(
       });
     }
 
+    // Convert leaderboard data to field format
+    const field = leaderboardData.map((player: any) => ({
+      player_name: player.player_name || player.name,
+      dg_id: player.dg_id,
+      country: player.country,
+      tee_time: player.tee_time,
+      round_status: player.round_status,
+      course: player.course
+    }));
+
     console.log('✅ DataGolf returned field with', field.length, 'players');
-    console.log('✅ Tee sheet data:', Object.keys(teeSheet).length, 'rounds');
+    console.log('✅ Event:', eventInfo.event_name);
 
     return NextResponse.json({
       tournament: {
@@ -118,7 +129,7 @@ export async function GET(
         location: tournament.location
       },
       field,
-      teeSheet,
+      eventInfo,
       lastUpdated: new Date().toISOString(),
       source: 'datagolf'
     });
