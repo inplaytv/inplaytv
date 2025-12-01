@@ -78,6 +78,9 @@ export default function LeaderboardsPage() {
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [selectedTournament, setSelectedTournament] = useState<string>('');
   const [selectedRound, setSelectedRound] = useState<number>(1); // Track which round to display
+  const [showTeeTimes, setShowTeeTimes] = useState(false);
+  const [teeTimes, setTeeTimes] = useState<any>(null);
+  const [teeTimesLoading, setTeeTimesLoading] = useState(false);
 
   // Load competitions on mount
   useEffect(() => {
@@ -353,6 +356,31 @@ export default function LeaderboardsPage() {
       }
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadTeeTimes(tournamentSlug: string) {
+    try {
+      setTeeTimesLoading(true);
+      console.log('⏰ Loading tee times for tournament:', tournamentSlug);
+      
+      const response = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/tee-times`);
+      
+      if (!response.ok) {
+        console.error('❌ Tee times fetch failed:', response.status, response.statusText);
+        throw new Error('Failed to fetch tee times');
+      }
+      
+      const data = await response.json();
+      console.log('✅ Tee times loaded:', data);
+      
+      setTeeTimes(data);
+      setShowTeeTimes(true);
+    } catch (error) {
+      console.error('❌ Error loading tee times:', error);
+      alert('Failed to load tee times. Please try again.');
+    } finally {
+      setTeeTimesLoading(false);
     }
   }
 
@@ -1200,27 +1228,54 @@ export default function LeaderboardsPage() {
                     </span>
                   )}
                 </div>
-                <button
-                  onClick={() => loadTournamentLeaderboard(selectedTournament)}
-                  disabled={tournamentLoading}
-                  style={{
-                    background: 'rgba(255,255,255,0.1)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '6px',
-                    padding: '6px 12px',
-                    color: '#e5e7eb',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    cursor: tournamentLoading ? 'not-allowed' : 'pointer',
-                    opacity: tournamentLoading ? 0.5 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <span style={{ transform: tournamentLoading ? 'rotate(360deg)' : 'none', transition: 'transform 1s linear', display: 'inline-block' }}>🔄</span>
-                  {tournamentLoading ? 'Refreshing...' : 'Refresh'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      const tournament = tournaments.find((t: any) => t.id === selectedTournament);
+                      if (tournament?.slug) {
+                        loadTeeTimes(tournament.slug);
+                      }
+                    }}
+                    disabled={teeTimesLoading}
+                    style={{
+                      background: 'rgba(102, 126, 234, 0.2)',
+                      border: '1px solid rgba(102, 126, 234, 0.4)',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      color: '#a5b4fc',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: teeTimesLoading ? 'not-allowed' : 'pointer',
+                      opacity: teeTimesLoading ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    ⏰ {teeTimesLoading ? 'Loading...' : 'TEE TIMES'}
+                  </button>
+                  <button
+                    onClick={() => loadTournamentLeaderboard(selectedTournament)}
+                    disabled={tournamentLoading}
+                    style={{
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      color: '#e5e7eb',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      cursor: tournamentLoading ? 'not-allowed' : 'pointer',
+                      opacity: tournamentLoading ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span style={{ transform: tournamentLoading ? 'rotate(360deg)' : 'none', transition: 'transform 1s linear', display: 'inline-block' }}>🔄</span>
+                    {tournamentLoading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -2579,6 +2634,178 @@ export default function LeaderboardsPage() {
             </div>
           </>
         ) : null}
+
+        {/* Tee Times Modal */}
+        {showTeeTimes && teeTimes && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.85)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '20px'
+            }}
+            onClick={() => setShowTeeTimes(false)}
+          >
+            <div
+              style={{
+                background: '#1f2937',
+                borderRadius: '12px',
+                maxWidth: '900px',
+                width: '100%',
+                maxHeight: '85vh',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div style={{
+                padding: '24px',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
+                    ⏰ Tee Times
+                  </h2>
+                  <p style={{ fontSize: '14px', color: '#9ca3af' }}>
+                    {teeTimes.tournament?.name}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowTeeTimes(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '8px',
+                    width: '36px',
+                    height: '36px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#e5e7eb',
+                    fontSize: '20px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Content */}
+              <div style={{
+                flex: 1,
+                overflow: 'auto',
+                padding: '24px'
+              }}>
+                {teeTimes.field && teeTimes.field.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {/* Tee Sheet by Round */}
+                    {Object.keys(teeTimes.teeSheet || {}).length > 0 ? (
+                      Object.entries(teeTimes.teeSheet).map(([round, groups]: [string, any]) => (
+                        <div key={round} style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: '8px',
+                          padding: '16px'
+                        }}>
+                          <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#e5e7eb', marginBottom: '16px' }}>
+                            Round {round}
+                          </h3>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {Array.isArray(groups) && groups.map((group: any, idx: number) => (
+                              <div key={idx} style={{
+                                background: 'rgba(255,255,255,0.05)',
+                                borderRadius: '6px',
+                                padding: '12px',
+                                display: 'flex',
+                                gap: '12px',
+                                alignItems: 'center'
+                              }}>
+                                <div style={{
+                                  fontSize: '14px',
+                                  fontWeight: 600,
+                                  color: '#667eea',
+                                  minWidth: '60px'
+                                }}>
+                                  {group.tee_time || 'TBD'}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: '14px', color: '#e5e7eb' }}>
+                                    {group.players?.join(', ') || 'Players TBD'}
+                                  </div>
+                                  {group.tee && (
+                                    <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
+                                      Tee: {group.tee}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      /* Field List if no tee sheet */
+                      <div style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '8px',
+                        padding: '16px'
+                      }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#e5e7eb', marginBottom: '16px' }}>
+                          Tournament Field ({teeTimes.field.length} players)
+                        </h3>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                          gap: '8px'
+                        }}>
+                          {teeTimes.field.map((player: any, idx: number) => (
+                            <div key={idx} style={{
+                              fontSize: '13px',
+                              color: '#e5e7eb',
+                              padding: '8px 12px',
+                              background: 'rgba(255,255,255,0.05)',
+                              borderRadius: '4px'
+                            }}>
+                              {player.player_name || player.name}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '40px 20px',
+                    color: '#9ca3af'
+                  }}>
+                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>⏰</div>
+                    <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>
+                      No Tee Times Available
+                    </div>
+                    <div style={{ fontSize: '13px' }}>
+                      Tee times will be available closer to the tournament start
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </RequireAuth>
   );
