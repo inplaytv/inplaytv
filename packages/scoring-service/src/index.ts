@@ -245,8 +245,16 @@ export class DataGolfAdapter implements ScoringAdapter {
       throw new Error(`Tournament ${tournament.name} has no event_id mapped`);
     }
 
-    // Always use in-play endpoint (works for both live and completed tournaments)
-    // Note: historical-raw-data endpoint requires premium subscription
+    // Check tournament status - in-play endpoint only works for active tournaments
+    if (tournament.status === 'completed') {
+      throw new Error(
+        `Cannot sync completed tournament: ${tournament.name}. ` +
+        `DataGolf in-play API only provides data for currently active tournaments. ` +
+        `Scores should have been synced while the tournament was live. ` +
+        `Use manual entry to update scores for completed tournaments.`
+      );
+    }
+
     console.log(`🔴 Fetching scores for: ${tournament.name} (status: ${tournament.status})`);
     
     const dgScores = await this.fetchWithRetry<DataGolfInPlayResponse>(
@@ -263,11 +271,20 @@ export class DataGolfAdapter implements ScoringAdapter {
       infoEventName: dgScores.info?.event_name
     });
 
+    // Verify we got the correct tournament
+    const apiEventName = dgScores.info?.event_name;
+    if (apiEventName && !tournament.name.toLowerCase().includes(apiEventName.toLowerCase().split(' ').slice(0, 3).join(' '))) {
+      throw new Error(
+        `Tournament mismatch: Expected "${tournament.name}" but API returned "${apiEventName}". ` +
+        `This tournament may not be currently active.`
+      );
+    }
+
     // Check if we got valid data - try both baseline and preds
     const tournamentPlayers = dgScores.baseline || dgScores.preds;
     
     if (!tournamentPlayers || tournamentPlayers.length === 0) {
-      throw new Error(`Invalid response from DataGolf API - missing player data. Event: ${dgScores.info?.event_name}`);
+      throw new Error(`Invalid response from DataGolf API - missing player data. Event: ${apiEventName || 'Unknown'}`);
     }
     
     console.log(`✅ Found ${tournamentPlayers.length} players in DataGolf response`);

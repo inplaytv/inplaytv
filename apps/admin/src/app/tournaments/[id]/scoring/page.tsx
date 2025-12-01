@@ -137,6 +137,35 @@ export default function TournamentScoringPage() {
     }
   };
 
+  const handleInitializeScores = async () => {
+    setSyncing(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const res = await fetch(`/api/admin/tournaments/${tournamentId}/scores/initialize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ round: selectedRound })
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to initialize scores');
+      }
+      
+      const data = await res.json();
+      setSuccess(`Initialized ${data.count} score entries for manual entry`);
+      
+      // Reload scores
+      await loadRoundScores();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const startEdit = (scoreId: string, currentScore: number | null, currentNotes: string | null) => {
     setEditingScore(scoreId);
     setEditForm({
@@ -299,8 +328,26 @@ export default function TournamentScoringPage() {
         
         {roundScores.length === 0 ? (
           <div className="empty-state">
-            <p>No scores available for this round yet.</p>
-            <p>Click "Sync Scores Now" to fetch from DataGolf.</p>
+            <p>No scores available for Round {selectedRound} yet.</p>
+            {tournament?.status === 'completed' ? (
+              <>
+                <p className="help-text">
+                  This tournament is completed. DataGolf sync only works for active tournaments.
+                </p>
+                <button 
+                  onClick={handleInitializeScores}
+                  disabled={syncing}
+                  className="btn-initialize"
+                >
+                  {syncing ? 'Initializing...' : '📝 Initialize Scores for Manual Entry'}
+                </button>
+                <p className="help-text-small">
+                  This will create blank score entries for all golfers, which you can then edit manually.
+                </p>
+              </>
+            ) : (
+              <p>Click "Sync Scores Now" to fetch from DataGolf.</p>
+            )}
           </div>
         ) : (
           <div className="table-wrapper">
@@ -566,6 +613,39 @@ export default function TournamentScoringPage() {
 
         .empty-state p {
           margin: 8px 0;
+        }
+
+        .btn-initialize {
+          background: #10b981;
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 6px;
+          font-weight: 600;
+          cursor: pointer;
+          font-size: 14px;
+          margin: 16px 0;
+        }
+
+        .btn-initialize:hover:not(:disabled) {
+          background: #059669;
+        }
+
+        .btn-initialize:disabled {
+          background: #6ee7b7;
+          cursor: not-allowed;
+        }
+
+        .help-text {
+          color: #9ca3af;
+          font-size: 14px;
+          margin: 12px 0;
+        }
+
+        .help-text-small {
+          color: #9ca3af;
+          font-size: 12px;
+          font-style: italic;
         }
 
         .table-wrapper {
