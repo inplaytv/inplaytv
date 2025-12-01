@@ -245,16 +245,6 @@ export class DataGolfAdapter implements ScoringAdapter {
       throw new Error(`Tournament ${tournament.name} has no event_id mapped`);
     }
 
-    // Check tournament status - in-play endpoint only works for active tournaments
-    if (tournament.status === 'completed') {
-      throw new Error(
-        `Cannot sync completed tournament: ${tournament.name}. ` +
-        `DataGolf in-play API only provides data for currently active tournaments. ` +
-        `Scores should have been synced while the tournament was live. ` +
-        `Use manual entry to update scores for completed tournaments.`
-      );
-    }
-
     console.log(`🔴 Fetching scores for: ${tournament.name} (status: ${tournament.status})`);
     
     const dgScores = await this.fetchWithRetry<DataGolfInPlayResponse>(

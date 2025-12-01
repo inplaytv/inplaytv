@@ -5,6 +5,9 @@
 -- in tournament_golfers table to the normalized tournament_round_scores table
 -- ============================================================================
 
+-- Delete existing entries to avoid conflicts (optional - comment out if you want to preserve existing data)
+-- DELETE FROM public.tournament_round_scores WHERE data_source = 'datagolf' OR data_source = 'manual';
+
 -- Round 1 Scores
 INSERT INTO public.tournament_round_scores (
   tournament_id,
@@ -33,7 +36,7 @@ SELECT
   'datagolf' as data_source,
   false as is_manual_override,
   tg.created_at,
-  tg.updated_at
+  NOW() as updated_at
 FROM public.tournament_golfers tg
 WHERE tg.r1_score IS NOT NULL
 ON CONFLICT (tournament_id, golfer_id, round_number) 
@@ -44,6 +47,7 @@ DO UPDATE SET
   holes_completed = EXCLUDED.holes_completed,
   updated_at = EXCLUDED.updated_at;
 
+-- ============================================================================
 -- Round 2 Scores
 INSERT INTO public.tournament_round_scores (
   tournament_id,
@@ -72,7 +76,7 @@ SELECT
   'datagolf' as data_source,
   false as is_manual_override,
   tg.created_at,
-  tg.updated_at
+  NOW() as updated_at
 FROM public.tournament_golfers tg
 WHERE tg.r2_score IS NOT NULL
 ON CONFLICT (tournament_id, golfer_id, round_number) 
@@ -80,9 +84,10 @@ DO UPDATE SET
   score = EXCLUDED.score,
   to_par = EXCLUDED.to_par,
   status = EXCLUDED.status,
-  holes_completed = EXCLUDED.holes_completed,
   updated_at = EXCLUDED.updated_at;
 
+-- ============================================================================
+-- Round 3 Scores
 -- Round 3 Scores
 INSERT INTO public.tournament_round_scores (
   tournament_id,
@@ -111,7 +116,7 @@ SELECT
   'datagolf' as data_source,
   false as is_manual_override,
   tg.created_at,
-  tg.updated_at
+  NOW() as updated_at
 FROM public.tournament_golfers tg
 WHERE tg.r3_score IS NOT NULL
 ON CONFLICT (tournament_id, golfer_id, round_number) 
@@ -150,7 +155,7 @@ SELECT
   'datagolf' as data_source,
   false as is_manual_override,
   tg.created_at,
-  tg.updated_at
+  NOW() as updated_at
 FROM public.tournament_golfers tg
 WHERE tg.r4_score IS NOT NULL
 ON CONFLICT (tournament_id, golfer_id, round_number) 
