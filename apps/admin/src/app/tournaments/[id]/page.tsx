@@ -488,23 +488,42 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>{tournament.name}</h1>
-          <Link
-            href={`/tournaments/${params.id}/manage-golfers`}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#10b981',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            ⛳ Manage Golfers
-          </Link>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Link
+              href={`/tournaments/${params.id}/scoring`}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                textDecoration: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              📊 Scoring Dashboard
+            </Link>
+            <Link
+              href={`/tournaments/${params.id}/manage-golfers`}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#10b981',
+                color: 'white',
+                textDecoration: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              ⛳ Manage Golfers
+            </Link>
+          </div>
         </div>
       </div>
 
