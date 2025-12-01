@@ -281,23 +281,31 @@ export default function TournamentDetailPage() {
       
       const data = await res.json();
       
-      // Sort competitions: Registration Open first, then by status priority
+      // Sort competitions: maintain type order, but closed ones drop to bottom
       const sortedCompetitions = [...data.competitions].sort((a, b) => {
-        // Priority order: reg_open > live > reg_closed > upcoming > completed
-        const statusPriority: Record<string, number> = {
-          'reg_open': 1,
-          'live': 2,
-          'reg_closed': 3,
-          'upcoming': 4,
-          'completed': 5,
-          'cancelled': 6,
-          'draft': 7
+        // Competition type order (how they're played during tournament)
+        const typeOrder: Record<string, number> = {
+          'full-course': 1,      // Main competition - all 4 rounds (closes start of round 1)
+          'one-2-one': 2,        // Runs all 4 days - can be played each round (stays open)
+          'beat-the-cut': 3,     // Rounds 1-2 (closes start of round 1)
+          'first-strike': 4,     // Round 1 only (closes start of round 1)
+          'the-weekender': 5,    // Rounds 1-2 (closes start of round 3)
+          'final-strike': 6      // Rounds 1-3 (closes start of round 4)
         };
         
-        const aPriority = statusPriority[a.status] || 99;
-        const bPriority = statusPriority[b.status] || 99;
+        const aTypeOrder = typeOrder[a.competition_types.slug] || 99;
+        const bTypeOrder = typeOrder[b.competition_types.slug] || 99;
         
-        return aPriority - bPriority;
+        // Check if competitions are closed
+        const aIsClosed = ['reg_closed', 'completed', 'cancelled'].includes(a.status);
+        const bIsClosed = ['reg_closed', 'completed', 'cancelled'].includes(b.status);
+        
+        // Closed competitions go to bottom, but maintain type order within each group
+        if (aIsClosed && !bIsClosed) return 1;
+        if (!aIsClosed && bIsClosed) return -1;
+        
+        // Within same group (both open or both closed), sort by type order
+        return aTypeOrder - bTypeOrder;
       });
       
       setTournament({ ...data, competitions: sortedCompetitions });

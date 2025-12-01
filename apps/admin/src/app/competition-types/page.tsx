@@ -13,6 +13,7 @@ interface CompetitionType {
   default_admin_fee_percent: number | null;
   default_reg_open_days_before: number | null;
   rounds_count: number | null;
+  round_start: number | null;
   is_template: boolean;
   created_at: string;
 }
@@ -32,6 +33,7 @@ export default function CompetitionTypesPage() {
     default_admin_fee_percent: '',
     default_reg_open_days_before: '',
     rounds_count: '',
+    round_start: '1',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -47,6 +49,7 @@ export default function CompetitionTypesPage() {
     default_admin_fee_percent: '',
     default_reg_open_days_before: '',
     rounds_count: '',
+    round_start: '1',
   });
 
   useEffect(() => {
@@ -83,6 +86,7 @@ export default function CompetitionTypesPage() {
         description: formData.description || null,
         is_template: formData.is_template,
         rounds_count: formData.rounds_count ? parseInt(formData.rounds_count) : null,
+        round_start: formData.round_start ? parseInt(formData.round_start) : 1,
         default_entry_fee_pennies: formData.default_entry_fee_pounds ? Math.round(parseFloat(formData.default_entry_fee_pounds) * 100) : null,
         default_entrants_cap: formData.default_entrants_cap ? parseInt(formData.default_entrants_cap) : null,
         default_admin_fee_percent: formData.default_admin_fee_percent ? parseFloat(formData.default_admin_fee_percent) : null,
@@ -119,6 +123,7 @@ export default function CompetitionTypesPage() {
       description: type.description || '',
       is_template: type.is_template || false,
       rounds_count: type.rounds_count !== null ? type.rounds_count.toString() : '',
+      round_start: type.round_start !== null ? type.round_start.toString() : '1',
       default_entry_fee_pounds: type.default_entry_fee_pennies ? (type.default_entry_fee_pennies / 100).toFixed(2) : '',
       default_entrants_cap: type.default_entrants_cap !== null ? type.default_entrants_cap.toString() : '',
       default_admin_fee_percent: type.default_admin_fee_percent !== null ? type.default_admin_fee_percent.toString() : '',
@@ -276,6 +281,34 @@ export default function CompetitionTypesPage() {
               />
               <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
                 Specify how many rounds this competition type covers (1-4)
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                Registration Closes (Round) <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <select
+                value={formData.round_start}
+                onChange={(e) => setFormData({ ...formData, round_start: e.target.value })}
+                required
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '4px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="1">Round 1 - Registration closes at start of Round 1</option>
+                <option value="2">Round 2 - Registration closes at start of Round 2</option>
+                <option value="3">Round 3 - Registration closes at start of Round 3</option>
+                <option value="4">Round 4 - Registration closes at start of Round 4</option>
+              </select>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                Determines when registration automatically closes (at 6:30 AM on the selected round day)
               </p>
             </div>
 

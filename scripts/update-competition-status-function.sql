@@ -2,10 +2,11 @@
 -- This will change 'upcoming' to 'reg_open' 6 days before tournament starts
 -- and handle other status transitions based on dates
 
+-- Drop the function first if it exists with a different return type
+DROP FUNCTION IF EXISTS auto_update_competition_statuses();
+
 CREATE OR REPLACE FUNCTION auto_update_competition_statuses()
-RETURNS TABLE (updated_count INTEGER) AS $$
-DECLARE
-  update_count INTEGER := 0;
+RETURNS void AS $$
 BEGIN
   -- 1. Update 'upcoming' to 'reg_open' 6 days before tournament start
   UPDATE tournament_competitions tc
@@ -16,16 +17,12 @@ BEGIN
     AND t.start_date <= CURRENT_DATE + INTERVAL '6 days'
     AND (tc.reg_close_at IS NULL OR tc.reg_close_at > NOW());
   
-  GET DIAGNOSTICS update_count = ROW_COUNT;
-  
   -- 2. Update 'reg_open' to 'reg_closed' when registration closes
   UPDATE tournament_competitions
   SET status = 'reg_closed'
   WHERE status = 'reg_open'
     AND reg_close_at IS NOT NULL
     AND reg_close_at <= NOW();
-  
-  GET DIAGNOSTICS update_count = update_count + ROW_COUNT;
   
   -- 3. Update 'reg_closed' to 'live' when tournament starts
   UPDATE tournament_competitions tc
@@ -35,8 +32,6 @@ BEGIN
     AND tc.status = 'reg_closed'
     AND t.start_date <= CURRENT_DATE;
   
-  GET DIAGNOSTICS update_count = update_count + ROW_COUNT;
-  
   -- 4. Update 'live' to 'completed' when tournament ends
   UPDATE tournament_competitions tc
   SET status = 'completed'
@@ -44,15 +39,11 @@ BEGIN
   WHERE tc.tournament_id = t.id
     AND tc.status = 'live'
     AND t.end_date < CURRENT_DATE;
-  
-  GET DIAGNOSTICS update_count = update_count + ROW_COUNT;
-  
-  RETURN QUERY SELECT update_count;
 END;
 $$ LANGUAGE plpgsql;
 
 -- Run it once to update existing competitions
-SELECT * FROM auto_update_competition_statuses();
+SELECT auto_update_competition_statuses();
 
 -- Check Hero World Challenge competitions
 SELECT 
