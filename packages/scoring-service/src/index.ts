@@ -162,6 +162,8 @@ export class DataGolfAdapter implements ScoringAdapter {
   constructor(apiKey?: string) {
     this.apiKey = apiKey || process.env.DATAGOLF_API_KEY || '';
     
+    console.log('🔑 DataGolf API Key configured:', this.apiKey ? `${this.apiKey.substring(0, 8)}...` : 'MISSING');
+    
     if (!this.apiKey) {
       throw new Error('DataGolf API key is required');
     }
@@ -243,35 +245,14 @@ export class DataGolfAdapter implements ScoringAdapter {
       throw new Error(`Tournament ${tournament.name} has no event_id mapped`);
     }
 
-    // Choose endpoint based on tournament status
-    let dgScores: DataGolfInPlayResponse;
+    // Always use in-play endpoint (works for both live and completed tournaments)
+    // Note: historical-raw-data endpoint requires premium subscription
+    console.log(`🔴 Fetching scores for: ${tournament.name} (status: ${tournament.status})`);
     
-    if (tournament.status === 'completed') {
-      console.log(`📊 Fetching completed tournament scores for: ${tournament.name}`);
-      // Extract year from tournament start date
-      const year = new Date(tournament.start_date).getFullYear();
-      
-      // Use historical raw data rounds endpoint for completed tournaments
-      const historicalData = await this.fetchWithRetry<any>(
-        `${this.baseUrl}/historical-raw-data/rounds`,
-        { 
-          tour: 'pga',
-          event_id: tournament.event_id,
-          year: year.toString(),
-          file_format: 'json'
-        }
-      );
-      
-      // Transform historical data to match in-play format
-      dgScores = this.transformHistoricalToInPlay(historicalData, tournament);
-    } else {
-      console.log(`🔴 Fetching live scores for: ${tournament.name}`);
-      // Use in-play endpoint for live/ongoing tournaments
-      dgScores = await this.fetchWithRetry<DataGolfInPlayResponse>(
-        `${this.baseUrl}/preds/in-play`,
-        { tour: 'pga' }
-      );
-    }
+    const dgScores = await this.fetchWithRetry<DataGolfInPlayResponse>(
+      `${this.baseUrl}/preds/in-play`,
+      { tour: 'pga' }
+    );
 
     // Debug: Log the response structure
     console.log('DataGolf API Response structure:', {
@@ -479,6 +460,7 @@ export class DataGolfAdapter implements ScoringAdapter {
     } as any);
 
     const fullUrl = `${url}?${queryParams.toString()}`;
+    console.log('🌐 DataGolf API URL:', fullUrl.replace(this.apiKey, 'KEY_HIDDEN'));
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -490,6 +472,8 @@ export class DataGolfAdapter implements ScoringAdapter {
         });
 
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ DataGolf API ${response.status}:`, errorText.substring(0, 200));
           throw new Error(`DataGolf API error: ${response.status} ${response.statusText}`);
         }
 
