@@ -61,6 +61,8 @@ export async function GET(request: NextRequest) {
             entry_fee_pennies,
             entrants_cap,
             admin_fee_percent,
+            guaranteed_prize_pool_pennies,
+            first_place_prize_pennies,
             reg_open_at,
             reg_close_at,
             start_at,
