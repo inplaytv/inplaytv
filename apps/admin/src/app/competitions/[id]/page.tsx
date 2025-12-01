@@ -382,7 +382,7 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
                 Guaranteed Prize Pool (£)
@@ -404,7 +404,18 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
                   borderRadius: '4px',
                   color: '#fff',
                 }}
-                placeholder="Auto-calculated if empty"
+                placeholder={(() => {
+                  const entrants = parseInt(formData.entrants_cap) || 0;
+                  const entryFee = parseFloat(formData.entry_fee_pounds) || 0;
+                  const adminFee = parseFloat(formData.admin_fee_percent) || 10;
+                  if (entrants > 0 && entryFee > 0) {
+                    const gross = entrants * entryFee;
+                    const fee = gross * (adminFee / 100);
+                    const net = gross - fee;
+                    return `Auto: £${net.toFixed(2)}`;
+                  }
+                  return 'Auto-calculated if empty';
+                })()}
               />
             </div>
 
@@ -429,12 +440,22 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
                   borderRadius: '4px',
                   color: '#fff',
                 }}
-                placeholder="Auto-calculated if empty"
+                placeholder={(() => {
+                  const entrants = parseInt(formData.entrants_cap) || 0;
+                  const entryFee = parseFloat(formData.entry_fee_pounds) || 0;
+                  const adminFee = parseFloat(formData.admin_fee_percent) || 10;
+                  if (entrants > 0 && entryFee > 0) {
+                    const gross = entrants * entryFee;
+                    const fee = gross * (adminFee / 100);
+                    const net = gross - fee;
+                    const firstPlace = net * 0.25;
+                    return `Auto: £${firstPlace.toFixed(2)}`;
+                  }
+                  return 'Auto-calculated if empty';
+                })()}
               />
             </div>
-          </div>
-
-          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', margin: '0.5rem 0 0 0' }}>
+          </div>          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', margin: '0.5rem 0 0 0' }}>
             💡 Leave these empty to auto-calculate based on entry fee, cap, and admin fee. Set custom values to override.
           </p>
         </div>

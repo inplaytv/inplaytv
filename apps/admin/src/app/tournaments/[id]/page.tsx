@@ -1137,7 +1137,18 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                     borderRadius: '4px',
                     color: '#fff',
                   }}
-                  placeholder="Auto-calculated if empty"
+                  placeholder={(() => {
+                    const entrants = parseInt(competitionFormData.entrants_cap) || 0;
+                    const entryFee = parseFloat(competitionFormData.entry_fee_pounds) || 0;
+                    const adminFee = parseFloat(competitionFormData.admin_fee_percent) || 10;
+                    if (entrants > 0 && entryFee > 0) {
+                      const gross = entrants * entryFee;
+                      const fee = gross * (adminFee / 100);
+                      const net = gross - fee;
+                      return `Auto: £${net.toFixed(2)}`;
+                    }
+                    return 'Auto-calculated if empty';
+                  })()}
                 />
               </div>
 
@@ -1162,7 +1173,19 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                     borderRadius: '4px',
                     color: '#fff',
                   }}
-                  placeholder="Auto-calculated if empty"
+                  placeholder={(() => {
+                    const entrants = parseInt(competitionFormData.entrants_cap) || 0;
+                    const entryFee = parseFloat(competitionFormData.entry_fee_pounds) || 0;
+                    const adminFee = parseFloat(competitionFormData.admin_fee_percent) || 10;
+                    if (entrants > 0 && entryFee > 0) {
+                      const gross = entrants * entryFee;
+                      const fee = gross * (adminFee / 100);
+                      const net = gross - fee;
+                      const firstPlace = net * 0.25;
+                      return `Auto: £${firstPlace.toFixed(2)}`;
+                    }
+                    return 'Auto-calculated if empty';
+                  })()}
                 />
               </div>
             </div>
