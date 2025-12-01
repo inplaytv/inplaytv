@@ -230,10 +230,10 @@ export class DataGolfAdapter implements ScoringAdapter {
   // ==========================================================================
 
   async fetchLiveScores(tournamentId: string, supabase: SupabaseClient): Promise<TournamentScores> {
-    // Get tournament details including event_id
+    // Get tournament details including event_id and tour
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('id, name, event_id, start_date, end_date, status')
+      .select('id, name, event_id, start_date, end_date, status, tour')
       .eq('id', tournamentId)
       .single();
 
@@ -245,11 +245,13 @@ export class DataGolfAdapter implements ScoringAdapter {
       throw new Error(`Tournament ${tournament.name} has no event_id mapped`);
     }
 
-    console.log(`🔴 Fetching scores for: ${tournament.name} (status: ${tournament.status})`);
+    // Use tournament's tour, default to 'pga' if not set
+    const tour = tournament.tour || 'pga';
+    console.log(`🔴 Fetching scores for: ${tournament.name} (status: ${tournament.status}, tour: ${tour})`);
     
     const dgScores = await this.fetchWithRetry<DataGolfInPlayResponse>(
       `${this.baseUrl}/preds/in-play`,
-      { tour: 'pga' }
+      { tour }
     );
 
     // Debug: Log the response structure
