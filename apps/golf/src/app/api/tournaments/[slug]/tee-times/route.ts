@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const DATAGOLF_API_KEY = process.env.DATAGOLF_API_KEY || 'ac7793fb5f617626ccc418008832';
 
 export const dynamic = 'force-dynamic';
-
-const DATAGOLF_API_KEY = process.env.DATAGOLF_API_KEY || 'ac7793fb5f617626ccc418008832';
 
 // GET /api/tournaments/[slug]/tee-times - Fetch tee times from DataGolf
 export async function GET(
@@ -14,7 +16,7 @@ export async function GET(
     const { slug } = params;
     console.log('⏰ Fetching tee times for tournament slug:', slug);
 
-    const supabase = createClient();
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Get tournament by slug
     const { data: tournament, error: tournamentError } = await supabase
