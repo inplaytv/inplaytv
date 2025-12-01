@@ -38,6 +38,8 @@ interface TournamentCompetition {
   entry_fee_pennies: number;
   entrants_cap: number;
   admin_fee_percent: number;
+  guaranteed_prize_pool_pennies: number | null;
+  first_place_prize_pennies: number | null;
   assigned_golfer_group_id: string | null;
   reg_open_at: string | null;
   reg_close_at: string | null;
@@ -107,6 +109,8 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
     entry_fee_pounds: '0.00', // Changed to pounds for UI
     entrants_cap: '0',
     admin_fee_percent: '10.00', // Default value, will be loaded from settings
+    guaranteed_prize_pool_pounds: '',
+    first_place_prize_pounds: '',
     golfer_group_id: '', // NEW - golfer group for this competition
     reg_open_at: '',
     reg_close_at: '',
@@ -263,6 +267,12 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
       const dataToSend = {
         ...competitionFormData,
         entry_fee_pennies: Math.round(parseFloat(competitionFormData.entry_fee_pounds) * 100),
+        guaranteed_prize_pool_pennies: competitionFormData.guaranteed_prize_pool_pounds 
+          ? Math.round(parseFloat(competitionFormData.guaranteed_prize_pool_pounds) * 100) 
+          : null,
+        first_place_prize_pennies: competitionFormData.first_place_prize_pounds 
+          ? Math.round(parseFloat(competitionFormData.first_place_prize_pounds) * 100) 
+          : null,
         assigned_golfer_group_id: competitionFormData.golfer_group_id || null,
       };
       // Remove the pounds field and golfer_group_id as they're internal form fields
@@ -343,6 +353,12 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
       entry_fee_pounds: (comp.entry_fee_pennies / 100).toFixed(2), // Convert pennies to pounds
       entrants_cap: comp.entrants_cap.toString(),
       admin_fee_percent: comp.admin_fee_percent.toString(),
+      guaranteed_prize_pool_pounds: comp.guaranteed_prize_pool_pennies 
+        ? (comp.guaranteed_prize_pool_pennies / 100).toFixed(2) 
+        : '',
+      first_place_prize_pounds: comp.first_place_prize_pennies 
+        ? (comp.first_place_prize_pennies / 100).toFixed(2) 
+        : '',
       golfer_group_id: comp.assigned_golfer_group_id || '',
       reg_open_at: formatForDatetimeLocal(comp.reg_open_at),
       reg_close_at: formatForDatetimeLocal(comp.reg_close_at),
@@ -1098,6 +1114,62 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                 </p>
               </div>
             </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                  Guaranteed Prize Pool (£)
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
+                    (optional override)
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={competitionFormData.guaranteed_prize_pool_pounds}
+                  onChange={(e) => setCompetitionFormData({ ...competitionFormData, guaranteed_prize_pool_pounds: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '4px',
+                    color: '#fff',
+                  }}
+                  placeholder="Auto-calculated if empty"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                  First Place Prize (£)
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
+                    (optional override)
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={competitionFormData.first_place_prize_pounds}
+                  onChange={(e) => setCompetitionFormData({ ...competitionFormData, first_place_prize_pounds: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '4px',
+                    color: '#fff',
+                  }}
+                  placeholder="Auto-calculated if empty"
+                />
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1rem' }}>
+              💡 Leave these empty to auto-calculate based on entry fee, cap, and admin fee. Set custom values to override.
+            </p>
 
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>

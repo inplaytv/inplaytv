@@ -44,6 +44,7 @@ interface Competition {
   tournaments: Tournament;
 }
 
+// Updated: Added guaranteed prize pool fields
 export default function EditCompetitionPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
