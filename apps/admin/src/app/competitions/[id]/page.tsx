@@ -384,11 +384,25 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                Guaranteed Prize Pool (£)
+              <label style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                <span>Guaranteed Prize Pool (£)</span>
                 <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
                   (optional override)
                 </span>
+                {!formData.guaranteed_prize_pool_pounds && (
+                  <span style={{
+                    marginLeft: '0.5rem',
+                    padding: '0.125rem 0.5rem',
+                    background: 'rgba(59, 130, 246, 0.2)',
+                    border: '1px solid rgba(59, 130, 246, 0.4)',
+                    borderRadius: '12px',
+                    fontSize: '0.7rem',
+                    color: '#60a5fa',
+                    fontWeight: '500'
+                  }}>
+                    🤖 AUTO
+                  </span>
+                )}
               </label>
               <input
                 type="number"
@@ -400,7 +414,9 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
                   width: '100%',
                   padding: '0.625rem',
                   background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.2)',
+                  border: !formData.guaranteed_prize_pool_pounds 
+                    ? '1px solid rgba(59, 130, 246, 0.4)' 
+                    : '1px solid rgba(16, 185, 129, 0.4)',
                   borderRadius: '4px',
                   color: '#fff',
                 }}
@@ -420,11 +436,25 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                First Place Prize (£)
+              <label style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                <span>First Place Prize (£)</span>
                 <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
                   (optional override)
                 </span>
+                {!formData.first_place_prize_pounds && (
+                  <span style={{
+                    marginLeft: '0.5rem',
+                    padding: '0.125rem 0.5rem',
+                    background: 'rgba(59, 130, 246, 0.2)',
+                    border: '1px solid rgba(59, 130, 246, 0.4)',
+                    borderRadius: '12px',
+                    fontSize: '0.7rem',
+                    color: '#60a5fa',
+                    fontWeight: '500'
+                  }}>
+                    🤖 AUTO
+                  </span>
+                )}
               </label>
               <input
                 type="number"
@@ -436,7 +466,9 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
                   width: '100%',
                   padding: '0.625rem',
                   background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.2)',
+                  border: !formData.first_place_prize_pounds 
+                    ? '1px solid rgba(59, 130, 246, 0.4)' 
+                    : '1px solid rgba(16, 185, 129, 0.4)',
                   borderRadius: '4px',
                   color: '#fff',
                 }}
@@ -458,6 +490,49 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
           </div>          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', margin: '0.5rem 0 0 0' }}>
             💡 Leave these empty to auto-calculate based on entry fee, cap, and admin fee. Set custom values to override.
           </p>
+        </div>
+
+        <div style={{
+          background: 'rgba(30, 30, 35, 0.95)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '8px',
+          padding: '1.5rem',
+          marginBottom: '1.5rem',
+        }}>
+          <h3 style={{ marginBottom: '1rem', fontSize: '1.125rem' }}>Status</h3>
+          
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+              Competition Status
+              <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
+                (manual override)
+              </span>
+            </label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                background: 'rgba(0,0,0,0.3)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '4px',
+                color: '#fff',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="draft">Draft</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="reg_open">Registration Open</option>
+              <option value="reg_closed">Registration Closed</option>
+              <option value="live">Live</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.25rem' }}>
+              ⚠️ Auto-updates to "Registration Open" 6 days before tournament start
+            </p>
+          </div>
         </div>
 
         <div style={{

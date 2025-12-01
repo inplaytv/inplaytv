@@ -271,7 +271,12 @@ export default function TournamentDetailPage() {
 
   const fetchTournamentData = async () => {
     try {
-      const res = await fetch(`/api/tournaments/${slug}`);
+      const res = await fetch(`/api/tournaments/${slug}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
       if (!res.ok) throw new Error('Tournament not found');
       
       const data = await res.json();

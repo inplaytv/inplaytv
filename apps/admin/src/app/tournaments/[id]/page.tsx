@@ -116,7 +116,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
     reg_close_at: '',
     start_at: '',
     end_at: '',
-    status: 'draft',
+    status: 'reg_open', // Default to registration open
   });
 
   const [manualRegClose, setManualRegClose] = useState(false);
@@ -253,6 +253,26 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
     if (entrantsCap === 0) {
       setError('⚠️ Max entries is 0 - This competition will not be visible to players until capacity is set');
       return;
+    }
+    
+    // Warn if prize fields are empty (using auto-calculation)
+    if (!competitionFormData.guaranteed_prize_pool_pounds || !competitionFormData.first_place_prize_pounds) {
+      const hasEmptyPrizePool = !competitionFormData.guaranteed_prize_pool_pounds;
+      const hasEmptyFirstPlace = !competitionFormData.first_place_prize_pounds;
+      
+      let warningMessage = '⚠️ Prize fields not set:\n\n';
+      if (hasEmptyPrizePool && hasEmptyFirstPlace) {
+        warningMessage += '• Prize Pool: Will auto-calculate\n• First Place Prize: Will auto-calculate\n\n';
+      } else if (hasEmptyPrizePool) {
+        warningMessage += '• Prize Pool: Will auto-calculate\n\n';
+      } else {
+        warningMessage += '• First Place Prize: Will auto-calculate\n\n';
+      }
+      warningMessage += 'Do you want to continue with auto-calculated values?';
+      
+      if (!confirm(warningMessage)) {
+        return;
+      }
     }
     
     setSaving(true);
@@ -1117,11 +1137,25 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                  Guaranteed Prize Pool (£)
+                <label style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                  <span>Guaranteed Prize Pool (£)</span>
                   <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
                     (optional override)
                   </span>
+                  {!competitionFormData.guaranteed_prize_pool_pounds && (
+                    <span style={{
+                      marginLeft: '0.5rem',
+                      padding: '0.125rem 0.5rem',
+                      background: 'rgba(59, 130, 246, 0.2)',
+                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                      borderRadius: '12px',
+                      fontSize: '0.7rem',
+                      color: '#60a5fa',
+                      fontWeight: '500'
+                    }}>
+                      🤖 AUTO
+                    </span>
+                  )}
                 </label>
                 <input
                   type="number"
@@ -1133,7 +1167,9 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                     width: '100%',
                     padding: '0.625rem',
                     background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.2)',
+                    border: !competitionFormData.guaranteed_prize_pool_pounds 
+                      ? '1px solid rgba(59, 130, 246, 0.4)' 
+                      : '1px solid rgba(16, 185, 129, 0.4)',
                     borderRadius: '4px',
                     color: '#fff',
                   }}
@@ -1153,11 +1189,25 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                  First Place Prize (£)
+                <label style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                  <span>First Place Prize (£)</span>
                   <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
                     (optional override)
                   </span>
+                  {!competitionFormData.first_place_prize_pounds && (
+                    <span style={{
+                      marginLeft: '0.5rem',
+                      padding: '0.125rem 0.5rem',
+                      background: 'rgba(59, 130, 246, 0.2)',
+                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                      borderRadius: '12px',
+                      fontSize: '0.7rem',
+                      color: '#60a5fa',
+                      fontWeight: '500'
+                    }}>
+                      🤖 AUTO
+                    </span>
+                  )}
                 </label>
                 <input
                   type="number"
@@ -1169,7 +1219,9 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                     width: '100%',
                     padding: '0.625rem',
                     background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.2)',
+                    border: !competitionFormData.first_place_prize_pounds 
+                      ? '1px solid rgba(59, 130, 246, 0.4)' 
+                      : '1px solid rgba(16, 185, 129, 0.4)',
                     borderRadius: '4px',
                     color: '#fff',
                   }}
@@ -1193,6 +1245,39 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
             <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1rem' }}>
               💡 Leave these empty to auto-calculate based on entry fee, cap, and admin fee. Set custom values to override.
             </p>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                Status
+                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
+                  (manual override)
+                </span>
+              </label>
+              <select
+                value={competitionFormData.status}
+                onChange={(e) => setCompetitionFormData({ ...competitionFormData, status: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '4px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="draft">Draft</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="reg_open">Registration Open</option>
+                <option value="reg_closed">Registration Closed</option>
+                <option value="live">Live</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.25rem' }}>
+                ⚠️ Auto-updates to "Registration Open" 6 days before tournament start
+              </p>
+            </div>
 
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
