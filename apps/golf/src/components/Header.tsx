@@ -17,6 +17,7 @@ export default function Header() {
           <Link href="/tournaments" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none' }}>Tournaments</Link>
           <Link href="/entries" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none' }}>My Scorecards</Link>
           <Link href="/leaderboards" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none' }}>Leaderboards</Link>
+          <Link href="/golfdata" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none' }}>GOLFDATA</Link>
           <Link href="/how-to-play" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none' }}>How To Play</Link>
         </div>
         <UserMenu />
