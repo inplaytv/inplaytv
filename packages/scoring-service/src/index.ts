@@ -258,6 +258,7 @@ export class DataGolfAdapter implements ScoringAdapter {
     console.log('DataGolf API Response structure:', {
       hasBaseline: !!dgScores.baseline,
       hasPreds: !!dgScores.preds,
+      hasData: !!(dgScores as any).data,
       hasInfo: !!dgScores.info,
       keys: Object.keys(dgScores),
       infoEventName: dgScores.info?.event_name
@@ -272,8 +273,8 @@ export class DataGolfAdapter implements ScoringAdapter {
       );
     }
 
-    // Check if we got valid data - try both baseline and preds
-    const tournamentPlayers = dgScores.baseline || dgScores.preds;
+    // Check if we got valid data - try baseline, preds, or data (different tours use different formats)
+    const tournamentPlayers = dgScores.baseline || dgScores.preds || (dgScores as any).data;
     
     if (!tournamentPlayers || tournamentPlayers.length === 0) {
       throw new Error(`Invalid response from DataGolf API - missing player data. Event: ${apiEventName || 'Unknown'}`);
