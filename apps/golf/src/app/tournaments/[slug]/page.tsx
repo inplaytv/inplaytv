@@ -402,11 +402,11 @@ export default function TournamentDetailPage() {
   };
 
   const calculatePrizePool = (comp: Competition) => {
-    // Use guaranteed prize pool from database if available, otherwise calculate from max entries
-    if (comp.guaranteed_prize_pool_pennies && comp.guaranteed_prize_pool_pennies > 0) {
+    // Use guaranteed prize pool from database if available AND greater than 0, otherwise auto-calculate
+    if (comp.guaranteed_prize_pool_pennies != null && comp.guaranteed_prize_pool_pennies > 0) {
       return comp.guaranteed_prize_pool_pennies / 100; // Convert pennies to pounds
     }
-    // Fallback: calculate based on max entries
+    // Auto-calculate: entry_fee × max_entries × (1 - admin_fee%)
     return (comp.entry_fee_pennies / 100) * comp.entrants_cap * (1 - comp.admin_fee_percent / 100);
   };
 
@@ -496,21 +496,11 @@ export default function TournamentDetailPage() {
             {tournament.competitions.map((competition) => {
               const prizePool = calculatePrizePool(competition);
               const isWinnerTakesAll = competition.entrants_cap <= 2;
-              // Use first_place_prize_pennies from database if available
-              const firstPlacePrize = (competition.first_place_prize_pennies && competition.first_place_prize_pennies > 0)
+              // Use first_place_prize_pennies from database if available AND greater than 0, otherwise auto-calculate
+              const firstPlacePrize = (competition.first_place_prize_pennies != null && competition.first_place_prize_pennies > 0)
                 ? competition.first_place_prize_pennies / 100
                 : (isWinnerTakesAll ? prizePool : prizePool * 0.25);
               const statusBadge = getStatusBadge(competition, tournament);
-              
-              console.log('🎯 Competition Card:', {
-                type: competition.competition_types.name,
-                entry_fee: competition.entry_fee_pennies / 100,
-                max_entries: competition.entrants_cap,
-                guaranteed_pool: competition.guaranteed_prize_pool_pennies,
-                guaranteed_first: competition.first_place_prize_pennies,
-                calculated_pool: prizePool,
-                calculated_first: firstPlacePrize
-              });
               
               // Check if registration is actually open (based on status badge which already handles status field + dates)
               const canRegister = statusBadge.label === 'Registration Open';
