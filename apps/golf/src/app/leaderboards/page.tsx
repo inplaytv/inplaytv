@@ -300,26 +300,49 @@ export default function LeaderboardsPage() {
             golfers: tournamentData.leaderboard?.length || 0,
             sampleGolfer: tournamentData.leaderboard?.[0]
           });
-          setTournamentLeaderboard({
-            ...tournamentData,
-            source: 'database'
-          });
+          
+          // Load live scores and merge with database data
+          if (tournamentSlug) {
+            console.log('🎯 Loading live scores from DataGolf for InPlay leaderboard...');
+            const liveResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/live-scores`);
+            if (liveResponse.ok) {
+              const liveData = await liveResponse.json();
+              console.log('✅ Loaded live scores:', {
+                golfers: liveData.leaderboard?.length || 0,
+                source: liveData.source
+              });
+              
+              // Merge live scores into tournament leaderboard for InPlay fantasy points
+              if (liveData.leaderboard && liveData.leaderboard.length > 0) {
+                console.log('🔄 Merging live scores with database IDs for fantasy calculations...');
+                setTournamentLeaderboard({
+                  ...liveData,
+                  source: 'datagolf-live'
+                });
+                setCompetitionLiveScores(liveData);
+              } else {
+                // Fallback to database if no live data
+                setTournamentLeaderboard({
+                  ...tournamentData,
+                  source: 'database'
+                });
+              }
+            } else {
+              // Fallback to database if live scores fail
+              setTournamentLeaderboard({
+                ...tournamentData,
+                source: 'database'
+              });
+            }
+          } else {
+            // No slug, use database
+            setTournamentLeaderboard({
+              ...tournamentData,
+              source: 'database'
+            });
+          }
         } else {
           console.error('❌ Failed to load tournament leaderboard');
-        }
-        
-        // After loading database tournament for fantasy points
-        if (tournamentSlug) {
-          console.log('🎯 Loading live scores for InPlay scorecards...');
-          const liveResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/live-scores`);
-          if (liveResponse.ok) {
-            const liveData = await liveResponse.json();
-            console.log('✅ Loaded live scores for scorecards:', {
-              golfers: liveData.leaderboard?.length || 0,
-              source: liveData.source
-            });
-            setCompetitionLiveScores(liveData);
-          }
         }
       }
     } catch (error) {
