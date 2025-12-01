@@ -522,14 +522,14 @@ export class DataGolfAdapter implements ScoringAdapter {
 export class ScoringService {
   private adapter: ScoringAdapter;
 
-  constructor(provider?: 'datagolf' | 'sportsradar') {
+  constructor(provider?: 'datagolf' | 'sportsradar', apiKey?: string) {
     const selectedProvider = provider || 
       (process.env.SCORING_PROVIDER as 'datagolf' | 'sportsradar') || 
       'datagolf';
 
     switch (selectedProvider) {
       case 'datagolf':
-        this.adapter = new DataGolfAdapter();
+        this.adapter = new DataGolfAdapter(apiKey);
         break;
       case 'sportsradar':
         // TODO: Implement in Phase 2

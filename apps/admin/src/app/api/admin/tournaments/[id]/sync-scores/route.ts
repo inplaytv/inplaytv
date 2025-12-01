@@ -53,8 +53,17 @@ export async function POST(
       );
     }
 
-    // Initialize scoring service
-    const scoringService = new ScoringService();
+    // Check for DataGolf API key
+    const dataGolfKey = process.env.NEXT_PUBLIC_DATAGOLF_API_KEY || process.env.DATAGOLF_API_KEY;
+    if (!dataGolfKey) {
+      return NextResponse.json(
+        { error: 'DataGolf API key not configured. Please add DATAGOLF_API_KEY to your environment variables.' },
+        { status: 500 }
+      );
+    }
+
+    // Initialize scoring service with API key
+    const scoringService = new ScoringService('datagolf', dataGolfKey);
     
     // Fetch latest scores from DataGolf
     console.log(`🔄 Fetching scores for ${tournament.name}...`);
