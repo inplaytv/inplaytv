@@ -671,6 +671,7 @@ export default function TournamentScoringPage() {
           padding: 12px 16px;
           border-bottom: 1px solid #f3f4f6;
           font-size: 14px;
+          color: #111827;
         }
 
         .scores-table tr:hover {
@@ -689,6 +690,11 @@ export default function TournamentScoringPage() {
         .score-cell {
           font-size: 16px;
           font-weight: 700;
+          color: #111827;
+        }
+
+        .score-value {
+          color: #111827;
         }
 
         .score-input {
