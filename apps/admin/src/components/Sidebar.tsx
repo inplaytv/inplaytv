@@ -38,8 +38,6 @@ const navSections: NavSection[] = [
     items: [
       { label: 'All Tournaments', href: '/tournaments' },
       { label: 'AI Tournament Creator', href: '/ai-tournament-creator' },
-      { label: 'Featured Competitions', href: '/featured-competitions' },
-      { label: 'Promotional Cards', href: '/promotional-cards' },
       { label: 'Active Competitions', href: '/competitions' },
       { label: 'Competition Types', href: '/competition-types' },
       { label: 'Tournament Golfers', href: '/golfers/groups' },
