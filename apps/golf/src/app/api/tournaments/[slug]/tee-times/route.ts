@@ -94,9 +94,6 @@ export async function GET(
     // Extract field from field-updates
     const fieldData = apiResponse.field || [];
     const eventName = apiResponse.event_name || tournament.name;
-    // Extract field from field-updates
-    const fieldData = apiResponse.field || [];
-    const eventName = apiResponse.event_name || tournament.name;
     
     if (fieldData.length === 0) {
       console.log('⚠️ No field data returned from DataGolf');
