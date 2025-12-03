@@ -39,7 +39,11 @@ export default function FaultsFixesPage() {
     try {
       const res = await fetch('/api/dev-notes');
       const data = await res.json();
-      setNotes(data.notes || []);
+      // Filter to only show bug/security related notes
+      const filteredNotes = (data.notes || []).filter((note: DevNote) => 
+        note.category === 'bug' || note.category === 'security'
+      );
+      setNotes(filteredNotes);
     } catch (error) {
       console.error('Error fetching notes:', error);
     } finally {
