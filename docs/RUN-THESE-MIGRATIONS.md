@@ -2,6 +2,24 @@
 
 You need to run these SQL migrations in your Supabase Dashboard SQL Editor **before testing the new features**.
 
+## Migration 3: Add updated_at to Golfers (CRITICAL)
+**Status**: ✅ **COMPLETED** (2025-12-03) - Required for world rankings sync
+
+**File**: `docs/migrations/2025-12-03-add-updated-at-to-golfers.sql`
+
+**What it does**: Adds `updated_at` column to golfers table, required by database trigger for golfer updates. Enables world rankings sync feature.
+
+**Steps**:
+1. Open your Supabase Dashboard
+2. Go to SQL Editor
+3. Copy and paste the contents of `docs/migrations/2025-12-03-add-updated-at-to-golfers.sql`
+4. Click "Run"
+5. ✅ Should see: "Success. No rows returned"
+
+**Note**: This migration has already been run on production. Only needed for new environments.
+
+---
+
 ## Migration 1: Remove Unique Constraint (CRITICAL)
 **Status**: ⚠️ **BLOCKING** - Without this, you cannot add multiple competitions of the same type with different fees
 

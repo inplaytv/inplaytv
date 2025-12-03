@@ -37,6 +37,7 @@ const navSections: NavSection[] = [
     icon: '◆',
     items: [
       { label: 'All Tournaments', href: '/tournaments' },
+      { label: 'Lifecycle Manager', href: '/tournament-lifecycle' },
       { label: 'AI Tournament Creator', href: '/ai-tournament-creator' },
       { label: 'Active Competitions', href: '/competitions' },
       { label: 'Competition Types', href: '/competition-types' },
