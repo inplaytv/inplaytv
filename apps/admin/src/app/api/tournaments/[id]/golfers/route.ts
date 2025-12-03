@@ -37,7 +37,7 @@ export async function GET(
     if (error) throw error;
 
     // Flatten the structure and ensure name field exists
-    const golfers = (data || []).map(tg => {
+    const golfers = (data || []).map((tg: any) => {
       const golfer = tg.golfers;
       if (!golfer) return null;
       

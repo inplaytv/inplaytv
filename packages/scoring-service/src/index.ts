@@ -92,8 +92,8 @@ interface DataGolfInPlayResponse {
   preds?: DataGolfPlayer[];     // Optional, may not always be present
 }
 
-// Historical raw data - rounds endpoint response
-interface DataGolfHistoricalRound {
+// Historical raw data - rounds endpoint response (unused for now)
+/* interface DataGolfHistoricalRound {
   dg_id: number;
   player_name: string;
   country?: string;
@@ -107,7 +107,7 @@ interface DataGolfHistoricalRound {
   event_name: string;
   year: number;
   tour: string;
-}
+} */
 
 interface DataGolfPlayer {
   player_name: string;
@@ -174,10 +174,10 @@ export class DataGolfAdapter implements ScoringAdapter {
   }
 
   // ==========================================================================
-  // TRANSFORM HISTORICAL DATA
+  // TRANSFORM HISTORICAL DATA (unused for now)
   // ==========================================================================
   
-  private transformHistoricalToInPlay(historicalData: any[], tournament: any): DataGolfInPlayResponse {
+  /* private transformHistoricalToInPlay(historicalData: any[], tournament: any): DataGolfInPlayResponse {
     // Historical rounds data is an array of round records
     // We need to group by player and aggregate their scores
     
@@ -223,7 +223,7 @@ export class DataGolfAdapter implements ScoringAdapter {
       },
       baseline: players
     };
-  }
+  } */
 
   // ==========================================================================
   // FETCH LIVE SCORES

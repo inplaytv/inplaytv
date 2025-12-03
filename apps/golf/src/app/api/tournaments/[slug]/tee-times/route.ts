@@ -129,7 +129,7 @@ export async function GET(
     }));
 
     // Count how many players have tee times
-    const playersWithTeeTimes = field.filter(p => p.tee_time).length;
+    const playersWithTeeTimes = field.filter((p: any) => p.tee_time).length;
     console.log('✅ DataGolf returned field with', field.length, 'players');
     console.log('✅ Players with tee times:', playersWithTeeTimes);
     console.log('✅ Event:', eventName);

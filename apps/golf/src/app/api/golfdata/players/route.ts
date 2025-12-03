@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     // Apply sorting
     switch (sortBy) {
       case 'form':
-        query = query.order('sg_total_l5', { ascending: false, nullsLast: true });
+        query = query.order('sg_total_l5', { ascending: false });
         break;
       case 'name':
         query = query.order('player_name', { ascending: true });

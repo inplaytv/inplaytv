@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     // Merge data and calculate value scores
     const playersWithMetrics = (pricing || []).map(player => {
       const prediction = predictions?.find(p => p.golfer_id === player.golfer_id);
-      const fit = courseFit?.data?.find(f => f.golfer_id === player.golfer_id);
+      const fit = courseFit?.find((f: any) => f.golfer_id === player.golfer_id);
       
       const salary = player[salaryColumn] || 0;
       const projectedPoints = calculateProjectedPoints(prediction, fit);
