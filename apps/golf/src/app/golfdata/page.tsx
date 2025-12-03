@@ -89,9 +89,6 @@ export default function GolfDataPage() {
           <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#fff', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
             📊 GOLFDATA
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1rem' }}>
-            Powered by DataGolf API • Real-time rankings, predictions & analytics
-          </p>
         </div>
 
         {/* Tab Navigation */}
@@ -145,11 +142,8 @@ export default function GolfDataPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
                   <h2 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#fff', marginBottom: '0.5rem' }}>
-                    DataGolf World Rankings
+                    Player World Rankings
                   </h2>
-                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
-                    Top 50 players by skill estimate • Updated daily
-                  </p>
                 </div>
                 <input
                   type="text"
@@ -331,9 +325,6 @@ export default function GolfDataPage() {
                   <h2 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#fff', marginBottom: '0.5rem' }}>
                     Player Skill Ratings
                   </h2>
-                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
-                    Strokes gained breakdown by category • Based on ShotLink data
-                  </p>
                 </div>
                 <input
                   type="text"

@@ -2708,6 +2708,15 @@ export default function LeaderboardsPage() {
                       <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#e5e7eb', marginBottom: '16px' }}>
                         {teeTimes.eventInfo?.event_name || 'Tournament Field'} ({teeTimes.field.length} players)
                       </h3>
+                      {teeTimes.field.some((p: any) => p.tee_time) ? (
+                        <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '12px' }}>
+                          Sorted by tee time
+                        </p>
+                      ) : (
+                        <p style={{ fontSize: '13px', color: '#fbbf24', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          ⏳ Tee times not announced yet - showing tournament field
+                        </p>
+                      )}
                       <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))',

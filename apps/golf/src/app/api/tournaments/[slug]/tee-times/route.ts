@@ -53,10 +53,11 @@ export async function GET(
     console.log('  Tournament:', tournament.name);
     console.log('  Event ID:', tournament.event_id || 'not set');
 
-    // First try to get from the in-play endpoint which includes tee times
-    let datagolfUrl = `https://feeds.datagolf.com/preds/in-play?tour=${tour}&file_format=json&key=${DATAGOLF_API_KEY}`;
+    // Try field-updates endpoint first (has pre-tournament field list)
+    // This works for both upcoming and in-progress tournaments
+    let datagolfUrl = `https://feeds.datagolf.com/field-updates?tour=${tour}&file_format=json&key=${DATAGOLF_API_KEY}`;
     
-    console.log('🌐 DataGolf URL:', datagolfUrl.replace(DATAGOLF_API_KEY, 'API_KEY_HIDDEN'));
+    console.log('🌐 DataGolf URL (field-updates):', datagolfUrl.replace(DATAGOLF_API_KEY, 'API_KEY_HIDDEN'));
     
     // Make request to DataGolf API
     let response = await fetch(datagolfUrl, {
@@ -68,7 +69,7 @@ export async function GET(
     });
 
     if (!response.ok) {
-      console.error('❌ DataGolf in-play API error:', response.status, response.statusText);
+      console.error('❌ DataGolf field-updates API error:', response.status, response.statusText);
       const errorText = await response.text();
       console.error('❌ Error details:', errorText);
       
@@ -83,18 +84,22 @@ export async function GET(
     const apiResponse: any = await response.json();
     
     console.log('📦 DataGolf response structure:', {
-      hasInfo: !!apiResponse.info,
-      hasData: !!apiResponse.data,
-      dataLength: apiResponse.data?.length || 0,
-      eventName: apiResponse.info?.event_name
+      hasEventName: !!apiResponse.event_name,
+      hasField: !!apiResponse.field,
+      fieldLength: apiResponse.field?.length || 0,
+      eventName: apiResponse.event_name,
+      currentRound: apiResponse.current_round
     });
 
-    // Extract field and tee times from in-play data
-    const leaderboardData = apiResponse.data || [];
-    const eventInfo = apiResponse.info || {};
+    // Extract field from field-updates
+    const fieldData = apiResponse.field || [];
+    const eventName = apiResponse.event_name || tournament.name;
+    // Extract field from field-updates
+    const fieldData = apiResponse.field || [];
+    const eventName = apiResponse.event_name || tournament.name;
     
-    if (leaderboardData.length === 0) {
-      console.log('⚠️ No data returned from DataGolf');
+    if (fieldData.length === 0) {
+      console.log('⚠️ No field data returned from DataGolf');
       return NextResponse.json({
         tournament: {
           name: tournament.name,
@@ -102,24 +107,23 @@ export async function GET(
           endDate: tournament.end_date
         },
         field: [],
-        teeSheet: {},
-        message: 'No tee times available yet',
+        message: 'No field information available yet',
         source: 'datagolf'
       });
     }
 
-    // Convert leaderboard data to field format
-    const field = leaderboardData.map((player: any) => ({
+    // Convert field data to tee times format
+    const field = fieldData.map((player: any) => ({
       player_name: player.player_name || player.name,
       dg_id: player.dg_id,
       country: player.country,
-      tee_time: player.tee_time,
-      round_status: player.round_status,
-      course: player.course
+      tee_time: player.tee_time || null, // May not be set for upcoming tournaments
+      round_status: player.round_status || 'Not started',
+      course: player.course || null
     }));
 
     console.log('✅ DataGolf returned field with', field.length, 'players');
-    console.log('✅ Event:', eventInfo.event_name);
+    console.log('✅ Event:', eventName);
 
     return NextResponse.json({
       tournament: {
@@ -129,7 +133,10 @@ export async function GET(
         location: tournament.location
       },
       field,
-      eventInfo,
+      eventInfo: {
+        event_name: eventName,
+        current_round: apiResponse.current_round || 0
+      },
       lastUpdated: new Date().toISOString(),
       source: 'datagolf'
     });

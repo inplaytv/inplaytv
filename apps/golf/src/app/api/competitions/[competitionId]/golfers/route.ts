@@ -78,10 +78,10 @@ export async function GET(
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // First, get the competition to find its assigned_golfer_group_id
+    // Get the competition to find its tournament_id
     const { data: competition, error: compError } = await supabase
       .from('tournament_competitions')
-      .select('assigned_golfer_group_id, tournament_id')
+      .select('tournament_id')
       .eq('id', params.competitionId)
       .single();
 
@@ -90,13 +90,13 @@ export async function GET(
       throw compError;
     }
 
-    if (!competition?.assigned_golfer_group_id) {
+    if (!competition?.tournament_id) {
       return NextResponse.json([]);
     }
 
-    // Get golfers from the assigned golfer group
+    // Get golfers directly from tournament_golfers table
     const { data, error } = await supabase
-      .from('golfer_group_members')
+      .from('tournament_golfers')
       .select(`
         golfer_id,
         golfers (
@@ -109,10 +109,10 @@ export async function GET(
           image_url
         )
       `)
-      .eq('group_id', competition.assigned_golfer_group_id);
+      .eq('tournament_id', competition.tournament_id);
 
     if (error) {
-      console.error('Error fetching group golfers:', error);
+      console.error('Error fetching tournament golfers:', error);
       throw error;
     }
 

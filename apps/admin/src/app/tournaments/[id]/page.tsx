@@ -78,6 +78,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
   const [availableTypes, setAvailableTypes] = useState<CompetitionType[]>([]);
   const [golferGroups, setGolferGroups] = useState<GolferGroup[]>([]);
   const [allGolferGroups, setAllGolferGroups] = useState<GolferGroup[]>([]);
+  const [tournamentGolferCount, setTournamentGolferCount] = useState(0);
   const [showAddCompetition, setShowAddCompetition] = useState(false);
   const [editingCompetitionId, setEditingCompetitionId] = useState<string | null>(null);
   const [expandedCompetitions, setExpandedCompetitions] = useState<Set<string>>(new Set());
@@ -138,12 +139,13 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
 
   const fetchData = async () => {
     try {
-      const [tournamentRes, competitionsRes, typesRes, groupsRes, allGroupsRes] = await Promise.all([
+      const [tournamentRes, competitionsRes, typesRes, groupsRes, allGroupsRes, golfersRes] = await Promise.all([
         fetch(`/api/tournaments/${params.id}`),
         fetch(`/api/tournaments/${params.id}/competitions`),
         fetch('/api/competition-types'),
         fetch(`/api/tournaments/${params.id}/golfer-groups`),
         fetch('/api/golfer-groups'),
+        fetch(`/api/tournaments/${params.id}/golfers`),
       ]);
 
       if (tournamentRes.ok) {
@@ -186,6 +188,11 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
       if (allGroupsRes.ok) {
         const allGroupsData = await allGroupsRes.json();
         setAllGolferGroups(allGroupsData);
+      }
+
+      if (golfersRes.ok) {
+        const golfersData = await golfersRes.json();
+        setTournamentGolferCount(golfersData.length || 0);
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
@@ -1298,14 +1305,15 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
               </p>
             </div>
 
-            <div style={{ marginBottom: '1rem' }}>
+            <div style={{ marginBottom: '1rem', opacity: 0.5, pointerEvents: 'none' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
                 Golfer Group
                 <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
-                  (Required for non-draft status)
+                  (Legacy - Auto-inherits from tournament)
                 </span>
               </label>
               <select
+                disabled
                 value={competitionFormData.golfer_group_id || ''}
                 onChange={(e) => setCompetitionFormData({ ...competitionFormData, golfer_group_id: e.target.value })}
                 style={{
@@ -1315,20 +1323,19 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                   border: '1px solid rgba(255,255,255,0.2)',
                   borderRadius: '4px',
                   color: '#fff',
+                  cursor: 'not-allowed',
                 }}
               >
-                <option value="">No group selected</option>
+                <option value="">Competition inherits tournament golfers</option>
                 {golferGroups.map(group => (
                   <option key={group.id} value={group.id}>
                     {group.name} {group.golfer_count ? `(${group.golfer_count} golfers)` : ''}
                   </option>
                 ))}
               </select>
-              {golferGroups.length === 0 && (
-                <p style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.25rem' }}>
-                  ⚠️ Add golfer groups to this tournament first
-                </p>
-              )}
+              <p style={{ fontSize: '0.75rem', color: 'rgba(59, 130, 246, 0.8)', marginTop: '0.25rem' }}>
+                ℹ️ Competitions now automatically use all golfers from the tournament
+              </p>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
@@ -1641,7 +1648,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                         {isExpanded ? '▼' : '▶'}
                       </span>
                       {comp.competition_types.name}
-                      {!comp.assigned_golfer_group_id && (
+                      {tournamentGolferCount === 0 && (
                         <span style={{
                           fontSize: '0.75rem',
                           padding: '0.25rem 0.5rem',
@@ -1651,7 +1658,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                           color: '#f87171',
                           fontWeight: 600,
                         }}>
-                          ⚠ No Golfers
+                          ⚠ Tournament has no golfers
                         </span>
                       )}
                     </h4>
@@ -1770,7 +1777,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
             </h2>
             <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.6)', margin: '0.25rem 0 0 0' }}>
               {golferGroups.length === 0 ? (
-                <span style={{ color: '#f59e0b' }}>⚠️ Add golfer groups to use in competitions</span>
+                <span style={{ color: '#f59e0b' }}>⚠️ Add golfer groups to use in tournaments</span>
               ) : (
                 `${golferGroups.length} group${golferGroups.length !== 1 ? 's' : ''} assigned`
               )}

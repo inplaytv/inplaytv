@@ -116,6 +116,29 @@ export async function POST(
     console.log(`🔍 DataGolf response keys:`, Object.keys(fieldData));
     console.log(`🔍 Field is array:`, Array.isArray(fieldData.field));
 
+    // Fetch world rankings from DataGolf to get OWGR data
+    console.log('📊 Fetching world rankings for salary calculation...');
+    let rankingsMap = new Map();
+    try {
+      const rankingsRes = await fetch(
+        `https://feeds.datagolf.com/preds/get-dg-rankings?file_format=json&key=${apiKey}`
+      );
+      
+      if (rankingsRes.ok) {
+        const rankingsData = await rankingsRes.json();
+        // Create a map of dg_id -> owgr_rank for quick lookup
+        rankingsData.rankings.forEach((player: any) => {
+          rankingsMap.set(player.dg_id, {
+            owgr_rank: player.owgr_rank,
+            dg_skill: player.dg_skill_estimate,
+          });
+        });
+        console.log(`✅ Loaded rankings for ${rankingsMap.size} players`);
+      }
+    } catch (rankingsError) {
+      console.warn('⚠️ Could not fetch rankings, will use defaults:', rankingsError);
+    }
+
     // Extract tee times from field data (find earliest tee time for each round)
     const roundTeeTimes = {
       round1: null as string | null,
@@ -180,12 +203,22 @@ export async function POST(
     const golfersToInsert = [];
     let created = 0;
     let existing = 0;
+    let rankingsUpdated = 0;
 
     for (const player of fieldData.field) {
+      // Get OWGR rank from rankings data
+      const rankingData = rankingsMap.get(player.dg_id);
+      const worldRank = rankingData?.owgr_rank || null;
+
+      // Debug: Log first few players
+      if (created + existing < 3) {
+        console.log(`🔍 Player: ${player.player_name} (dg_id: ${player.dg_id}) - OWGR: ${worldRank}`);
+      }
+
       // Check if golfer exists
       const { data: existingGolfer } = await supabase
         .from('golfers')
-        .select('id')
+        .select('id, world_rank')
         .eq('dg_id', player.dg_id)
         .single();
 
@@ -206,6 +239,7 @@ export async function POST(
             last_name: lastName,
             country: player.country,
             pga_tour_id: player.pga_number?.toString(),
+            world_rank: worldRank, // Add OWGR rank
           })
           .select('id')
           .single();
@@ -215,10 +249,23 @@ export async function POST(
         } else {
           golferId = newGolfer?.id;
           created++;
+          if (worldRank) rankingsUpdated++;
         }
       } else {
         golferId = existingGolfer.id;
         existing++;
+        
+        // Update world_rank if we have new data (even if current is null)
+        if (worldRank !== null && worldRank !== existingGolfer.world_rank) {
+          const { error: updateError } = await supabase
+            .from('golfers')
+            .update({ world_rank: worldRank })
+            .eq('id', golferId);
+          
+          if (!updateError) {
+            rankingsUpdated++;
+          }
+        }
       }
 
       if (golferId) {
@@ -231,6 +278,7 @@ export async function POST(
     }
 
     console.log(`📊 Golfers processed: ${created} new, ${existing} existing`);
+    console.log(`🏆 World rankings updated: ${rankingsUpdated} players`);
 
     // Insert tournament_golfers relationships (use upsert to handle duplicates)
     let golfersAdded = 0;

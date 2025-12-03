@@ -109,8 +109,9 @@ export async function GET() {
           const compType = typeMap.get(comp.competition_type_id);
           competitionMap.set(comp.id, {
             ...comp,
-            start_date: comp.start_at,
-            end_date: comp.end_at,
+            // Use tournament dates, not competition dates
+            start_date: tournament?.start_date || comp.start_at,
+            end_date: tournament?.end_date || comp.end_at,
             tournaments: tournament,
             competition_types: compType
           });

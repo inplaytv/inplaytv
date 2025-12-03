@@ -96,25 +96,35 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch picks' }, { status: 500 });
     }
 
-    // Get unique golfer IDs
+    // Get unique golfer IDs and user IDs
     const golferIdsSet = new Set(allPicks?.map(p => p.golfer_id) || []);
     const golferIds = Array.from(golferIdsSet);
+    const userIds = Array.from(new Set(entries?.map(e => e.user_id) || []));
     console.log('🎯 Fetching golfer details for IDs:', golferIds);
+    console.log('👤 Fetching user profiles for IDs:', userIds);
 
     // Get golfer details separately
     const { data: golfers, error: golfersError } = await supabase
       .from('golfers')
-      .select('id, name, country')
+      .select('id, first_name, last_name, country')
       .in('id', golferIds);
 
+    // Get user profiles
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, full_name')
+      .in('id', userIds);
+
     console.log('👥 Golfers fetched:', golfers?.length || 0);
+    console.log('👤 Profiles fetched:', profiles?.length || 0);
 
     if (golfersError) {
       console.error('❌ Error fetching golfers:', golfersError);
     }
 
-    // Create a map of golfer details
+    // Create maps for golfer details and user profiles
     const golferMap = new Map(golfers?.map(g => [g.id, g]) || []);
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
     // Group picks by entry_id and enrich with golfer data
     const picksByEntry: Record<string, any[]> = {};
@@ -124,8 +134,14 @@ export async function GET(
       }
       const golferData = golferMap.get(pick.golfer_id);
       picksByEntry[pick.entry_id].push({
-        ...pick,
-        golfer: golferData
+        golfer_id: pick.golfer_id,
+        slot_position: pick.slot_position,
+        golfers: golferData ? {
+          id: golferData.id,
+          first_name: golferData.first_name,
+          last_name: golferData.last_name,
+          country: golferData.country
+        } : null
       });
     });
     
@@ -137,7 +153,8 @@ export async function GET(
     // Format entries for leaderboard
     const leaderboardEntries = entries?.map((entry, index) => {
       const picks = picksByEntry[entry.id] || [];
-      const username = `User ${entry.user_id.substring(0, 8)}`; // Temporary - show first 8 chars of user ID
+      const userProfile = profileMap.get(entry.user_id);
+      const username = userProfile?.username || userProfile?.full_name || `User ${entry.user_id.substring(0, 8)}`;
       
       // TODO: Calculate actual fantasy points from golfer scores
       // For now, return mock data structure
@@ -153,12 +170,7 @@ export async function GET(
         birdies: 0, // TODO: Calculate from golfer scores
         totalSalary: entry.total_salary,
         captainGolferId: entry.captain_golfer_id,
-        picks: picks.map(p => ({
-          golferId: p.golfer_id,
-          name: p.golfer?.name || 'Unknown',
-          country: p.golfer?.country || 'Unknown',
-          slotPosition: p.slot_position
-        })),
+        picks: picks,
         createdAt: entry.created_at
       };
     }) || [];

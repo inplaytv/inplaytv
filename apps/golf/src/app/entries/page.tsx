@@ -56,7 +56,7 @@ interface CompetitionEntrant {
   const router = useRouter();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string | null>(null);
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const [competitionEntrants, setCompetitionEntrants] = useState<CompetitionEntrant[]>([]);
   const [loadingEntrants, setLoadingEntrants] = useState(false);
   const [maxEntries, setMaxEntries] = useState<number>(0);
@@ -65,6 +65,7 @@ interface CompetitionEntrant {
   const [entryPicks, setEntryPicks] = useState<EntryPick[]>([]);
   const [loadingPicks, setLoadingPicks] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     fetchCurrentUser();
@@ -84,10 +85,13 @@ interface CompetitionEntrant {
   }
 
   useEffect(() => {
-    if (selectedCompetitionId) {
-      fetchCompetitionEntrants(selectedCompetitionId);
+    if (selectedTournamentId && entries.length > 0) {
+      const tournamentEntries = entries.filter(e => e.tournament_competitions?.tournaments?.name === selectedTournamentId);
+      if (tournamentEntries.length > 0) {
+        fetchCompetitionEntrants(tournamentEntries[0].competition_id);
+      }
     }
-  }, [selectedCompetitionId]);
+  }, [selectedTournamentId, entries]);
 
   async function fetchEntries() {
     try {
@@ -96,9 +100,9 @@ interface CompetitionEntrant {
       const data = await res.json();
       const fetchedEntries = data.entries || [];
       setEntries(fetchedEntries);
-      // Auto-select first competition if entries exist
-      if (fetchedEntries.length > 0 && !selectedCompetitionId && fetchedEntries[0].competition_id) {
-        setSelectedCompetitionId(fetchedEntries[0].competition_id);
+      // Auto-select first tournament if entries exist
+      if (fetchedEntries.length > 0 && !selectedTournamentId && fetchedEntries[0].tournament_competitions?.tournaments?.name) {
+        setSelectedTournamentId(fetchedEntries[0].tournament_competitions.tournaments.name);
       }
     } catch (error) {
       console.error('❌ Error fetching entries:', error);
@@ -154,10 +158,10 @@ interface CompetitionEntrant {
     }
 
     // Other users' entries can only be viewed if tournament has started
-    const selectedComp = competitions.find(c => c.competitionId === selectedCompetitionId);
-    if (selectedComp) {
+    const selectedTournament = tournaments.find(t => t.tournamentName === selectedTournamentId);
+    if (selectedTournament) {
       const now = new Date();
-      const startDate = new Date(selectedComp.competition.start_date);
+      const startDate = new Date(selectedTournament.competition.start_date);
       
       if (now >= startDate) {
         // Tournament has started, allow viewing
@@ -186,23 +190,52 @@ interface CompetitionEntrant {
     return 'completed';
   }
 
-  // Group entries by competition
+  function isRecentlyCompleted(entry: Entry): boolean {
+    if (!entry.tournament_competitions) return true;
+    const now = new Date();
+    const endDate = new Date(entry.tournament_competitions.end_date);
+    const hoursSinceEnd = (now.getTime() - endDate.getTime()) / (1000 * 60 * 60);
+    return hoursSinceEnd <= 24;
+  }
+
+  // Group entries by tournament
   const groupedEntries = entries.reduce((acc, entry) => {
-    const compId = entry.competition_id;
-    if (!compId || !entry.tournament_competitions) return acc;
+    const tournamentName = entry.tournament_competitions?.tournaments?.name;
+    if (!tournamentName || !entry.tournament_competitions) return acc;
     
-    if (!acc[compId]) {
-      acc[compId] = {
-        competitionId: compId,
+    if (!acc[tournamentName]) {
+      acc[tournamentName] = {
+        tournamentName: tournamentName,
+        tournament: entry.tournament_competitions.tournaments,
         competition: entry.tournament_competitions,
         entries: []
       };
     }
-    acc[compId].entries.push(entry);
+    acc[tournamentName].entries.push(entry);
     return acc;
-  }, {} as Record<string, { competitionId: string, competition: Entry['tournament_competitions'], entries: Entry[] }>);
+  }, {} as Record<string, { tournamentName: string, tournament: any, competition: Entry['tournament_competitions'], entries: Entry[] }>);
 
-  const competitions = Object.values(groupedEntries);
+  const allTournaments = Object.values(groupedEntries);
+  
+  // Filter based on history view
+  const tournaments = allTournaments.filter(tournament => {
+    const sampleEntry = tournament.entries[0];
+    const status = getStatus(sampleEntry);
+    const isRecent = isRecentlyCompleted(sampleEntry);
+    
+    if (showHistory) {
+      return status === 'completed' && !isRecent;
+    } else {
+      return status !== 'completed' || isRecent;
+    }
+  });
+  
+  const archivedCount = allTournaments.filter(tournament => {
+    const sampleEntry = tournament.entries[0];
+    const status = getStatus(sampleEntry);
+    const isRecent = isRecentlyCompleted(sampleEntry);
+    return status === 'completed' && !isRecent;
+  }).length;
 
   return (
     <RequireAuth>
@@ -250,21 +283,75 @@ interface CompetitionEntrant {
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#fbbf24', margin: 0 }}>
-                  My Scorecards
-                </h2>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#fbbf24', margin: '0 0 8px 0' }}>
+                    My Scorecards
+                  </h2>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => setShowHistory(false)}
+                      style={{
+                        padding: '4px 12px',
+                        background: !showHistory ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                        border: !showHistory ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '6px',
+                        color: !showHistory ? '#fff' : 'rgba(255, 255, 255, 0.5)',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Active
+                    </button>
+                    <button
+                      onClick={() => setShowHistory(true)}
+                      style={{
+                        padding: '4px 12px',
+                        background: showHistory ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                        border: showHistory ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '6px',
+                        color: showHistory ? '#a78bfa' : 'rgba(255, 255, 255, 0.5)',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      📜 History {archivedCount > 0 && `(${archivedCount})`}
+                    </button>
+                  </div>
+                </div>
                 <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>
                   Your Entries ({entries.length})
                 </span>
               </div>
+
+              {/* 30-day retention notice for History */}
+              {showHistory && (
+                <div style={{
+                  padding: '12px 16px',
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  borderRadius: '8px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <i className="fas fa-info-circle" style={{ color: '#f59e0b', fontSize: '16px' }}></i>
+                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)' }}>
+                    Historic data will be automatically removed after 30 days
+                  </span>
+                </div>
+              )}
+
               <div style={{ display: 'grid', gap: '12px' }}>
-                {competitions.map((comp) => {
-                  const status = comp.entries.length > 0 ? getStatus(comp.entries[0]) : 'registration_open';
-                  const isSelected = selectedCompetitionId === comp.competitionId;
+                {tournaments.map((tournament) => {
+                  const status = tournament.entries.length > 0 ? getStatus(tournament.entries[0]) : 'registration_open';
+                  const isSelected = selectedTournamentId === tournament.tournamentName;
                   return (
                     <div 
-                      key={comp.competitionId} 
-                      onClick={() => setSelectedCompetitionId(comp.competitionId)}
+                      key={tournament.tournamentName} 
+                      onClick={() => setSelectedTournamentId(tournament.tournamentName)}
                       style={{
                         padding: '16px',
                         background: isSelected 
@@ -306,18 +393,12 @@ interface CompetitionEntrant {
                           {status === 'live' ? 'Live Now' : status === 'registration_open' ? 'Registration Open' : 'Completed'}
                         </span>
                       </div>
-                      <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'rgba(255,255,255,0.9)', margin: '0 0 4px 0' }}>
-                        {comp.competition.tournaments?.name || 'Tournament'}
+                      <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'rgba(255,255,255,0.9)', margin: '0 0 8px 0' }}>
+                        {tournament.tournamentName}
                       </h3>
-                      <p style={{ fontSize: '13px', color: '#10b981', margin: '0 0 8px 0', fontWeight: 500 }}>
-                        {comp.competition.competition_types?.name || 'Competition'}
-                      </p>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
-                          {comp.entries.length} {comp.entries.length === 1 ? 'Entry' : 'Entries'}
-                        </span>
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#fbbf24' }}>
-                          £{((comp.entries[0]?.entry_fee_paid || 0) / 100).toFixed(2)}
+                          {tournament.entries.length} {tournament.entries.length === 1 ? 'Entry' : 'Entries'}
                         </span>
                       </div>
                     </div>
@@ -326,7 +407,7 @@ interface CompetitionEntrant {
               </div>
             </div>
 
-            {/* Right Column: Competition Leaderboard */}
+            {/* Middle Column: Tournament Entries */}
             <div style={{
               padding: '24px',
               background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%)',
@@ -336,62 +417,50 @@ interface CompetitionEntrant {
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
             }}>
               {(() => {
-                const selectedComp = competitions.find(c => c.competitionId === selectedCompetitionId);
+                const selectedTournament = tournaments.find(t => t.tournamentName === selectedTournamentId);
                 return (
                   <>
                     <div style={{ marginBottom: '16px' }}>
-                      {selectedComp ? (
+                      {selectedTournament ? (
                         <>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                             <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#fbbf24', margin: 0 }}>
-                              {selectedComp.competition.tournaments?.name || 'Tournament'}
+                              {selectedTournament.tournamentName}
                             </h2>
                           </div>
-                          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', margin: '0 0 8px 0' }}>
-                            {selectedComp.competition.competition_types?.name || 'Competition'}
-                          </p>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Competition Entries</span>
+                            <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Your Entries</span>
                             <span style={{ fontSize: '13px', color: '#10b981', fontWeight: 600 }}>
-                              {competitionEntrants.length}/{maxEntries}
+                              {selectedTournament.entries.length} {selectedTournament.entries.length === 1 ? 'Entry' : 'Entries'}
                             </span>
                           </div>
                         </>
                       ) : (
                         <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#fbbf24', margin: 0 }}>
-                          Competition Entrants
+                          Tournament Entries
                         </h2>
                       )}
                     </div>
 
-              {!selectedCompetitionId ? (
+              {!selectedTournamentId ? (
                 <div style={{
                   padding: '40px 20px',
                   textAlign: 'center',
                   color: 'rgba(255,255,255,0.4)'
                 }}>
                   <i className="fas fa-trophy" style={{ fontSize: '40px', marginBottom: '12px', opacity: 0.5 }}></i>
-                  <p style={{ fontSize: '14px', margin: 0 }}>Select a scorecard to view entrants</p>
+                  <p style={{ fontSize: '14px', margin: 0 }}>Select a tournament to view your entries</p>
                 </div>
-              ) : loadingEntrants ? (
-                <div style={{
-                  padding: '40px 20px',
-                  textAlign: 'center',
-                  color: 'rgba(255,255,255,0.6)'
-                }}>
-                  <div className={styles.spinner}></div>
-                  <p style={{ fontSize: '14px', marginTop: '12px' }}>Loading entrants...</p>
-                </div>
-              ) : competitionEntrants.length === 0 ? (
+              ) : selectedTournament && selectedTournament.entries.length === 0 ? (
                 <div style={{
                   padding: '40px 20px',
                   textAlign: 'center',
                   color: 'rgba(255,255,255,0.4)'
                 }}>
                   <i className="fas fa-users" style={{ fontSize: '40px', marginBottom: '12px', opacity: 0.5 }}></i>
-                  <p style={{ fontSize: '14px', margin: 0 }}>No other entrants yet</p>
+                  <p style={{ fontSize: '14px', margin: 0 }}>No entries yet</p>
                 </div>
-              ) : (
+              ) : selectedTournament ? (
                 <div style={{ 
                   display: 'grid', 
                   gap: '8px',
@@ -399,10 +468,10 @@ interface CompetitionEntrant {
                   overflowY: 'auto',
                   paddingRight: '8px'
                 }}>
-                  {competitionEntrants.map((entrant, index) => (
+                  {selectedTournament.entries.map((entry, index) => (
                     <div 
-                      key={entrant.id}
-                      onClick={() => handleEntryClick(entrant.id, entrant.user_id)}
+                      key={entry.id}
+                      onClick={() => handleEntryClick(entry.id, currentUserId || '')}
                       style={{
                         padding: '12px',
                         background: 'rgba(255,255,255,0.05)',
@@ -423,34 +492,40 @@ interface CompetitionEntrant {
                         e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                         <span style={{
                           width: '24px',
                           height: '24px',
                           borderRadius: '50%',
-                          background: index < 3 ? '#fbbf24' : 'rgba(255,255,255,0.1)',
+                          background: 'rgba(251, 191, 36, 0.2)',
+                          border: '1px solid rgba(251, 191, 36, 0.4)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontSize: '11px',
                           fontWeight: 700,
-                          color: index < 3 ? 'black' : 'rgba(255,255,255,0.7)'
+                          color: '#fbbf24'
                         }}>
                           {index + 1}
                         </span>
-                        <div>
-                          <p style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.9)', margin: '0 0 2px 0' }}>
-                            {entrant.entry_name || 'Anonymous Entry'}
-                          </p>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <p style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.9)', margin: '0 0 2px 0' }}>
+                              {entry.entry_name || 'Anonymous Entry'}
+                            </p>
+                            <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500, marginLeft: '12px' }}>
+                              {entry.tournament_competitions?.competition_types?.name || 'Competition'}
+                            </span>
+                          </div>
                           <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
-                            {new Date(entrant.created_at).toLocaleDateString()}
+                            {new Date(entry.created_at).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              )}
+              ) : null}
                   </>
                 );
               })()}
@@ -503,9 +578,21 @@ interface CompetitionEntrant {
                 <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#fbbf24', marginBottom: '8px' }}>
                   Entry Details
                 </h2>
-                <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '24px' }}>
-                  {competitionEntrants.find(e => e.id === selectedEntryId)?.entry_name || 'Team Lineup'}
-                </p>
+                {(() => {
+                  const selectedEntry = entries.find(e => e.id === selectedEntryId);
+                  return (
+                    <>
+                      <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '4px' }}>
+                        {selectedEntry?.entry_name || 'Team Lineup'}
+                      </p>
+                      {selectedEntry && (
+                        <p style={{ fontSize: '12px', color: '#10b981', fontWeight: 500, marginBottom: '24px' }}>
+                          {selectedEntry.tournament_competitions?.competition_types?.name || 'Competition'}
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {loadingPicks ? (
                   <div style={{ padding: '40px 20px', textAlign: 'center' }}>

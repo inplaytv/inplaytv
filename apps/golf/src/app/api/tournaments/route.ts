@@ -32,14 +32,19 @@ export async function GET(request: NextRequest) {
       `)
       .eq('is_visible', true);
 
-    // For leaderboard context: Show only live tournaments or recently completed (within 4 days)
+    // For leaderboard context: Show only upcoming or live tournaments
     if (context === 'leaderboard') {
+      // Only show tournaments that are upcoming or currently live
+      // Exclude completed tournaments entirely
+      query = query.in('status', ['upcoming', 'registration_open', 'registration_closed', 'live']);
+      
+      // Additional safety check: Exclude tournaments that ended more than 4 days ago
+      // This ensures old tournaments don't appear even if status wasn't updated
       const fourDaysAgo = new Date();
       fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
-      const fourDaysAgoISO = fourDaysAgo.toISOString().split('T')[0];
+      const fourDaysAgoStr = fourDaysAgo.toISOString().split('T')[0]; // YYYY-MM-DD format
       
-      // Use OR filter: status is live OR (status is completed AND end_date is recent)
-      query = query.or(`status.eq.live,and(status.eq.completed,end_date.gte.${fourDaysAgoISO})`);
+      query = query.gte('end_date', fourDaysAgoStr);
     }
 
     query = query.order('start_date', { ascending: true });

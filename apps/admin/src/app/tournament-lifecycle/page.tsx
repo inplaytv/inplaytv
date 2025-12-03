@@ -81,43 +81,33 @@ export default function TournamentLifecyclePage() {
     
     const date = new Date(dateString);
     
-    // If timezone is provided, format in that timezone
-    if (timezone) {
-      try {
-        if (dateOnly) {
-          // For date-only display (tournament dates)
-          return date.toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            timeZone: timezone
-          });
-        } else {
-          // For datetime display (registration windows)
-          return date.toLocaleString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: timezone
-          }) + ` (${timezone.split('/')[1]?.replace('_', ' ') || timezone})`;
-        }
-      } catch (e) {
-        console.error(`Invalid timezone: ${timezone}`, e);
-        // Fallback to default formatting
-      }
-    }
-    
-    // Default formatting
+    // For date-only display, use UTC to avoid timezone shifts
     if (dateOnly) {
       return date.toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'short',
-        year: 'numeric'
+        year: 'numeric',
+        timeZone: 'UTC'
       });
     }
     
+    // For datetime display (registration windows)
+    if (timezone) {
+      try {
+        return date.toLocaleString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: timezone
+        }) + ` (${timezone.split('/')[1]?.replace('_', ' ') || timezone})`;
+      } catch (e) {
+        console.error(`Invalid timezone: ${timezone}`, e);
+      }
+    }
+    
+    // Default datetime formatting
     return date.toLocaleString('en-GB', {
       day: 'numeric',
       month: 'short',

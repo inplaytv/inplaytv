@@ -334,21 +334,29 @@ export default function TournamentsPage() {
       }
     }
     
-    // Fetch user balance
-    const balanceRes = await fetch('/api/user/balance');
-    const balanceData = await balanceRes.json();
-    const balance = balanceData.balance_pennies || 0;
-    
-    // Check if user has enough balance
-    if (balance < entryFee) {
-      setUserBalance(balance);
-      setRequiredAmount(entryFee);
-      setShowInsufficientModal(true);
-      return;
+    try {
+      // Fetch user balance
+      const balanceRes = await fetch('/api/user/balance');
+      if (!balanceRes.ok) {
+        throw new Error('Failed to fetch balance');
+      }
+      const balanceData = await balanceRes.json();
+      const balance = balanceData.balance_pennies || 0;
+      
+      // Check if user has enough balance
+      if (balance < entryFee) {
+        setUserBalance(balance);
+        setRequiredAmount(entryFee);
+        setShowInsufficientModal(true);
+        return;
+      }
+      
+      // Navigate to team builder
+      router.push(`/build-team/${competitionId}`);
+    } catch (error) {
+      console.error('Error building team:', error);
+      alert('Unable to connect to the server. Please try again.');
     }
-    
-    // Navigate to team builder
-    router.push(`/build-team/${competitionId}`);
   };
 
   if (loading) {
