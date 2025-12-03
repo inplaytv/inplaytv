@@ -66,6 +66,8 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Tasks & Reminders', href: '/dev-notes' },
       { label: 'Ideas & Suggestions', href: '/ideas-suggestions' },
+      { label: 'Faults & Fixes', href: '/faults-fixes' },
+      { label: 'InPlay Displays', href: '/inplay-displays' },
     ],
   },
   {
