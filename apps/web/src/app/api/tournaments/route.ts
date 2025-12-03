@@ -37,8 +37,6 @@ export async function GET(request: NextRequest) {
       .eq('is_visible', true)
       .order('start_date', { ascending: true });
 
-    console.log('🔍 Tournaments API - Found', tournaments?.length || 0, 'tournaments with statuses:', statuses, 'and is_visible=true');
-
     if (error) {
       console.error('Error fetching tournaments:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });

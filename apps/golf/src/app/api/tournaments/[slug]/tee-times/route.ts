@@ -14,7 +14,6 @@ export async function GET(
 ) {
   try {
     const { slug } = params;
-    console.log('⏰ Fetching tee times for tournament slug:', slug);
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
@@ -33,8 +32,6 @@ export async function GET(
       );
     }
 
-    console.log('✅ Tournament found:', tournament.name);
-
     // Determine tour from tournament data
     const description = tournament.description?.toLowerCase() || '';
     const name = tournament.name?.toLowerCase() || '';
@@ -48,16 +45,9 @@ export async function GET(
       tour = 'kft';
     }
 
-    console.log('📡 DataGolf API Request for Tee Times:');
-    console.log('  Tour:', tour);
-    console.log('  Tournament:', tournament.name);
-    console.log('  Event ID:', tournament.event_id || 'not set');
-
     // Try field-updates endpoint first (has pre-tournament field list)
     // This works for both upcoming and in-progress tournaments
     let datagolfUrl = `https://feeds.datagolf.com/field-updates?tour=${tour}&file_format=json&key=${DATAGOLF_API_KEY}`;
-    
-    console.log('🌐 DataGolf URL (field-updates):', datagolfUrl.replace(DATAGOLF_API_KEY, 'API_KEY_HIDDEN'));
     
     // Make request to DataGolf API
     let response = await fetch(datagolfUrl, {
@@ -83,20 +73,11 @@ export async function GET(
     // Parse DataGolf response
     const apiResponse: any = await response.json();
     
-    console.log('📦 DataGolf response structure:', {
-      hasEventName: !!apiResponse.event_name,
-      hasField: !!apiResponse.field,
-      fieldLength: apiResponse.field?.length || 0,
-      eventName: apiResponse.event_name,
-      currentRound: apiResponse.current_round
-    });
-
     // Extract field from field-updates
     const fieldData = apiResponse.field || [];
     const eventName = apiResponse.event_name || tournament.name;
     
     if (fieldData.length === 0) {
-      console.log('⚠️ No field data returned from DataGolf');
       return NextResponse.json({
         tournament: {
           name: tournament.name,
@@ -127,13 +108,6 @@ export async function GET(
       course: player.course || null,
       start_hole: player.start_hole || 1
     }));
-
-    // Count how many players have tee times
-    const playersWithTeeTimes = field.filter((p: any) => p.tee_time).length;
-    console.log('✅ DataGolf returned field with', field.length, 'players');
-    console.log('✅ Players with tee times:', playersWithTeeTimes);
-    console.log('✅ Event:', eventName);
-    console.log('✅ Current Round:', currentRound);
 
     return NextResponse.json({
       tournament: {

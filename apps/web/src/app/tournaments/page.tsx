@@ -92,21 +92,15 @@ export default function TournamentsPage() {
       // Fetch both upcoming and live tournaments
       const res = await fetch('/api/tournaments?status=upcoming,live');
       
-      console.log('🔍 Fetch response status:', res.status, res.statusText);
-      
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       
       const data = await res.json();
-      console.log('🔍 Tournaments API response:', data);
-      console.log('🔍 Number of tournaments:', data?.length);
-      console.log('🔍 Tournament names:', data?.map((t: any) => t.name));
       
       // Ensure data is an array
       if (Array.isArray(data)) {
         setTournaments(data);
-        console.log('✅ Set tournaments state with', data.length, 'tournaments');
       } else {
         console.error('❌ Invalid tournaments data:', data);
         setError('Invalid data format received from server');

@@ -475,14 +475,6 @@ export default function TournamentsPage() {
                   const featuredComp = tournament.featured_competition || fullCourseComp;
                   const hasCompetitions = tournament.competitions.length > 0;
                   
-                  console.log(`📋 Tournament List - ${tournament.name}:`, {
-                    comp_type: featuredComp?.competition_types?.name,
-                    entry_fee: featuredComp?.entry_fee_pennies,
-                    max_entries: featuredComp?.entrants_cap,
-                    guaranteed_pool: featuredComp?.guaranteed_prize_pool_pennies,
-                    guaranteed_first: featuredComp?.first_place_prize_pennies
-                  });
-                  
                   // Use guaranteed prize pool from database if available, otherwise calculate
                   const prizePool = featuredComp
                     ? (featuredComp.guaranteed_prize_pool_pennies && featuredComp.guaranteed_prize_pool_pennies > 0

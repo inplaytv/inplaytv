@@ -112,16 +112,12 @@ export default function LeaderboardsPage() {
     const refreshInterval = setInterval(() => {
       if (tournamentLeaderboard?.source === 'datagolf-live' && 
           tournamentLeaderboard?.leaderboard?.length > 0) {
-        console.log('🔄 Auto-refreshing live tournament data...');
         loadTournamentLeaderboard(selectedTournament);
-      } else {
-        console.log('⏸️ Skipping auto-refresh (tournament ended or showing database data)');
       }
     }, 180000); // 3 minutes
     
     // Cleanup interval on unmount or when tournament changes
     return () => {
-      console.log('🧹 Cleaning up tournament auto-refresh interval');
       clearInterval(refreshInterval);
     };
   }, [selectedTournament]); // Only re-run when selectedTournament changes, not when tournamentLeaderboard updates
@@ -146,7 +142,6 @@ export default function LeaderboardsPage() {
         fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
         
         if (endDate < fourDaysAgo) {
-          console.log('⏰ Tournament ended more than 4 days ago, not loading leaderboard');
           setTournamentLeaderboard({
             tournament: tournament,
             leaderboard: [],
@@ -165,15 +160,10 @@ export default function LeaderboardsPage() {
       
       // For live/completed tournaments, try to get live scores from DataGolf
       if (!isUpcoming) {
-        console.log('🔴 LIVE: Fetching real-time scores from DataGolf...');
         const liveResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/live-scores`);
         
         if (liveResponse.ok) {
           const liveData = await liveResponse.json();
-          console.log('✅ DataGolf response:', {
-            golfers: liveData.leaderboard?.length || 0,
-            message: liveData.message
-          });
           
           // If DataGolf has live data, use it
           if (liveData.leaderboard && liveData.leaderboard.length > 0) {
@@ -184,23 +174,18 @@ export default function LeaderboardsPage() {
               lastUpdated: liveData.lastUpdated,
               message: liveData.message
             });
-            console.log('✅ Using real-time DataGolf scores');
             return;
           }
         }
       }
       
       // Load from database - either for upcoming (show field) or completed (show results)
-      console.log(`📊 Loading ${isUpcoming ? 'tournament field' : 'tournament results'} from database`);
       const response = await fetch(`/api/tournaments/${encodeURIComponent(tournamentId)}/leaderboard`);
       if (!response.ok) {
         console.error('❌ Failed to fetch tournament leaderboard, status:', response.status);
         throw new Error('Failed to fetch tournament leaderboard');
       }
       const data = await response.json();
-      console.log('✅ Database leaderboard loaded for tournament:', data.tournament?.name);
-      console.log('✅ Golfer count:', data.leaderboard?.length);
-      console.log('✅ First golfer:', data.leaderboard?.[0]?.name);
       
       // If tournament is upcoming and no golfers assigned yet, show message
       if (isUpcoming && (!data.leaderboard || data.leaderboard.length === 0)) {
@@ -386,9 +371,8 @@ export default function LeaderboardsPage() {
         console.error('❌ Tee times fetch failed:', response.status, response.statusText);
         throw new Error('Failed to fetch tee times');
       }
-      
+
       const data = await response.json();
-      console.log('✅ Tee times loaded:', data);
       
       setTeeTimes(data);
       setShowTeeTimes(true);
@@ -597,10 +581,6 @@ export default function LeaderboardsPage() {
           const liveResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/live-scores`);
           if (liveResponse.ok) {
             const liveData = await liveResponse.json();
-            console.log('✅ Loaded live scores for tournament popup:', {
-              golfers: liveData.leaderboard?.length || 0,
-              source: liveData.source
-            });
             // Store as competitionLiveScores so popup can access all 4 rounds
             setCompetitionLiveScores(liveData);
           }
@@ -628,8 +608,6 @@ export default function LeaderboardsPage() {
       totalSalary: 0,
       players: allTournamentPlayers
     };
-    
-    console.log('🏌️ Scorecard players:', scorecard.players);
     
     setPopupMode('tournament');
     setPopupScorecard(scorecard);
