@@ -129,45 +129,69 @@ export default function LeaderboardsPage() {
   async function loadTournamentLeaderboard(tournamentId: string) {
     try {
       setTournamentLoading(true);
-      console.log('🏌️ Loading tournament leaderboard for ID:', tournamentId);
       
-      // Find tournament to get slug for live scores
+      // Find tournament to get slug and check if it should be displayed
       const tournament = tournaments.find((t: any) => t.id === tournamentId);
-      const tournamentSlug = tournament?.slug || tournamentId;
       
-      console.log('🏌️ Tournament found:', tournament?.name || 'Not found');
-      console.log('🏌️ Using slug:', tournamentSlug);
-      
-      // Fetch from DataGolf live scores
-      console.log('🔴 LIVE: Fetching real-time scores from DataGolf...');
-      const liveResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/live-scores`);
-      
-      if (liveResponse.ok) {
-        const liveData = await liveResponse.json();
-        console.log('✅ DataGolf response:', {
-          golfers: liveData.leaderboard?.length || 0,
-          message: liveData.message
-        });
-        
-        // If DataGolf has live data, use it
-        if (liveData.leaderboard && liveData.leaderboard.length > 0) {
-          setTournamentLeaderboard({
-            tournament: liveData.tournament,
-            leaderboard: liveData.leaderboard,
-            source: 'datagolf-live',
-            lastUpdated: liveData.lastUpdated,
-            message: liveData.message
-          });
-          console.log('✅ Using real-time DataGolf scores');
-          return;
-        }
-        
-        // If DataGolf returns empty, fall through to database
-        console.log('⚠️ No live scores from DataGolf - will use database');
+      if (!tournament) {
+        console.error('Tournament not found in tournaments list');
+        setTournamentLeaderboard(null);
+        return;
       }
       
-      // Use database for completed or upcoming tournaments
-      console.log('📊 Loading from database with ID:', tournamentId);
+      // Check if tournament ended more than 4 days ago
+      if (tournament.end_date) {
+        const endDate = new Date(tournament.end_date);
+        const fourDaysAgo = new Date();
+        fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+        
+        if (endDate < fourDaysAgo) {
+          console.log('⏰ Tournament ended more than 4 days ago, not loading leaderboard');
+          setTournamentLeaderboard({
+            tournament: tournament,
+            leaderboard: [],
+            source: 'archived',
+            message: 'This tournament has ended and leaderboard data is no longer available.'
+          });
+          return;
+        }
+      }
+      
+      const tournamentSlug = tournament.slug || tournamentId;
+      
+      // Check tournament status
+      const tournamentStatus = tournament.status;
+      const isUpcoming = tournamentStatus === 'upcoming' || tournamentStatus === 'registration_open' || tournamentStatus === 'registration_closed';
+      
+      // For live/completed tournaments, try to get live scores from DataGolf
+      if (!isUpcoming) {
+        console.log('🔴 LIVE: Fetching real-time scores from DataGolf...');
+        const liveResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/live-scores`);
+        
+        if (liveResponse.ok) {
+          const liveData = await liveResponse.json();
+          console.log('✅ DataGolf response:', {
+            golfers: liveData.leaderboard?.length || 0,
+            message: liveData.message
+          });
+          
+          // If DataGolf has live data, use it
+          if (liveData.leaderboard && liveData.leaderboard.length > 0) {
+            setTournamentLeaderboard({
+              tournament: liveData.tournament,
+              leaderboard: liveData.leaderboard,
+              source: 'datagolf-live',
+              lastUpdated: liveData.lastUpdated,
+              message: liveData.message
+            });
+            console.log('✅ Using real-time DataGolf scores');
+            return;
+          }
+        }
+      }
+      
+      // Load from database - either for upcoming (show field) or completed (show results)
+      console.log(`📊 Loading ${isUpcoming ? 'tournament field' : 'tournament results'} from database`);
       const response = await fetch(`/api/tournaments/${encodeURIComponent(tournamentId)}/leaderboard`);
       if (!response.ok) {
         console.error('❌ Failed to fetch tournament leaderboard, status:', response.status);
@@ -178,10 +202,21 @@ export default function LeaderboardsPage() {
       console.log('✅ Golfer count:', data.leaderboard?.length);
       console.log('✅ First golfer:', data.leaderboard?.[0]?.name);
       
-      setTournamentLeaderboard({
-        ...data,
-        source: 'database'
-      });
+      // If tournament is upcoming and no golfers assigned yet, show message
+      if (isUpcoming && (!data.leaderboard || data.leaderboard.length === 0)) {
+        setTournamentLeaderboard({
+          tournament: data.tournament,
+          leaderboard: [],
+          source: 'upcoming-empty',
+          message: `${tournament.name} field will be announced soon`
+        });
+      } else {
+        // Show the data with appropriate source
+        setTournamentLeaderboard({
+          ...data,
+          source: isUpcoming ? 'upcoming-field' : 'database'
+        });
+      }
     } catch (error) {
       console.error('❌ Error loading tournament leaderboard:', error);
       setTournamentLeaderboard(null);
@@ -208,13 +243,9 @@ export default function LeaderboardsPage() {
       const data = await response.json();
       // API returns { tournaments: [...] }, not just an array
       const tournaments = data.tournaments || [];
-      console.log('📊 Tournaments loaded:', tournaments.length);
-      console.log('📊 Tournament names:', tournaments.map((t: any) => t.name));
-      
       // Extract all competitions from all tournaments
       const allCompetitions: any[] = [];
       tournaments.forEach((tournament: any) => {
-        console.log(`🏌️ Tournament: ${tournament.name}, Competitions: ${tournament.competitions?.length || 0}`);
         if (tournament.competitions && tournament.competitions.length > 0) {
           tournament.competitions.forEach((comp: any) => {
             allCompetitions.push({
@@ -240,16 +271,13 @@ export default function LeaderboardsPage() {
       console.log('🏆 Tournament details:', tournaments.map((t: any) => ({ id: t.id, name: t.name })));
       setTournaments(tournaments);
       
-      // Auto-select first competition AND first tournament
+      // Auto-select first valid competition and tournament
       if (allCompetitions.length > 0) {
-        console.log('✅ Auto-selecting competition:', allCompetitions[0].competition_types?.name);
         setSelectedCompetition(allCompetitions[0].id);
       }
       
-      if (tournaments.length > 0) {
-        console.log('✅ Auto-selecting tournament:', tournaments[0].name);
-        setSelectedTournament(tournaments[0].id);
-      }
+      // Don't auto-select tournament - let user choose
+      // User should select from dropdown to avoid showing empty state
     } catch (error) {
       console.error('❌ Error loading competitions:', error);
     } finally {
@@ -260,12 +288,8 @@ export default function LeaderboardsPage() {
   async function loadLeaderboard(competitionId: string) {
     try {
       setLoading(true);
-      console.log('🔄 Loading leaderboard for competition:', competitionId);
       const url = `/api/competitions/${competitionId}/leaderboard`;
-      console.log('📡 Calling API:', url);
-      
       const response = await fetch(url);
-      console.log('📥 API Response:', response.status, response.statusText);
       
       if (!response.ok) {
         console.error('❌ Leaderboard fetch failed:', response.status, response.statusText);
@@ -273,51 +297,40 @@ export default function LeaderboardsPage() {
       }
       
       const data = await response.json();
-      console.log('✅ Leaderboard data loaded:', data);
-      console.log('📊 Entries count:', data.entries?.length || 0);
-      console.log('🔍 Sample entry with picks:', data.entries?.[0]);
       
-      // IMPORTANT: Don't clear existing data if the new data is empty
+      // CRITICAL FIX: Always update leaderboard data, but preserve competition metadata
+      // This prevents showing old entries when switching to a competition with no entries
+      // while still allowing popup to access tournament information
       if (data.entries && data.entries.length > 0) {
         setLeaderboardData(data);
-        console.log('✅ Updated leaderboard with', data.entries.length, 'entries');
-      } else if (!leaderboardData) {
-        // Only set empty data if we don't have any data yet
-        setLeaderboardData(data);
-        console.log('ℹ️ Set empty leaderboard (no existing data)');
       } else {
-        console.log('⚠️ Keeping existing leaderboard data (new data was empty)');
+        // Clear entries but keep competition metadata for popup functionality
+        setLeaderboardData({
+          competition: data.competition,
+          entries: []
+        });
       }
       
       // ALWAYS load tournament leaderboard from DATABASE for fantasy points
       // (Database IDs match the picks, DataGolf uses different dg_id)
       const tournamentId = data.competition?.tournament?.id;
       const tournamentSlug = data.competition?.tournament?.slug;
-      if (tournamentId) {
-        console.log('🎯 Loading tournament data from DATABASE for fantasy point calculations...');
-        
+      const tournamentStatus = data.competition?.tournament?.status;
+      const tournamentStarted = tournamentStatus === 'live' || tournamentStatus === 'completed';
+      
+      if (tournamentId && tournamentStarted) {
         const tournamentResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentId)}/leaderboard`);
         if (tournamentResponse.ok) {
           const tournamentData = await tournamentResponse.json();
-          console.log('✅ Loaded database tournament leaderboard:', {
-            golfers: tournamentData.leaderboard?.length || 0,
-            sampleGolfer: tournamentData.leaderboard?.[0]
-          });
           
           // Load live scores and merge with database data
           if (tournamentSlug) {
-            console.log('🎯 Loading live scores from DataGolf for InPlay leaderboard...');
             const liveResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/live-scores`);
             if (liveResponse.ok) {
               const liveData = await liveResponse.json();
-              console.log('✅ Loaded live scores:', {
-                golfers: liveData.leaderboard?.length || 0,
-                source: liveData.source
-              });
               
               // Merge live scores into tournament leaderboard for InPlay fantasy points
               if (liveData.leaderboard && liveData.leaderboard.length > 0) {
-                console.log('🔄 Merging live scores with database IDs for fantasy calculations...');
                 setTournamentLeaderboard({
                   ...liveData,
                   source: 'datagolf-live'
@@ -347,6 +360,9 @@ export default function LeaderboardsPage() {
         } else {
           console.error('❌ Failed to load tournament leaderboard');
         }
+      } else if (!tournamentStarted) {
+        setTournamentLeaderboard(null);
+        setCompetitionLiveScores(null);
       }
     } catch (error) {
       console.error('❌ Error loading leaderboard:', error);
@@ -400,23 +416,16 @@ export default function LeaderboardsPage() {
   // Calculate fantasy points for an entry based on hole-by-hole tournament scores
   const calculateEntryFantasyPoints = (entry: any): number => {
     if (!tournamentLeaderboard?.leaderboard || !entry.picks) {
-      console.log('⚠️ Cannot calculate fantasy points - missing data:', {
-        hasTournamentLeaderboard: !!tournamentLeaderboard?.leaderboard,
-        leaderboardLength: tournamentLeaderboard?.leaderboard?.length || 0,
-        hasPicks: !!entry.picks,
-        picksLength: entry.picks?.length || 0,
-        entryId: entry.entryId
-      });
+      return 0;
+    }
+
+    // Check if tournament has started - don't show points for future tournaments
+    const tournament = leaderboardData?.competition?.tournament;
+    if (tournament?.status === 'upcoming' || tournament?.status === 'registration_open' || tournament?.status === 'registration_closed') {
       return 0;
     }
 
     let totalPoints = 0;
-    
-    console.log(`💰 Calculating fantasy points for entry ${entry.entryId}:`, {
-      picks: entry.picks.length,
-      leaderboardGolfers: tournamentLeaderboard.leaderboard.length,
-      source: tournamentLeaderboard.source
-    });
     
     // Calculate points for each golfer
     entry.picks.forEach((pick: any, pickIndex: number) => {
@@ -438,8 +447,6 @@ export default function LeaderboardsPage() {
       }
       
       if (golfer) {
-        console.log(`✅ Found golfer in leaderboard:`, golfer.name, 'Position:', golfer.position);
-        
         // Build performance data for scoring system
         const rounds: RoundScore[] = [];
         const liveScoring = golfer.liveScoring;
@@ -460,25 +467,9 @@ export default function LeaderboardsPage() {
           });
         }
         
-        // Fallback to mock data if no real data (TEMP)
+        // Don't calculate points if no real data available
         if (rounds.length === 0) {
-          const mockRounds = [
-            [4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4],
-            [4, 4, 4, 3, 5, 4, 4, 4, 3, 4, 5, 4, 4, 4, 3, 4, 4, 5],
-            [3, 4, 5, 4, 4, 4, 4, 5, 4, 4, 4, 3, 4, 5, 4, 4, 3, 4],
-            [4, 3, 4, 4, 5, 3, 5, 4, 4, 4, 4, 4, 4, 4, 3, 5, 4, 4]
-          ];
-          
-          mockRounds.forEach((roundScores, roundIndex) => {
-            rounds.push({
-              round: roundIndex + 1,
-              holes: roundScores.map((score, holeIndex) => ({
-                hole: holeIndex + 1,
-                par: 4, // Default par
-                score
-              }))
-            });
-          });
+          return; // Skip this golfer - no points until tournament starts
         }
         
         // Determine if this is the captain
@@ -501,14 +492,9 @@ export default function LeaderboardsPage() {
         // Calculate score using centralized scoring system
         const scoring = calculateGolferScore(performance);
         totalPoints += scoring.finalTotal;
-        
-        console.log(`✅ Golfer ${golferName} points: ${scoring.finalTotal}, total so far: ${totalPoints}`);
-      } else {
-        console.warn(`❌ Golfer not found in leaderboard:`, { golferId, golferName });
       }
     });
     
-    console.log(`💰 Total fantasy points for entry ${entry.entryId}: ${totalPoints}`);
     return Math.round(totalPoints);
   };
 
@@ -525,8 +511,6 @@ export default function LeaderboardsPage() {
 
   // Open fantasy competition popup with user's picks
   const openFantasyPopup = async (entry: any) => {
-    console.log('🎯 Opening fantasy popup with entry:', entry);
-    
     try {
       // Fetch the picks with golfer details
       const response = await fetch(`/api/entries/${entry.entryId}/picks-with-golfers`);
@@ -535,9 +519,6 @@ export default function LeaderboardsPage() {
       }
       
       const { picks } = await response.json();
-      console.log('🎯 Fetched picks:', picks);
-      console.log('🎯 Picks array length:', picks?.length || 0);
-      
       const tournamentId = leaderboardData?.competition?.tournament?.id;
       
       const scorecard: Scorecard = {
@@ -566,10 +547,6 @@ export default function LeaderboardsPage() {
         } : undefined
       };
       
-      console.log('🎯 Created scorecard with players:', scorecard.players);
-      console.log('🎯 Selecting first player:', scorecard.players[0]?.id);
-      console.log('🎯 About to set popup states...');
-      
       // Set all popup state FIRST to avoid race conditions
       setPopupMode('fantasy');
       setPopupScorecard(scorecard);
@@ -577,16 +554,19 @@ export default function LeaderboardsPage() {
       setSelectedPlayer(scorecard.players[0]?.id || null);
       setShowPopupViewer(true);
       
-      console.log('🎯 Popup states set! showPopupViewer=true, scorecard=', scorecard);
+      // Only load tournament leaderboard if tournament has started (live or completed)
+      const tournament = leaderboardData?.competition?.tournament;
+      const tournamentStarted = tournament?.status === 'live' || tournament?.status === 'completed';
       
-      // Load tournament leaderboard AFTER popup is shown to avoid re-render issues
-      if (tournamentId && (!tournamentLeaderboard || tournamentLeaderboard.tournament?.id !== tournamentId)) {
-        console.log('🎯 Loading tournament leaderboard for fantasy popup...');
+      if (tournamentId && tournamentStarted && (!tournamentLeaderboard || tournamentLeaderboard.tournament?.id !== tournamentId)) {
         const tournamentResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentId)}/leaderboard`);
         if (tournamentResponse.ok) {
           const data = await tournamentResponse.json();
           setTournamentLeaderboard(data);
         }
+      } else if (!tournamentStarted) {
+        setTournamentLeaderboard(null);
+        setCompetitionLiveScores(null);
       }
     } catch (error) {
       console.error('❌ Error loading entry picks:', error);
@@ -596,32 +576,37 @@ export default function LeaderboardsPage() {
 
   // Open tournament popup with all golfers
   const openTournamentPopup = async (golfer: any) => {
-    console.log('🏌️ Opening tournament popup for golfer:', golfer);
-    console.log('🏌️ Tournament leaderboard:', tournamentLeaderboard);
-    
     if (!tournamentLeaderboard || !tournamentLeaderboard.leaderboard) {
-      console.error('❌ No tournament leaderboard data available');
       return;
     }
     
-    // Fetch live scores for complete round data (all 4 rounds)
+    // Only fetch live scores if tournament is actually in play (not upcoming)
     const tournament = tournaments.find((t: any) => t.id === selectedTournament);
-    const tournamentSlug = tournament?.slug || selectedTournament;
-    if (tournamentSlug) {
-      console.log('🎯 Loading live scores for tournament popup...');
-      try {
-        const liveResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/live-scores`);
-        if (liveResponse.ok) {
-          const liveData = await liveResponse.json();
-          console.log('✅ Loaded live scores for tournament popup:', {
-            golfers: liveData.leaderboard?.length || 0,
-            source: liveData.source
-          });
-          // Store as competitionLiveScores so popup can access all 4 rounds
-          setCompetitionLiveScores(liveData);
+    const tournamentStatus = tournament?.status || '';
+    const isLiveTournament = tournamentStatus === 'live' || tournamentStatus === 'in-play';
+    
+    // Clear any previous live scores data for upcoming tournaments
+    if (!isLiveTournament) {
+      setCompetitionLiveScores(null);
+      console.log('⏸️ Tournament not live - skipping live-scores fetch');
+    } else {
+      // Only fetch live scores for tournaments that are actually in play
+      const tournamentSlug = tournament?.slug || selectedTournament;
+      if (tournamentSlug) {
+        try {
+          const liveResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/live-scores`);
+          if (liveResponse.ok) {
+            const liveData = await liveResponse.json();
+            console.log('✅ Loaded live scores for tournament popup:', {
+              golfers: liveData.leaderboard?.length || 0,
+              source: liveData.source
+            });
+            // Store as competitionLiveScores so popup can access all 4 rounds
+            setCompetitionLiveScores(liveData);
+          }
+        } catch (error) {
+          console.error('❌ Failed to load live scores for tournament popup:', error);
         }
-      } catch (error) {
-        console.error('❌ Failed to load live scores for tournament popup:', error);
       }
     }
     
@@ -756,10 +741,11 @@ export default function LeaderboardsPage() {
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-          gap: '30px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(350px, 100%), 1fr))',
+          gap: '20px',
           alignItems: 'start'
-        }}>
+        }}
+        className="leaderboard-grid">  
           {/* Container 1: Multi-View Leaderboard */}
           <div style={{
             background: 'rgba(15, 23, 4, 0.85)',
@@ -897,8 +883,8 @@ export default function LeaderboardsPage() {
                       {/* Column Headers */}
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns: '40px 1fr 120px',
-                        gap: '16px',
+                        gridTemplateColumns: '40px 1fr minmax(100px, 120px)',
+                        gap: '12px',
                         padding: '12px 16px',
                         background: 'rgba(255,255,255,0.05)',
                         borderRadius: '8px',
@@ -927,8 +913,8 @@ export default function LeaderboardsPage() {
                               onClick={() => openFantasyPopup(entry)}
                               style={{
                                 display: 'grid',
-                                gridTemplateColumns: '40px 1fr 120px',
-                                gap: '16px',
+                                gridTemplateColumns: '40px 1fr minmax(100px, 120px)',
+                                gap: '12px',
                                 background: isTop3 ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255,255,255,0.03)',
                                 border: `1px solid ${isTop3 ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255,255,255,0.08)'}`,
                                 borderRadius: '8px',
@@ -1048,7 +1034,7 @@ export default function LeaderboardsPage() {
                   {/* Stats Grid */}
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
                     gap: '12px',
                     marginBottom: '16px'
                   }}>
@@ -1116,9 +1102,6 @@ export default function LeaderboardsPage() {
               }}>
                 🏆 Tournament Leaderboard
               </h2>
-              <p style={{ fontSize: '14px', color: '#9ca3af' }}>
-                Live PGA professional golfers standings
-              </p>
             </div>
 
             {/* Tournament Selector */}
@@ -1170,6 +1153,10 @@ export default function LeaderboardsPage() {
                       {new Date(tournamentLeaderboard.tournament.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(tournamentLeaderboard.tournament.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                   )}
+                  <div style={{ fontSize: '12px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>🏌️</span>
+                    <span>{tournamentLeaderboard.leaderboard?.length || 0} golfers</span>
+                  </div>
                 </div>
                 <div style={{
                   background: (() => {
@@ -1430,6 +1417,39 @@ export default function LeaderboardsPage() {
                   </div>
                 );
               })
+              ) : !tournamentLoading && tournamentLeaderboard?.source === 'upcoming-empty' ? (
+                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af' }}>
+                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+                  <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#e5e7eb' }}>Field Not Yet Announced</div>
+                  <div style={{ fontSize: '14px', marginBottom: '8px' }}>
+                    {tournamentLeaderboard.message}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                    Tournament golfers will appear here once they are added in the admin panel
+                  </div>
+                </div>
+              ) : !tournamentLoading && tournamentLeaderboard?.source === 'upcoming' ? (
+                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af' }}>
+                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📅</div>
+                  <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#e5e7eb' }}>Tournament Not Started</div>
+                  <div style={{ fontSize: '14px', marginBottom: '8px' }}>
+                    {tournamentLeaderboard.message}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                    Leaderboard will be available when the tournament begins
+                  </div>
+                </div>
+              ) : !tournamentLoading && tournamentLeaderboard?.source === 'archived' ? (
+                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af' }}>
+                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
+                  <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#e5e7eb' }}>Tournament Archived</div>
+                  <div style={{ fontSize: '14px', marginBottom: '8px' }}>
+                    {tournamentLeaderboard.message || 'This tournament has ended and leaderboard data is no longer available.'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                    Leaderboards are available for 4 days after tournament completion
+                  </div>
+                </div>
               ) : !tournamentLoading && (
                 <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af' }}>
                   <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏌️</div>
@@ -1446,23 +1466,8 @@ export default function LeaderboardsPage() {
           <>
             {/* Backdrop */}
             <div 
-              onClick={(e) => {
-                console.log('🎯 Backdrop clicked, closing popup');
-                closePopup();
-              }}
+              onClick={closePopup}
               style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0,0,0,0.7)',
-                zIndex: 999
-              }}
-            />
-
-            {/* Modal */}
-            <div style={{
                 position: 'fixed',
                 top: 0,
                 left: 0,
@@ -1653,18 +1658,9 @@ export default function LeaderboardsPage() {
                       
                       if (realGolferData) {
                         console.log(`✅ Matched by exact name: ${player.golferName} -> ${realGolferData.name}`);
-                      } else {
-                        // Try partial name match (last name)
-                        const lastName = player.golferName.split(' ').pop()?.toLowerCase();
-                        if (lastName) {
-                          realGolferData = liveLeaderboard?.find((g: any) => 
-                            g.name && g.name.toLowerCase().includes(lastName)
-                          );
-                          if (realGolferData) {
-                            console.log(`✅ Matched by last name: ${player.golferName} (${lastName}) -> ${realGolferData.name}`);
-                          }
-                        }
                       }
+                      // REMOVED: Fuzzy matching was causing false matches (e.g., "Burns, Sam" matched "Valimaki, Sami")
+                      // Only use exact ID or exact name match to prevent showing wrong golfer's data
                     }
                     
                     if (!realGolferData) {
@@ -2073,16 +2069,7 @@ export default function LeaderboardsPage() {
                                   const par = holeData?.par || 4;
                                   let score = holeData?.score || null;
                                   
-                                  // TEMP: Mock data for all 4 rounds with varied scores
-                                  if (!score && selectedRound >= 1 && selectedRound <= 4) {
-                                    const mockRounds = [
-                                      [4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4],
-                                      [4, 4, 4, 3, 5, 4, 4, 4, 3, 4, 5, 4, 4, 4, 3, 4, 4, 5],
-                                      [3, 4, 5, 4, 4, 4, 4, 5, 4, 4, 4, 3, 4, 5, 4, 4, 3, 4],
-                                      [4, 3, 4, 4, 5, 3, 5, 4, 4, 4, 4, 4, 4, 4, 3, 5, 4, 4]
-                                    ];
-                                    score = mockRounds[selectedRound - 1][hole - 1];
-                                  }
+                                  // Only show data if we have actual hole scores from API
                                   const toPar = score !== null ? score - par : null;
                                   
                                   let bgColor = 'rgba(255,255,255,0.05)';
@@ -2500,7 +2487,7 @@ export default function LeaderboardsPage() {
                                     padding: '20px'
                                   }}>
                                     {/* Tournament Overview */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '20px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
                                       <div style={{ 
                                         background: 'rgba(102, 126, 234, 0.15)', 
                                         borderRadius: '6px',
@@ -2723,7 +2710,7 @@ export default function LeaderboardsPage() {
                       </h3>
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))',
                         gap: '8px'
                       }}>
                         {teeTimes.field
