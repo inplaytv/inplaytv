@@ -2743,16 +2743,27 @@ export default function LeaderboardsPage() {
                           }}>
                             <span>{player.player_name || player.name}</span>
                             {player.tee_time && (
-                              <span style={{ 
-                                fontSize: '12px', 
-                                color: '#667eea',
-                                fontWeight: 600,
-                                background: 'rgba(102, 126, 234, 0.2)',
-                                padding: '2px 8px',
-                                borderRadius: '4px'
-                              }}>
-                                {player.tee_time}
-                              </span>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                <span style={{ 
+                                  fontSize: '12px', 
+                                  color: '#667eea',
+                                  fontWeight: 600,
+                                  background: 'rgba(102, 126, 234, 0.2)',
+                                  padding: '2px 8px',
+                                  borderRadius: '4px'
+                                }}>
+                                  {new Date(player.tee_time).toLocaleTimeString('en-US', { 
+                                    hour: 'numeric', 
+                                    minute: '2-digit',
+                                    hour12: true 
+                                  })}
+                                </span>
+                                {player.start_hole !== 1 && (
+                                  <span style={{ fontSize: '10px', color: '#9ca3af' }}>
+                                    Hole {player.start_hole}
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
                         ))}

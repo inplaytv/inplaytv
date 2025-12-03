@@ -109,18 +109,31 @@ export async function GET(
       });
     }
 
+    // Determine current round (default to 1 if not started)
+    const currentRound = apiResponse.current_round || 1;
+    
     // Convert field data to tee times format
     const field = fieldData.map((player: any) => ({
       player_name: player.player_name || player.name,
       dg_id: player.dg_id,
       country: player.country,
-      tee_time: player.tee_time || null, // May not be set for upcoming tournaments
+      // Extract tee time for current round
+      tee_time: player[`r${currentRound}_teetime`] || player.tee_time || null,
+      r1_teetime: player.r1_teetime || null,
+      r2_teetime: player.r2_teetime || null,
+      r3_teetime: player.r3_teetime || null,
+      r4_teetime: player.r4_teetime || null,
       round_status: player.round_status || 'Not started',
-      course: player.course || null
+      course: player.course || null,
+      start_hole: player.start_hole || 1
     }));
 
+    // Count how many players have tee times
+    const playersWithTeeTimes = field.filter(p => p.tee_time).length;
     console.log('✅ DataGolf returned field with', field.length, 'players');
+    console.log('✅ Players with tee times:', playersWithTeeTimes);
     console.log('✅ Event:', eventName);
+    console.log('✅ Current Round:', currentRound);
 
     return NextResponse.json({
       tournament: {
@@ -132,7 +145,7 @@ export async function GET(
       field,
       eventInfo: {
         event_name: eventName,
-        current_round: apiResponse.current_round || 0
+        current_round: currentRound
       },
       lastUpdated: new Date().toISOString(),
       source: 'datagolf'
