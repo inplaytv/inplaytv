@@ -345,8 +345,8 @@ function One2OneCard({
               <i className="fas fa-users"></i>
             </div>
             <div>
-              <div className={styles.statLabel}>Players</div>
-              <div className={styles.statValue}>2</div>
+              <div className={styles.statLabel}>Max Entries</div>
+              <div className={styles.statValue}>2 Entries Only</div>
             </div>
           </div>
           <div className={styles.statItem}>

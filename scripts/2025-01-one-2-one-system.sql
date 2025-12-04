@@ -292,7 +292,6 @@ DROP TRIGGER IF EXISTS competition_entries_update_instance_count ON public.compe
 CREATE TRIGGER competition_entries_update_instance_count
   AFTER INSERT OR UPDATE OR DELETE ON public.competition_entries
   FOR EACH ROW
-  WHEN (NEW.instance_id IS NOT NULL OR OLD.instance_id IS NOT NULL)
   EXECUTE FUNCTION public.update_instance_player_count();
 
 COMMENT ON FUNCTION public.update_instance_player_count IS 'Keeps instance current_players count synced with entries. Auto-marks full at 2 players.';
