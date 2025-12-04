@@ -321,25 +321,16 @@ export default function TournamentsPage() {
     e.currentTarget.src = 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=300&h=180&fit=crop';
   };
 
-  const handleBuildTeam = async (e: React.MouseEvent, competitionId: string, entryFee: number, regCloseAt?: string, tournamentStartDate?: string) => {
+  const handleBuildTeam = async (e: React.MouseEvent, competitionId: string, entryFee: number, regCloseAt?: string) => {
     e.preventDefault();
     
-    // CRITICAL: Check if tournament has started - MUST block registration
-    if (tournamentStartDate) {
-      const now = new Date();
-      const startDate = new Date(tournamentStartDate);
-      if (now >= startDate) {
-        alert('Registration is closed - this tournament has already started.');
-        return;
-      }
-    }
-    
-    // Check if registration deadline has passed
+    // Check if THIS COMPETITION's registration deadline has passed
+    // Each competition has its own reg_close_at time
     if (regCloseAt) {
       const now = new Date();
       const closeDate = new Date(regCloseAt);
       if (now >= closeDate) {
-        alert('Registration is closed - the deadline has passed.');
+        alert('Registration is closed - the deadline for this competition has passed.');
         return;
       }
     }
@@ -505,15 +496,32 @@ export default function TournamentsPage() {
                   // Calculate if registration is actually open by checking tournament dates
                   const now = new Date();
                   const tournamentStart = tournament.start_date ? new Date(tournament.start_date) : null;
+                  const tournamentEnd = tournament.end_date ? new Date(tournament.end_date) : null;
+                  const tournamentEndOfDay = tournamentEnd ? new Date(tournamentEnd) : null;
+                  if (tournamentEndOfDay) {
+                    tournamentEndOfDay.setHours(23, 59, 59, 999);
+                  }
                   const regCloseAt = featuredComp?.reg_close_at ? new Date(featuredComp.reg_close_at) : null;
                   const tournamentHasStarted = tournamentStart && now >= tournamentStart;
+                  const tournamentInProgress = tournamentStart && tournamentEndOfDay && now >= tournamentStart && now <= tournamentEndOfDay;
                   const regClosed = regCloseAt && now >= regCloseAt;
                   const isRegistrationOpen = hasCompetitions && !tournamentHasStarted && !regClosed;
                   
                   return (
                     <div key={tournament.id} className={`${styles.featuredCompetitionCard} ${styles.glass}`} style={{ position: 'relative', paddingTop: '3.5rem' }}>
-                      {/* Registration Badge - Top Left */}
-                      {isRegistrationOpen && (
+                      {/* Badge - Top Left */}
+                      {tournamentInProgress ? (
+                        <div style={{ 
+                          position: 'absolute',
+                          top: '1rem',
+                          left: '1rem',
+                          zIndex: 10
+                        }}>
+                          <span className={styles.statusBadge} style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}>
+                            🔴 Tournament In Play
+                          </span>
+                        </div>
+                      ) : isRegistrationOpen && (
                         <div style={{ 
                           position: 'absolute',
                           top: '1rem',
@@ -682,7 +690,7 @@ export default function TournamentsPage() {
                                 
                                 return (
                                   <button
-                                    onClick={(e) => handleBuildTeam(e, featuredComp.id, featuredComp.entry_fee_pennies, featuredComp.reg_close_at || undefined, tournament.start_date)}
+                                    onClick={(e) => handleBuildTeam(e, featuredComp.id, featuredComp.entry_fee_pennies, featuredComp.reg_close_at || undefined)}
                                     className={styles.btnPrimary}
                                   >
                                     <i className="fas fa-users"></i>

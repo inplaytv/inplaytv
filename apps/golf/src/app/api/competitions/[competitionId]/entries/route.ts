@@ -37,14 +37,45 @@ export async function POST(
       );
     }
 
-    // Get competition details for entry fee
+    // Get competition details for entry fee and validation
     const { data: competition, error: compError } = await supabase
       .from('tournament_competitions')
-      .select('entry_fee_pennies')
+      .select(`
+        entry_fee_pennies,
+        reg_close_at,
+        tournaments!tournament_competitions_tournament_id_fkey (
+          start_date
+        )
+      `)
       .eq('id', params.competitionId)
       .single();
 
     if (compError) throw compError;
+
+    // CRITICAL SERVER-SIDE VALIDATION: Check if tournament has started
+    const tournament: any = competition.tournaments;
+    if (tournament?.start_date) {
+      const now = new Date();
+      const tournamentStart = new Date(tournament.start_date);
+      if (now >= tournamentStart) {
+        return NextResponse.json(
+          { error: 'Registration is closed - tournament has already started' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // CRITICAL SERVER-SIDE VALIDATION: Check if registration deadline has passed
+    if (competition.reg_close_at) {
+      const now = new Date();
+      const regClose = new Date(competition.reg_close_at);
+      if (now >= regClose) {
+        return NextResponse.json(
+          { error: 'Registration is closed - deadline has passed' },
+          { status: 403 }
+        );
+      }
+    }
 
     // If status is submitted, deduct from wallet FIRST before creating entry
     if (status === 'submitted') {

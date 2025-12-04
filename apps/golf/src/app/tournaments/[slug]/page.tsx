@@ -353,12 +353,9 @@ export default function TournamentDetailPage() {
       cancelled: { label: 'Cancelled', icon: 'fa-times-circle', color: '#ef4444' },
     };
 
-    // CRITICAL: Check tournament dates FIRST - if tournament has started or ended,
-    // registration MUST be closed regardless of database status field
     const now = new Date();
     const regCloseAt = competition.reg_close_at ? new Date(competition.reg_close_at) : null;
     const regOpenAt = competition.reg_open_at ? new Date(competition.reg_open_at) : null;
-    const tournamentStart = tournament.start_date ? new Date(tournament.start_date) : null;
     const tournamentEnd = tournament.end_date ? new Date(tournament.end_date) : null;
     
     // Tournament end date should include the full day (set to end of day)
@@ -372,28 +369,28 @@ export default function TournamentDetailPage() {
       return statusConfig.completed;
     }
     
-    // PRIORITY 2: Check if tournament is in progress (BLOCKS REGISTRATION)
-    if (tournamentStart && tournamentEndOfDay && now >= tournamentStart && now <= tournamentEndOfDay) {
-      return statusConfig.live;
-    }
-    
-    // PRIORITY 3: Check if registration deadline has passed (BLOCKS REGISTRATION)
-    if (regCloseAt && now >= regCloseAt) {
-      return statusConfig.reg_closed;
-    }
-
-    // PRIORITY 4: Check database status field for explicit overrides
+    // PRIORITY 2: Check database status for cancelled
     if (competition.status === 'cancelled') {
       return statusConfig.cancelled;
     }
     
-    // PRIORITY 5: Check if registration is open by dates
-    if (regOpenAt && now >= regOpenAt && regCloseAt && now < regCloseAt && tournamentStart && now < tournamentStart) {
+    // PRIORITY 3: Check THIS COMPETITION's registration deadline (most important!)
+    // Each competition has its own reg_close_at time
+    if (regCloseAt && now >= regCloseAt) {
+      // If tournament is still ongoing, show as Live, otherwise show as closed
+      if (tournamentEndOfDay && now <= tournamentEndOfDay) {
+        return statusConfig.live;
+      }
+      return statusConfig.reg_closed;
+    }
+    
+    // PRIORITY 4: Check if registration is currently open by dates
+    if (regOpenAt && now >= regOpenAt && regCloseAt && now < regCloseAt) {
       return statusConfig.reg_open;
     }
     
-    // PRIORITY 6: Check if competition status is explicitly reg_open but only if tournament hasn't started
-    if (competition.status === 'reg_open' && tournamentStart && now < tournamentStart) {
+    // PRIORITY 5: Check database status - use reg_open only if reg_close_at hasn't passed
+    if (competition.status === 'reg_open' && (!regCloseAt || now < regCloseAt)) {
       return statusConfig.reg_open;
     }
     

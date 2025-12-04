@@ -88,27 +88,13 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
       if (!compRes.ok) throw new Error('Failed to load competition');
       const compData = await compRes.json();
       
-      // CRITICAL: Check if tournament has started - block access completely
-      if (compData.tournament_start_date) {
-        const now = new Date();
-        const tournamentStart = new Date(compData.tournament_start_date);
-        if (now >= tournamentStart) {
-          setError('Registration is closed - this tournament has already started.');
-          setLoading(false);
-          // Redirect back to tournaments page after 3 seconds
-          setTimeout(() => {
-            router.push('/tournaments');
-          }, 3000);
-          return;
-        }
-      }
-      
-      // Check if registration deadline has passed
+      // CRITICAL: Check if THIS COMPETITION's registration deadline has passed
+      // Each competition has its own reg_close_at time (e.g., One-2-One stays open during tournament)
       if (compData.reg_close_at) {
         const now = new Date();
         const regClose = new Date(compData.reg_close_at);
         if (now >= regClose) {
-          setError('Registration is closed - the deadline has passed.');
+          setError('Registration is closed - the deadline for this competition has passed.');
           setLoading(false);
           setTimeout(() => {
             router.push('/tournaments');
