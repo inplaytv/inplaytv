@@ -42,6 +42,21 @@ interface Tournament {
   competitions: Competition[];
 }
 
+interface One2OneTemplate {
+  id: string;
+  name: string;
+  short_name: string;
+  description: string;
+  entry_fee_pennies: number;
+  admin_fee_percent: number;
+  rounds_covered: number[];
+  reg_close_round: number | null;
+  tournament_id: string;
+  reg_close_at: string | null;
+  is_open: boolean;
+  available_instances: number;
+}
+
 // Extract tour from description or name
 function extractTour(description: string | null, name?: string): 'PGA' | 'LPGA' | 'European' | null {
   const text = `${description || ''} ${name || ''}`.toLowerCase();
@@ -250,17 +265,163 @@ function CompetitionCard({
   );
 }
 
+// ONE 2 ONE Card Component
+function One2OneCard({ 
+  template,
+  tournament,
+  formatCurrency
+}: {
+  template: One2OneTemplate;
+  tournament: Tournament;
+  formatCurrency: (pennies: number) => string;
+}) {
+  const countdown = useCountdown(template.reg_close_at, template.is_open ? 'reg_open' : 'reg_closed');
+  const isClosed = !template.is_open || countdown === 'Registration Closed';
+
+  // Calculate prize pool (winner takes all, less admin fee)
+  const prizePool = (template.entry_fee_pennies * 2) * (1 - template.admin_fee_percent / 100);
+
+  // Get round description
+  const getRoundDescription = () => {
+    if (template.rounds_covered.length === 4) {
+      return 'ALL 4 ROUNDS';
+    }
+    const roundNum = template.rounds_covered[0];
+    const roundSuffix = ['TH', 'ST', 'ND', 'RD', 'TH'];
+    const suffix = roundSuffix[roundNum] || 'TH';
+    return `${roundNum}${suffix} ROUND`;
+  };
+
+  return (
+    <div className={`${styles.competitionCard} ${styles.glass}`} style={{ position: 'relative' }}>
+      {/* ONE 2 ONE Badge */}
+      <div 
+        className={styles.statusCorner} 
+        style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
+      >
+        <i className="fas fa-users"></i>
+        <span>1v1</span>
+      </div>
+
+      {/* Tournament Dates */}
+      <div className={styles.tournamentDatesHeader}>
+        <i className="fas fa-calendar-alt"></i>
+        <span>{getRoundDescription()}</span>
+      </div>
+
+      <div className={styles.cardContent}>
+        {/* Header */}
+        <div className={styles.cardHeader}>
+          <div>
+            <h3>{template.short_name}</h3>
+            <p className={styles.competitionSubtitle}>
+              🏆 Head-to-Head Competition ⚔️
+            </p>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className={styles.statsGrid}>
+          <div className={styles.statItem}>
+            <div className={styles.statIcon}>
+              <i className="fas fa-trophy"></i>
+            </div>
+            <div>
+              <div className={styles.statLabel}>Winner Takes</div>
+              <div className={styles.statValue}>{formatCurrency(Math.round(prizePool * 100))}</div>
+            </div>
+          </div>
+          <div className={styles.statItem}>
+            <div className={styles.statIcon}>
+              <i className="fas fa-ticket-alt"></i>
+            </div>
+            <div>
+              <div className={styles.statLabel}>Entry Fee</div>
+              <div className={styles.statValue}>{formatCurrency(template.entry_fee_pennies)}</div>
+            </div>
+          </div>
+          <div className={styles.statItem}>
+            <div className={styles.statIcon}>
+              <i className="fas fa-users"></i>
+            </div>
+            <div>
+              <div className={styles.statLabel}>Players</div>
+              <div className={styles.statValue}>2</div>
+            </div>
+          </div>
+          <div className={styles.statItem}>
+            <div className={styles.statIcon}>
+              <i className="fas fa-gamepad"></i>
+            </div>
+            <div>
+              <div className={styles.statLabel}>Available Matches</div>
+              <div className={styles.statValue}>
+                {template.available_instances === 0 ? 'Join to Start' : `${template.available_instances} Open`}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Registration Countdown */}
+        {template.reg_close_at && (
+          <div className={styles.registrationCountdown} style={{
+            background: isClosed ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+            borderTop: isClosed ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)',
+            borderBottom: isClosed ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)'
+          }}>
+            <div className={styles.countdownIcon} style={{
+              color: isClosed ? '#ef4444' : '#10b981'
+            }}>
+              <i className="fas fa-clock"></i>
+            </div>
+            <div className={styles.countdownContent}>
+              <div className={styles.countdownLabel}>{isClosed ? 'Registration' : 'Registration Closes'}</div>
+              <div className={styles.countdownTimer} key={countdown} style={{
+                color: isClosed ? '#ef4444' : '#10b981'
+              }}>{isClosed && countdown === 'Registration Closed' ? 'Closed' : countdown}</div>
+            </div>
+          </div>
+        )}
+
+        {/* CTA Button */}
+        <div className={styles.cardActions}>
+          {!isClosed ? (
+            <Link 
+              href={`/one-2-one/${tournament.slug}?template=${template.id}`}
+              className={styles.btnPlay}
+              style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
+            >
+              <span className={styles.btnContent}>
+                <i className="fas fa-swords"></i>
+                <span>Find Match</span>
+              </span>
+              <div className={styles.btnShine}></div>
+            </Link>
+          ) : (
+            <button className={styles.btnDisabled} disabled>
+              <i className="fas fa-door-closed"></i>
+              <span>Registration Closed</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TournamentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
   
   const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [one2OneTemplates, setOne2OneTemplates] = useState<One2OneTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTournamentData();
+    fetchOne2OneTemplates();
   }, [slug]);
 
   const fetchTournamentData = async () => {
@@ -308,6 +469,24 @@ export default function TournamentDetailPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOne2OneTemplates = async () => {
+    try {
+      const res = await fetch(`/api/tournaments/${slug}/one-2-one`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOne2OneTemplates(data.templates || []);
+      }
+    } catch (err) {
+      console.error('Error fetching ONE 2 ONE templates:', err);
+      // Don't set error state, just log it - ONE 2 ONE is optional
     }
   };
 
@@ -520,35 +699,64 @@ export default function TournamentDetailPage() {
             </Link>
           </div>
         ) : (
-          <div className={styles.competitionsGrid}>
-            {tournament.competitions.map((competition) => {
-              const prizePool = calculatePrizePool(competition);
-              const isWinnerTakesAll = competition.entrants_cap <= 2;
-              // Use first_place_prize_pennies from database if available AND greater than 0, otherwise auto-calculate
-              const firstPlacePrize = (competition.first_place_prize_pennies != null && competition.first_place_prize_pennies > 0)
-                ? competition.first_place_prize_pennies / 100
-                : (isWinnerTakesAll ? prizePool : prizePool * 0.25);
-              const statusBadge = getStatusBadge(competition, tournament);
-              
-              // Check if registration is actually open (based on status badge which already handles status field + dates)
-              const canRegister = statusBadge.label === 'Registration Open';
+          <>
+            {/* Main Competitions */}
+            <div className={styles.competitionsGrid}>
+              {tournament.competitions.map((competition) => {
+                const prizePool = calculatePrizePool(competition);
+                const isWinnerTakesAll = competition.entrants_cap <= 2;
+                // Use first_place_prize_pennies from database if available AND greater than 0, otherwise auto-calculate
+                const firstPlacePrize = (competition.first_place_prize_pennies != null && competition.first_place_prize_pennies > 0)
+                  ? competition.first_place_prize_pennies / 100
+                  : (isWinnerTakesAll ? prizePool : prizePool * 0.25);
+                const statusBadge = getStatusBadge(competition, tournament);
+                
+                // Check if registration is actually open (based on status badge which already handles status field + dates)
+                const canRegister = statusBadge.label === 'Registration Open';
 
-              return (
-                <CompetitionCard
-                  key={competition.id}
-                  competition={competition}
-                  tournament={tournament}
-                  prizePool={prizePool}
-                  firstPlacePrize={firstPlacePrize}
-                  isWinnerTakesAll={isWinnerTakesAll}
-                  statusBadge={statusBadge}
-                  canRegister={canRegister}
-                  formatCurrency={formatCurrency}
-                  formatDateRange={formatDateRange}
-                />
-              );
-            })}
-          </div>
+                return (
+                  <CompetitionCard
+                    key={competition.id}
+                    competition={competition}
+                    tournament={tournament}
+                    prizePool={prizePool}
+                    firstPlacePrize={firstPlacePrize}
+                    isWinnerTakesAll={isWinnerTakesAll}
+                    statusBadge={statusBadge}
+                    canRegister={canRegister}
+                    formatCurrency={formatCurrency}
+                    formatDateRange={formatDateRange}
+                  />
+                );
+              })}
+            </div>
+
+            {/* ONE 2 ONE Section */}
+            {one2OneTemplates.length > 0 && (
+              <>
+                <div className={styles.sectionDivider}>
+                  <div className={styles.dividerLine}></div>
+                  <div className={styles.dividerLabel}>
+                    <i className="fas fa-swords"></i>
+                    <span>ONE 2 ONE COMPETITIONS</span>
+                    <i className="fas fa-swords"></i>
+                  </div>
+                  <div className={styles.dividerLine}></div>
+                </div>
+
+                <div className={styles.competitionsGrid}>
+                  {one2OneTemplates.map((template) => (
+                    <One2OneCard
+                      key={template.id}
+                      template={template}
+                      tournament={tournament}
+                      formatCurrency={formatCurrency}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -865,3 +865,56 @@
   background: linear-gradient(135deg, #065f46 0%, #10b981 100%);
 }
 
+/* Section Divider for ONE 2 ONE */
+.sectionDivider {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin: 3rem 0 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, rgba(245, 158, 11, 0.3) 50%, transparent 100%);
+}
+
+.dividerLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1.5rem;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.1) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 50px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #f59e0b;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dividerLabel i {
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .sectionDivider {
+    gap: 1rem;
+    margin: 2rem 0 1.5rem;
+  }
+  
+  .dividerLabel {
+    font-size: 0.75rem;
+    padding: 0.4rem 1rem;
+    gap: 0.5rem;
+  }
+  
+  .dividerLabel i {
+    font-size: 0.875rem;
+  }
+}
+

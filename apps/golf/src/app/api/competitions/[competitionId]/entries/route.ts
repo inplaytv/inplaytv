@@ -53,20 +53,8 @@ export async function POST(
 
     if (compError) throw compError;
 
-    // CRITICAL SERVER-SIDE VALIDATION: Check if tournament has started
-    const tournament: any = competition.tournaments;
-    if (tournament?.start_date) {
-      const now = new Date();
-      const tournamentStart = new Date(tournament.start_date);
-      if (now >= tournamentStart) {
-        return NextResponse.json(
-          { error: 'Registration is closed - tournament has already started' },
-          { status: 403 }
-        );
-      }
-    }
-
     // CRITICAL SERVER-SIDE VALIDATION: Check if registration deadline has passed
+    // This is the ONLY check needed - reg_close_at is already set appropriately for each competition type
     if (competition.reg_close_at) {
       const now = new Date();
       const regClose = new Date(competition.reg_close_at);
