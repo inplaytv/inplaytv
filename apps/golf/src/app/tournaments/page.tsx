@@ -324,6 +324,16 @@ export default function TournamentsPage() {
   const handleBuildTeam = async (e: React.MouseEvent, competitionId: string, entryFee: number, regCloseAt?: string) => {
     e.preventDefault();
     
+    // ========================================
+    // ARCHITECTURAL RULE: ONLY CHECK COMPETITION REGISTRATION DEADLINE
+    // 
+    // DO NOT check tournament.start_date or tournament status here
+    // Competition registration is independent of tournament timing
+    // 
+    // A user can build a team as long as competition.reg_close_at hasn't passed,
+    // even if the tournament has already started or is in progress
+    // ========================================
+    
     // Check if THIS COMPETITION's registration deadline has passed
     // Each competition has its own reg_close_at time
     if (regCloseAt) {
@@ -501,11 +511,23 @@ export default function TournamentsPage() {
                   if (tournamentEndOfDay) {
                     tournamentEndOfDay.setHours(23, 59, 59, 999);
                   }
+                  
+                  // ========================================
+                  // CRITICAL: TOURNAMENT STATUS ≠ COMPETITION REGISTRATION STATUS
+                  // These are COMPLETELY INDEPENDENT:
+                  // - Tournament can be "In Play" while competitions are still accepting registrations
+                  // - Competition registration is ONLY determined by competition.reg_close_at
+                  // ========================================
+                  
                   const regCloseAt = featuredComp?.reg_close_at ? new Date(featuredComp.reg_close_at) : null;
-                  const tournamentHasStarted = tournamentStart && now >= tournamentStart;
+                  const regOpenAt = featuredComp?.reg_open_at ? new Date(featuredComp.reg_open_at) : null;
+                  
+                  // Tournament status (for badge display)
                   const tournamentInProgress = tournamentStart && tournamentEndOfDay && now >= tournamentStart && now <= tournamentEndOfDay;
-                  const regClosed = regCloseAt && now >= regCloseAt;
-                  const isRegistrationOpen = hasCompetitions && !tournamentHasStarted && !regClosed;
+                  
+                  // Competition registration status (INDEPENDENT of tournament status)
+                  const registrationIsOpen = hasCompetitions && regOpenAt && regCloseAt && now >= regOpenAt && now < regCloseAt;
+                  const isRegistrationOpen = registrationIsOpen;
                   
                   return (
                     <div key={tournament.id} className={`${styles.featuredCompetitionCard} ${styles.glass}`} style={{ position: 'relative', paddingTop: '3.5rem' }}>
@@ -516,8 +538,8 @@ export default function TournamentsPage() {
                           top: '1rem',
                           left: '1rem',
                           zIndex: 10
-                        }}>
-                          <span className={styles.statusBadge} style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}>
+                        }>
+                          <span className={styles.statusBadge} style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white' }}>
                             🔴 Tournament In Play
                           </span>
                         </div>

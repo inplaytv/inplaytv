@@ -59,7 +59,9 @@ export async function GET(
       entrants_cap: c.entrants_cap,
       guaranteed_prize: c.guaranteed_prize_pool_pennies,
       first_place_prize: c.first_place_prize_pennies,
-      admin_fee: c.admin_fee_percent
+      admin_fee: c.admin_fee_percent,
+      reg_open_at: c.reg_open_at,
+      reg_close_at: c.reg_close_at
     })));
 
     if (competitionsError) {

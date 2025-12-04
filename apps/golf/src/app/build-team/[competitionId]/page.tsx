@@ -88,6 +88,23 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
       if (!compRes.ok) throw new Error('Failed to load competition');
       const compData = await compRes.json();
       
+      // ========================================
+      // ARCHITECTURAL RULE: COMPETITION REGISTRATION IS INDEPENDENT OF TOURNAMENT STATUS
+      // 
+      // ONLY check competition.reg_close_at for registration validation
+      // NEVER check tournament.start_date or tournament.end_date
+      // 
+      // Rationale:
+      //   - Different competition types have different registration windows
+      //   - ONE 2 ONE: Open throughout entire tournament (closes at tournament end)
+      //   - THE WEEKENDER: Open until R3 starts (closes before R3)
+      //   - Final Strike: Open until R4 starts (closes before R4)
+      //   - Full Course/First Strike/Beat Cut: Close before R1
+      // 
+      // Users MUST be able to build teams if competition.reg_close_at hasn't passed,
+      // regardless of whether the tournament has started or is in progress
+      // ========================================
+      
       // CRITICAL: Check if THIS COMPETITION's registration deadline has passed
       // Each competition has its own reg_close_at time (e.g., One-2-One stays open during tournament)
       if (compData.reg_close_at) {

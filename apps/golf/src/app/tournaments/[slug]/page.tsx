@@ -358,6 +358,35 @@ export default function TournamentDetailPage() {
     const regOpenAt = competition.reg_open_at ? new Date(competition.reg_open_at) : null;
     const tournamentEnd = tournament.end_date ? new Date(tournament.end_date) : null;
     
+    // ========================================
+    // ARCHITECTURAL RULE: COMPETITION REGISTRATION IS INDEPENDENT OF TOURNAMENT STATUS
+    // 
+    // Tournament Status (when golf happens):
+    //   - start_date: When first round tees off
+    //   - end_date: When final round completes
+    // 
+    // Competition Registration (when users can enter):
+    //   - reg_open_at: When registration opens
+    //   - reg_close_at: When registration closes
+    // 
+    // These are SEPARATE concepts:
+    //   - A tournament can be "In Play" while specific competitions still accept entries
+    //   - Example: ONE 2 ONE allows registration throughout all tournament rounds
+    //   - Example: THE WEEKENDER closes before R3, Final Strike closes before R4
+    // 
+    // NEVER use tournament.start_date to gate competition registration!
+    // ONLY check competition.reg_close_at for registration status
+    // ========================================
+    
+    console.log(`📊 ${competition.competition_types?.name || 'Unknown'}:`, {
+      reg_close_at: competition.reg_close_at,
+      reg_open_at: competition.reg_open_at,
+      regCloseAt: regCloseAt?.toISOString(),
+      now: now.toISOString(),
+      isPastDeadline: regCloseAt ? now >= regCloseAt : 'no deadline',
+      status: competition.status
+    });
+    
     // Tournament end date should include the full day (set to end of day)
     const tournamentEndOfDay = tournamentEnd ? new Date(tournamentEnd) : null;
     if (tournamentEndOfDay) {
