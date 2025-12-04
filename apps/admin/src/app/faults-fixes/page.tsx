@@ -55,18 +55,27 @@ export default function FaultsFixesPage() {
     e.preventDefault();
     
     try {
+      let response;
       if (editingNote) {
-        await fetch(`/api/dev-notes/${editingNote.id}`, {
+        response = await fetch(`/api/dev-notes/${editingNote.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       } else {
-        await fetch('/api/dev-notes', {
+        response = await fetch('/api/dev-notes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
+      }
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.error('API error:', data);
+        alert(`Error: ${data.error || 'Failed to save note'}`);
+        return;
       }
 
       setFormData({
@@ -78,9 +87,10 @@ export default function FaultsFixesPage() {
       });
       setShowForm(false);
       setEditingNote(null);
-      fetchNotes();
+      await fetchNotes(); // Wait for fetch to complete
     } catch (error) {
       console.error('Error saving note:', error);
+      alert('Error saving note. Check console for details.');
     }
   }
 
