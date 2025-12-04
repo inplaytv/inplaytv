@@ -67,13 +67,9 @@ function useCountdown(targetDate: string | null, status?: string) {
       const target = new Date(targetDate).getTime();
       const diff = target - now;
 
-      // If status is reg_open, never show as closed - show "Open" instead
+      // If time has expired, show closed
       if (diff <= 0) {
-        if (status === 'reg_open') {
-          setCountdown('Open');
-        } else {
-          setCountdown('Registration Closed');
-        }
+        setCountdown('Registration Closed');
       } else {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -111,12 +107,10 @@ function CompetitionCard({
   formatCurrency,
   formatDateRange
 }: any) {
-  // Pass status to countdown hook so it respects database status field
   const countdown = useCountdown(competition.reg_close_at, competition.status);
   
-  // Override countdown display based on competition status from database
-  // If status is reg_open, show countdown even if date has passed
-  const isClosed = competition.status === 'reg_open' ? false : countdown === 'Registration Closed';
+  // Registration is closed if countdown says so OR if canRegister is false
+  const isClosed = countdown === 'Registration Closed' || !canRegister;
   
   const tour = extractTour(tournament.description, tournament.name);
 
@@ -359,24 +353,8 @@ export default function TournamentDetailPage() {
       cancelled: { label: 'Cancelled', icon: 'fa-times-circle', color: '#ef4444' },
     };
 
-    // PRIORITY 1: Check database status field FIRST - it always takes precedence
-    if (competition.status === 'reg_open') {
-      return statusConfig.reg_open;
-    }
-    
-    if (competition.status === 'live') {
-      return statusConfig.live;
-    }
-    
-    if (competition.status === 'completed') {
-      return statusConfig.completed;
-    }
-    
-    if (competition.status === 'cancelled') {
-      return statusConfig.cancelled;
-    }
-
-    // PRIORITY 2: Only calculate from dates if status is not explicitly set
+    // CRITICAL: Check tournament dates FIRST - if tournament has started or ended,
+    // registration MUST be closed regardless of database status field
     const now = new Date();
     const regCloseAt = competition.reg_close_at ? new Date(competition.reg_close_at) : null;
     const regOpenAt = competition.reg_open_at ? new Date(competition.reg_open_at) : null;
@@ -389,27 +367,37 @@ export default function TournamentDetailPage() {
       tournamentEndOfDay.setHours(23, 59, 59, 999);
     }
     
-    // Check if tournament is in progress
-    if (tournamentStart && tournamentEndOfDay && now >= tournamentStart && now <= tournamentEndOfDay) {
-      return statusConfig.live;
-    }
-    
-    // Check if tournament has completed
+    // PRIORITY 1: Check if tournament has completed
     if (tournamentEndOfDay && now > tournamentEndOfDay) {
       return statusConfig.completed;
     }
     
-    // Check if registration is closed but tournament hasn't started
-    if (regCloseAt && now >= regCloseAt && tournamentStart && now < tournamentStart) {
-      return statusConfig.reg_closed;
+    // PRIORITY 2: Check if tournament is in progress (BLOCKS REGISTRATION)
+    if (tournamentStart && tournamentEndOfDay && now >= tournamentStart && now <= tournamentEndOfDay) {
+      return statusConfig.live;
     }
     
-    // Check if registration is open by dates
-    if (regOpenAt && now >= regOpenAt && regCloseAt && now < regCloseAt) {
+    // PRIORITY 3: Check if registration deadline has passed (BLOCKS REGISTRATION)
+    if (regCloseAt && now >= regCloseAt) {
+      return statusConfig.reg_closed;
+    }
+
+    // PRIORITY 4: Check database status field for explicit overrides
+    if (competition.status === 'cancelled') {
+      return statusConfig.cancelled;
+    }
+    
+    // PRIORITY 5: Check if registration is open by dates
+    if (regOpenAt && now >= regOpenAt && regCloseAt && now < regCloseAt && tournamentStart && now < tournamentStart) {
       return statusConfig.reg_open;
     }
     
-    // Fall back to database status
+    // PRIORITY 6: Check if competition status is explicitly reg_open but only if tournament hasn't started
+    if (competition.status === 'reg_open' && tournamentStart && now < tournamentStart) {
+      return statusConfig.reg_open;
+    }
+    
+    // Fall back to database status or draft
     const config = statusConfig[competition.status] || statusConfig.draft;
     return { ...config };
   };

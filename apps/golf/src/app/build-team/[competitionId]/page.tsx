@@ -83,8 +83,41 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
       setLoading(true);
       setError('');
 
-      // Check user's wallet balance first
-      console.log('🔍 Checking user balance...');
+      // Fetch competition details FIRST to check tournament status
+      const compRes = await fetch(`/api/competitions/${params.competitionId}`);
+      if (!compRes.ok) throw new Error('Failed to load competition');
+      const compData = await compRes.json();
+      
+      // CRITICAL: Check if tournament has started - block access completely
+      if (compData.tournament_start_date) {
+        const now = new Date();
+        const tournamentStart = new Date(compData.tournament_start_date);
+        if (now >= tournamentStart) {
+          setError('Registration is closed - this tournament has already started.');
+          setLoading(false);
+          // Redirect back to tournaments page after 3 seconds
+          setTimeout(() => {
+            router.push('/tournaments');
+          }, 3000);
+          return;
+        }
+      }
+      
+      // Check if registration deadline has passed
+      if (compData.reg_close_at) {
+        const now = new Date();
+        const regClose = new Date(compData.reg_close_at);
+        if (now >= regClose) {
+          setError('Registration is closed - the deadline has passed.');
+          setLoading(false);
+          setTimeout(() => {
+            router.push('/tournaments');
+          }, 3000);
+          return;
+        }
+      }
+
+      // Check user's wallet balance
       const balanceRes = await fetch('/api/user/balance');
       let userBalanceAmount = 0;
       
@@ -92,34 +125,20 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
         const balanceData = await balanceRes.json();
         userBalanceAmount = balanceData.balance_pennies || 0;
         setUserBalance(userBalanceAmount);
-        console.log('💰 User balance:', userBalanceAmount, 'pennies (£' + (userBalanceAmount / 100).toFixed(2) + ')');
-      } else {
-        console.error('❌ Failed to fetch balance:', balanceRes.status);
       }
 
-      // Fetch competition details
-      const compRes = await fetch(`/api/competitions/${params.competitionId}`);
-      if (!compRes.ok) throw new Error('Failed to load competition');
-      const compData = await compRes.json();
-      
-      console.log('🏆 Competition entry fee:', compData.entry_fee_pennies, 'pennies (£' + (compData.entry_fee_pennies / 100).toFixed(2) + ')');
-
-      // Check if user has enough balance - use the local variable, not state
+      // Check if user has enough balance
       if (userBalanceAmount < compData.entry_fee_pennies) {
-        console.log('❌ INSUFFICIENT FUNDS!');
         setInsufficientFunds(true);
         setRequiredAmount(compData.entry_fee_pennies);
         setShowInsufficientModal(true);
         setError(`Insufficient funds. You need £${(compData.entry_fee_pennies / 100).toFixed(2)} but have £${(userBalanceAmount / 100).toFixed(2)} in your wallet.`);
-        // Don't set competition or load any more data - stop here
         setLoading(false);
         return;
       }
       
-      // Only set competition if balance check passed
+      // Set competition data
       setCompetition(compData);
-      
-      console.log('✅ Balance check passed');
 
       // Fetch available golfers for this competition
       const golfersRes = await fetch(`/api/competitions/${params.competitionId}/golfers`);

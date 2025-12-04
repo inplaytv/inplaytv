@@ -321,15 +321,25 @@ export default function TournamentsPage() {
     e.currentTarget.src = 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=300&h=180&fit=crop';
   };
 
-  const handleBuildTeam = async (e: React.MouseEvent, competitionId: string, entryFee: number, regCloseAt?: string) => {
+  const handleBuildTeam = async (e: React.MouseEvent, competitionId: string, entryFee: number, regCloseAt?: string, tournamentStartDate?: string) => {
     e.preventDefault();
     
-    // Check if registration is still open
+    // CRITICAL: Check if tournament has started - MUST block registration
+    if (tournamentStartDate) {
+      const now = new Date();
+      const startDate = new Date(tournamentStartDate);
+      if (now >= startDate) {
+        alert('Registration is closed - this tournament has already started.');
+        return;
+      }
+    }
+    
+    // Check if registration deadline has passed
     if (regCloseAt) {
       const now = new Date();
       const closeDate = new Date(regCloseAt);
       if (now >= closeDate) {
-        // Registration is closed
+        alert('Registration is closed - the deadline has passed.');
         return;
       }
     }
@@ -492,10 +502,18 @@ export default function TournamentsPage() {
                   
                   const tour = extractTour(tournament.description, tournament.name);
                   
+                  // Calculate if registration is actually open by checking tournament dates
+                  const now = new Date();
+                  const tournamentStart = tournament.start_date ? new Date(tournament.start_date) : null;
+                  const regCloseAt = featuredComp?.reg_close_at ? new Date(featuredComp.reg_close_at) : null;
+                  const tournamentHasStarted = tournamentStart && now >= tournamentStart;
+                  const regClosed = regCloseAt && now >= regCloseAt;
+                  const isRegistrationOpen = hasCompetitions && !tournamentHasStarted && !regClosed;
+                  
                   return (
                     <div key={tournament.id} className={`${styles.featuredCompetitionCard} ${styles.glass}`} style={{ position: 'relative', paddingTop: '3.5rem' }}>
                       {/* Registration Badge - Top Left */}
-                      {hasCompetitions && (
+                      {isRegistrationOpen && (
                         <div style={{ 
                           position: 'absolute',
                           top: '1rem',
@@ -664,7 +682,7 @@ export default function TournamentsPage() {
                                 
                                 return (
                                   <button
-                                    onClick={(e) => handleBuildTeam(e, featuredComp.id, featuredComp.entry_fee_pennies, featuredComp.reg_close_at || undefined)}
+                                    onClick={(e) => handleBuildTeam(e, featuredComp.id, featuredComp.entry_fee_pennies, featuredComp.reg_close_at || undefined, tournament.start_date)}
                                     className={styles.btnPrimary}
                                   >
                                     <i className="fas fa-users"></i>
