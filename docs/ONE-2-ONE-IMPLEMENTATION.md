@@ -348,9 +348,10 @@ Loser: Gets £0.00
 
 ### All Rounds
 - Opens: When tournament registration opens
-- Closes: Start of Round 1
+- Closes: Start of Round 1 (same as other main competitions)
 - Covers: Rounds 1, 2, 3, 4
 - Entry: £10
+- Note: Must register before Round 1 starts, scores all 4 rounds
 
 ### Round-Specific (1, 2, 3, 4)
 - Opens: When tournament registration opens
@@ -361,8 +362,8 @@ Loser: Gets £0.00
 **Example for Hero World Challenge**:
 ```
 Dec 4 (Wed) 12:00pm - Round 1 starts
-  → "All Rounds" closes
-  → "Round 1" closes
+  → "All Rounds" closes ✓
+  → "Round 1" closes ✓
   → Round 2/3/4 still open
 
 Dec 5 (Thu) 12:00pm - Round 2 starts
