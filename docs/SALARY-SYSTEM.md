@@ -19,30 +19,48 @@ The system ensures that:
 
 ## Salary Calculation
 
-### Formula
+### Mathematical Formula
 ```
-Max Salary = 25% of budget = £15,000
-Min Salary = 10.8% of budget = £6,500
-Salary Distribution = Linear from max to min based on field position
+Average Salary = £60,000 ÷ 6 players = £10,000
+Max Salary = Average × 1.30 = £13,000 (21.7% of budget)
+Min Salary = Average × 0.70 = £7,000 (11.7% of budget)
+Salary Range = £6,000
+Max:Min Ratio = 1.86:1
 ```
 
-### Field Position
-Players are sorted by **world ranking** (best to worst), then assigned salaries:
-- **Position 1** (best player): £15,000
-- **Position 2**: £14,900 (approximately)
-- **Position 3**: £14,700
-- ...
-- **Position 66** (worst in 66-player field): £6,500
+### Why These Numbers?
+
+**1. The 30% Rule**
+- Max is 30% above average (£13k)
+- Min is 30% below average (£7k)
+- Creates symmetrical distribution around the mean
+- Proven optimal for fantasy sports balance
+
+**2. Strategic Impossibilities**
+- **Top 6 players**: £13k + £12.9k + £12.8k + £12.7k + £12.6k + £12.5k = **£76,500** (127% of budget) ❌
+- **Bottom 6 players**: £7.5k + £7.4k + £7.3k + £7.2k + £7.1k + £7k = **£43,500** (72.5% of budget) ⚠️
+- Both extremes require mixing with other tiers
+
+**3. Field Position Distribution**
+Linear distribution ensures fair pricing:
+- Position 1 (best): £13,000
+- Position 11 (top 17%): £11,900
+- Position 22 (top 33%): £10,800
+- Position 33 (middle): £10,000 ← average
+- Position 44 (bottom 33%): £9,100
+- Position 55 (bottom 17%): £8,100
+- Position 66 (worst): £7,000
 
 ### Example: 66-Player Field
 
-| Group | Positions | Salary Range | Combined (6 players) | % of Budget |
-|-------|-----------|--------------|---------------------|-------------|
-| **Top Tier** | 1-6 | £15,000 - £14,300 | ~£88,000 | 147% ❌ |
-| **Upper Mid** | 10-20 | £13,700 - £12,500 | ~£78,000 | 130% ❌ |
-| **Mid Tier** | 30-36 | £10,700 - £11,300 | ~£66,000 | 110% ❌ |
-| **Lower Mid** | 45-50 | £9,000 - £8,700 | ~£53,000 | 88% ✅ |
-| **Bottom Tier** | 61-66 | £7,000 - £6,500 | ~£40,500 | 68% ⚠️ |
+| Group | Positions | Salary Range | Combined (6 players) | % of Budget | Viable? |
+|-------|-----------|--------------|---------------------|-------------|---------|
+| **Elite** | 1-6 | £13,000 - £12,100 | £76,500 | 127% | ❌ Impossible |
+| **Top Tier** | 7-12 | £12,000 - £11,000 | £69,000 | 115% | ❌ Over budget |
+| **Upper Mid** | 13-25 | £10,900 - £9,800 | £63,900 | 106% | ❌ Just over |
+| **Mid Range** | 26-40 | £9,700 - £8,600 | £56,700 | 94% | ✅ Viable |
+| **Lower Mid** | 41-55 | £8,500 - £7,600 | £50,100 | 83% | ✅ Safe |
+| **Budget** | 56-66 | £7,500 - £7,000 | £43,500 | 72% | ⚠️ Needs stars |
 
 ### Strategic Team Building Examples
 

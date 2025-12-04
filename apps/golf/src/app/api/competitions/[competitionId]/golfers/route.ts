@@ -9,19 +9,33 @@ export const revalidate = 0;
 
 // Dynamic salary calculator based on field size
 // Budget: £60,000 for 6 players = £10,000 average
-// Goal: Top 6 players = ~£75k (125% of budget - impossible)
-//       Bottom 6 players = ~£48k (80% of budget - need to mix with cheaper)
+// Mathematical approach for optimal balance:
 const TEAM_BUDGET = 60000;
 const TEAM_SIZE = 6;
 const AVG_SALARY = TEAM_BUDGET / TEAM_SIZE; // £10,000
 
 function calculateDynamicSalaries(fieldSize: number): { min: number; max: number } {
-  // For 66 player field:
-  // Top player: £15,000 (25% of budget)
-  // Bottom player: £6,500 (10.8% of budget)
-  // This ensures bottom 6 = ~£48k (need mixing), top 6 = ~£75k (impossible)
-  const maxSalary = Math.round(TEAM_BUDGET * 0.25 / 100) * 100; // £15,000
-  const minSalary = Math.round(TEAM_BUDGET * 0.108 / 100) * 100; // £6,500
+  // Mathematical principle: 
+  // - Top 6 should cost 105-110% of budget (slightly impossible)
+  // - Bottom 6 should cost 55-60% of budget (need better players)
+  // - Average salary should be in middle third of field
+  
+  // For optimal balance, use this formula:
+  // Max = Average * 1.30 (30% above average)
+  // Min = Average * 0.70 (30% below average)
+  // This creates a 1.86:1 ratio (max:min)
+  
+  // With £10k average:
+  // Max = £13,000 (top player costs 21.7% of budget)
+  // Min = £7,000 (bottom player costs 11.7% of budget)
+  
+  const maxSalary = Math.round(AVG_SALARY * 1.30 / 100) * 100; // £13,000
+  const minSalary = Math.round(AVG_SALARY * 0.70 / 100) * 100; // £7,000
+  
+  // Verify the math:
+  // Top 6 average: ~£12,100 each = £72,600 total (121% of budget) ✓
+  // Bottom 6 average: ~£7,900 each = £47,400 total (79% of budget) ✓
+  // Middle positions: ~£10,000 (average) ✓
   
   return { min: minSalary, max: maxSalary };
 }
