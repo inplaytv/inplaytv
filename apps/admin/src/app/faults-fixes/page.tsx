@@ -54,15 +54,19 @@ export default function FaultsFixesPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     
+    console.log('🚀 Form submitted with data:', formData);
+    
     try {
       let response;
       if (editingNote) {
+        console.log('📝 Updating existing note:', editingNote.id);
         response = await fetch(`/api/dev-notes/${editingNote.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       } else {
+        console.log('➕ Creating new note');
         response = await fetch('/api/dev-notes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -70,14 +74,17 @@ export default function FaultsFixesPage() {
         });
       }
 
+      console.log('📡 Response status:', response.status);
       const data = await response.json();
+      console.log('📦 Response data:', data);
       
       if (!response.ok) {
-        console.error('API error:', data);
+        console.error('❌ API error:', data);
         alert(`Error: ${data.error || 'Failed to save note'}`);
         return;
       }
 
+      console.log('✅ Note saved successfully');
       setFormData({
         title: '',
         description: '',
@@ -87,9 +94,11 @@ export default function FaultsFixesPage() {
       });
       setShowForm(false);
       setEditingNote(null);
+      console.log('🔄 Refreshing notes list...');
       await fetchNotes(); // Wait for fetch to complete
+      console.log('✨ Complete!');
     } catch (error) {
-      console.error('Error saving note:', error);
+      console.error('💥 Error saving note:', error);
       alert('Error saving note. Check console for details.');
     }
   }
@@ -205,11 +214,8 @@ export default function FaultsFixesPage() {
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   >
-                    <option value="bug">Bug</option>
-                    <option value="security">Security</option>
-                    <option value="database">Database</option>
-                    <option value="ui">UI/UX</option>
-                    <option value="general">General</option>
+                    <option value="bug">🐛 Bug</option>
+                    <option value="security">🔒 Security</option>
                   </select>
                 </div>
 
