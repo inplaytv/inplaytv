@@ -1,5 +1,6 @@
 {
   "buildCommand": "cd ../.. && pnpm run build --filter=web",
   "installCommand": "pnpm install",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "ignoreCommand": "bash -c 'if [[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]]; then exit 1; else git diff HEAD^ HEAD --quiet apps/web packages || exit 0; fi'"
 }

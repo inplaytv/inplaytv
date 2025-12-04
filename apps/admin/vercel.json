@@ -2,6 +2,7 @@
   "buildCommand": "cd ../.. && pnpm run build --filter=admin",
   "installCommand": "pnpm install",
   "framework": "nextjs",
+  "ignoreCommand": "bash -c 'if [[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]]; then exit 1; else git diff HEAD^ HEAD --quiet apps/admin packages || exit 0; fi'",
   "crons": [
     {
       "path": "/api/cron/sync-tournament-scores",
