@@ -1,7 +1,4 @@
 {
-  "buildCommand": "cd ../.. && pnpm run build --filter=admin",
-  "installCommand": "pnpm install",
-  "framework": "nextjs",
   "crons": [
     {
       "path": "/api/cron/sync-tournament-scores",
