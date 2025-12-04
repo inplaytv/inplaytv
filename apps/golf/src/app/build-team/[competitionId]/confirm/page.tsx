@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RequireAuth from '@/components/RequireAuth';
 import PurchaseSuccessModal from '@/components/PurchaseSuccessModal';
@@ -31,7 +31,8 @@ interface Competition {
   entry_fee_pennies: number;
 }
 
-export default function ConfirmLineupPage({ params }: { params: { competitionId: string } }) {
+export default function ConfirmLineupPage({ params }: { params: Promise<{ competitionId: string }> }) {
+  const { competitionId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -53,7 +54,7 @@ export default function ConfirmLineupPage({ params }: { params: { competitionId:
       setLoading(true);
       
       // Get lineup data from sessionStorage
-      const storedLineup = sessionStorage.getItem(`lineup_${params.competitionId}`);
+      const storedLineup = sessionStorage.getItem(`lineup_${competitionId}`);
       if (!storedLineup) {
         throw new Error('No lineup data found. Please build your team first.');
       }
@@ -61,13 +62,13 @@ export default function ConfirmLineupPage({ params }: { params: { competitionId:
       setLineupData(lineup);
 
       // Fetch competition details
-      const compRes = await fetch(`/api/competitions/${params.competitionId}`);
+      const compRes = await fetch(`/api/competitions/${competitionId}`);
       if (!compRes.ok) throw new Error('Failed to load competition');
       const compData = await compRes.json();
       setCompetition(compData);
 
       // Fetch golfers to display names
-      const golfersRes = await fetch(`/api/competitions/${params.competitionId}/golfers`);
+      const golfersRes = await fetch(`/api/competitions/${competitionId}/golfers`);
       if (!golfersRes.ok) throw new Error('Failed to load golfers');
       const golfersData: Golfer[] = await golfersRes.json();
       setGolfers(golfersData);
@@ -111,7 +112,7 @@ export default function ConfirmLineupPage({ params }: { params: { competitionId:
 
       console.log('📤 Sending purchase request:', payload);
 
-      const res = await fetch(`/api/competitions/${params.competitionId}/entries`, {
+      const res = await fetch(`/api/competitions/${competitionId}/entries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -129,7 +130,7 @@ export default function ConfirmLineupPage({ params }: { params: { competitionId:
       console.log('✅ Purchase successful:', result);
 
       // Clear stored lineup
-      sessionStorage.removeItem(`lineup_${params.competitionId}`);
+      sessionStorage.removeItem(`lineup_${competitionId}`);
 
       // Show success modal
       setShowSuccessModal(true);

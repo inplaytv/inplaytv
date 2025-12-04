@@ -7,9 +7,10 @@ export const revalidate = 0;
 // GET - Fetch user's entry for a competition
 export async function GET(
   request: NextRequest,
-  { params }: { params: { competitionId: string } }
+  { params }: { params: Promise<{ competitionId: string }> }
 ) {
   try {
+    const { competitionId } = await params;
     const supabase = await createServerClient();
 
     // Get current user
@@ -22,7 +23,7 @@ export async function GET(
     const { data: entry, error: entryError } = await supabase
       .from('competition_entries')
       .select('*')
-      .eq('competition_id', params.competitionId)
+      .eq('competition_id', competitionId)
       .eq('user_id', user.id)
       .single();
 
@@ -59,9 +60,10 @@ export async function GET(
 // PUT - Update user's draft entry
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { competitionId: string } }
+  { params }: { params: Promise<{ competitionId: string }> }
 ) {
   try {
+    const { competitionId } = await params;
     const supabase = await createServerClient();
 
     // Get current user
@@ -85,7 +87,7 @@ export async function PUT(
     const { data: existingEntry, error: fetchError } = await supabase
       .from('competition_entries')
       .select('id, status')
-      .eq('competition_id', params.competitionId)
+      .eq('competition_id', competitionId)
       .eq('user_id', user.id)
       .single();
 

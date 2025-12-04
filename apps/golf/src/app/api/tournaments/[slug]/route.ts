@@ -8,16 +8,17 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await params;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch tournament by slug
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
       .select('*')
-      .eq('slug', params.slug)
+      .eq('slug', slug)
       .single();
 
     if (tournamentError || !tournament) {

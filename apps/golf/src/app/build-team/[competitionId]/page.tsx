@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import RequireAuth from '@/components/RequireAuth';
 import InsufficientFundsModal from '@/components/InsufficientFundsModal';
@@ -46,7 +46,8 @@ interface ExistingEntry {
   }>;
 }
 
-export default function BuildTeamPage({ params }: { params: { competitionId: string } }) {
+export default function BuildTeamPage({ params }: { params: Promise<{ competitionId: string }> }) {
+  const { competitionId } = use(params);
   const router = useRouter();
   const [competition, setCompetition] = useState<Competition | null>(null);
   const [availableGolfers, setAvailableGolfers] = useState<Golfer[]>([]);
@@ -76,7 +77,7 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
   // Load competition details and golfers
   useEffect(() => {
     fetchCompetitionData();
-  }, [params.competitionId]);
+  }, [competitionId]);
 
   async function fetchCompetitionData() {
     try {
@@ -84,7 +85,7 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
       setError('');
 
       // Fetch competition details FIRST to check tournament status
-      const compRes = await fetch(`/api/competitions/${params.competitionId}`);
+      const compRes = await fetch(`/api/competitions/${competitionId}`);
       if (!compRes.ok) throw new Error('Failed to load competition');
       const compData = await compRes.json();
       
@@ -144,14 +145,14 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
       setCompetition(compData);
 
       // Fetch available golfers for this competition
-      const golfersRes = await fetch(`/api/competitions/${params.competitionId}/golfers`);
+      const golfersRes = await fetch(`/api/competitions/${competitionId}/golfers`);
       if (!golfersRes.ok) throw new Error('Failed to load golfers');
       const golfersData = await golfersRes.json();
       console.log('Fetched golfers:', golfersData.length, golfersData);
       setAvailableGolfers(golfersData);
 
       // Check if user has an existing entry
-      const entryRes = await fetch(`/api/competitions/${params.competitionId}/my-entry`);
+      const entryRes = await fetch(`/api/competitions/${competitionId}/my-entry`);
       if (entryRes.ok) {
         const existingEntry: ExistingEntry = await entryRes.json();
         if (existingEntry && existingEntry.status === 'draft') {
@@ -400,8 +401,8 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
 
       const method = existingEntryId ? 'PUT' : 'POST';
       const url = existingEntryId 
-        ? `/api/competitions/${params.competitionId}/my-entry`
-        : `/api/competitions/${params.competitionId}/entries`;
+        ? `/api/competitions/${competitionId}/my-entry`
+        : `/api/competitions/${competitionId}/entries`;
 
       const res = await fetch(url, {
         method,
@@ -463,10 +464,10 @@ export default function BuildTeamPage({ params }: { params: { competitionId: str
       };
 
       // Store lineup in sessionStorage for confirmation page
-      sessionStorage.setItem(`lineup_${params.competitionId}`, JSON.stringify(lineupData));
+      sessionStorage.setItem(`lineup_${competitionId}`, JSON.stringify(lineupData));
 
       // Navigate to confirmation page
-      router.push(`/build-team/${params.competitionId}/confirm`);
+      router.push(`/build-team/${competitionId}/confirm`);
     } catch (err: any) {
       console.error('Navigation error:', err);
       setError(err.message || 'Failed to proceed to confirmation');

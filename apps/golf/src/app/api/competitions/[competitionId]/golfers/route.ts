@@ -73,16 +73,17 @@ function calculateSalary(worldRanking: number): number {
 // GET - Fetch golfers available in a competition
 export async function GET(
   request: NextRequest,
-  { params }: { params: { competitionId: string } }
+  { params }: { params: Promise<{ competitionId: string }> }
 ) {
   try {
+    const { competitionId } = await params;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get the competition to find its tournament_id
     const { data: competition, error: compError } = await supabase
       .from('tournament_competitions')
       .select('tournament_id')
-      .eq('id', params.competitionId)
+      .eq('id', competitionId)
       .single();
 
     if (compError) {

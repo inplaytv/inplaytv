@@ -10,9 +10,10 @@ export const revalidate = 0;
 // GET - Fetch competition details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { competitionId: string } }
+  { params }: { params: Promise<{ competitionId: string }> }
 ) {
   try {
+    const { competitionId } = await params;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get competition details with tournament info
@@ -37,7 +38,7 @@ export async function GET(
           location
         )
       `)
-      .eq('id', params.competitionId)
+      .eq('id', competitionId)
       .single();
 
     if (error) {

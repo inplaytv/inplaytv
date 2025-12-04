@@ -5,9 +5,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { entryId: string } }
+  { params }: { params: Promise<{ entryId: string }> }
 ) {
   try {
+    const { entryId } = await params;
     const supabase = await createServerClient();
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -19,7 +20,7 @@ export async function GET(
     const { data: entry, error: entryError } = await supabase
       .from('competition_entries')
       .select('user_id')
-      .eq('id', params.entryId)
+      .eq('id', entryId)
       .single();
 
     if (entryError || !entry || entry.user_id !== user.id) {
@@ -30,7 +31,7 @@ export async function GET(
     const { data: picks, error: picksError } = await supabase
       .from('entry_picks')
       .select('*')
-      .eq('entry_id', params.entryId)
+      .eq('entry_id', entryId)
       .order('slot_position', { ascending: true });
 
     if (picksError) throw picksError;

@@ -5,15 +5,16 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { golferId: string } }
+  { params }: { params: Promise<{ golferId: string }> }
 ) {
   try {
+    const { golferId } = await params;
     const supabase = await createServerClient();
 
     const { data: golfer, error } = await supabase
       .from('golfers')
       .select('id, name, country, salary, owgr_rank')
-      .eq('id', params.golferId)
+      .eq('id', golferId)
       .single();
 
     if (error) throw error;

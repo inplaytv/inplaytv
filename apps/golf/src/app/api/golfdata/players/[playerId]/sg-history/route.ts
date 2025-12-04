@@ -46,8 +46,9 @@ interface SGAverages {
 
 export async function GET(
   request: Request,
-  { params }: { params: { playerId: string } }
+  { params }: { params: Promise<{ playerId: string }> }
 ) {
+  const { playerId } = await params;
   try {
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'l20'; // l5, l10, l20, all
@@ -56,7 +57,6 @@ export async function GET(
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const playerId = params.playerId;
 
     // Get player info
     const { data: player, error: playerError } = await supabase

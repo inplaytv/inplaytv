@@ -3,7 +3,7 @@ import { createServerClient } from '@/lib/supabaseServer';
 
 export async function GET(
   request: Request,
-  { params }: { params: { competitionId: string } }
+  { params }: { params: Promise<{ competitionId: string }> }
 ) {
   try {
     const supabase = await createServerClient();
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { competitionId } = params;
+    const { competitionId } = await params;
 
     // Fetch competition details
     const { data: competition, error: compError } = await supabase

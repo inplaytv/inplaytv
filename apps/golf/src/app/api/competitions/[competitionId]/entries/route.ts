@@ -7,9 +7,10 @@ export const revalidate = 0;
 // POST - Create new entry for a competition
 export async function POST(
   request: NextRequest,
-  { params }: { params: { competitionId: string } }
+  { params }: { params: Promise<{ competitionId: string }> }
 ) {
   try {
+    const { competitionId } = await params;
     const supabase = await createServerClient();
 
     // Get current user
@@ -47,7 +48,7 @@ export async function POST(
           start_date
         )
       `)
-      .eq('id', params.competitionId)
+      .eq('id', competitionId)
       .single();
 
     if (compError) throw compError;
@@ -140,7 +141,7 @@ export async function POST(
     
     const entryData = {
       user_id: user.id,
-      competition_id: params.competitionId,
+      competition_id: competitionId,
       entry_name,
       total_salary,
       entry_fee_paid: status === 'submitted' ? competition.entry_fee_pennies : 0,

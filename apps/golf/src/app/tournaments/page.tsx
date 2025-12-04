@@ -24,6 +24,7 @@ interface Competition {
   guaranteed_prize_pool_pennies?: number;
   first_place_prize_pennies?: number;
   status: string;
+  reg_open_at: string | null;
   reg_close_at: string | null;
   competition_types: CompetitionType;
 }
@@ -167,7 +168,7 @@ function UpcomingTournamentCard({
                 color: 'rgba(255,255,255,0.6)',
                 letterSpacing: '0.3px'
               }}>
-                🏌️ {featuredComp.competition_types.rounds_count} Round{featuredComp.competition_types.rounds_count !== 1 ? 's' : ''} ⛳
+                {featuredComp.competition_types.rounds_count} Round{featuredComp.competition_types.rounds_count !== 1 ? 's' : ''}
               </div>
             )}
           </div>
@@ -538,9 +539,9 @@ export default function TournamentsPage() {
                           top: '1rem',
                           left: '1rem',
                           zIndex: 10
-                        }>
+                        }}>
                           <span className={styles.statusBadge} style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white' }}>
-                            🔴 Tournament In Play
+                            Tournament In Play
                           </span>
                         </div>
                       ) : isRegistrationOpen && (
@@ -583,7 +584,7 @@ export default function TournamentsPage() {
                               color: 'rgba(255,255,255,0.6)',
                               letterSpacing: '0.3px'
                             }}>
-                              🏌️ {featuredComp.competition_types.rounds_count} Round{featuredComp.competition_types.rounds_count !== 1 ? 's' : ''} ⛳
+                              {featuredComp.competition_types.rounds_count} Round{featuredComp.competition_types.rounds_count !== 1 ? 's' : ''}
                             </div>
                           )}
                         </div>

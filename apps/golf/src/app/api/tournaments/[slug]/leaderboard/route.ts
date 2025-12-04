@@ -9,17 +9,18 @@ export const dynamic = 'force-dynamic';
 // GET /api/tournaments/[slug]/leaderboard - Fetch live tournament leaderboard
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    console.log('🏌️ Fetching leaderboard for tournament slug:', params.slug);
+    const { slug } = await params;
+    console.log('🏌️ Fetching leaderboard for tournament slug:', slug);
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch tournament details by slug or ID
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
       .select('id, name, status, start_date, end_date, reg_close_at, timezone, round1_tee_time, round2_tee_time, round3_tee_time, round4_tee_time')
-      .or(`slug.eq.${params.slug},id.eq.${params.slug}`)
+      .or(`slug.eq.${slug},id.eq.${slug}`)
       .single();
 
     if (tournamentError || !tournament) {

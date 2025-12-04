@@ -48,14 +48,15 @@ interface FormattedGolfer {
 // GET /api/tournaments/[slug]/live-scores - Fetch real-time scores from DataGolf
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    console.log('🔴 LIVE: Fetching real-time scores for:', params.slug);
+    const { slug } = await params;
+    console.log('🔴 LIVE: Fetching real-time scores for:', slug);
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check if it looks like a UUID
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.slug);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
     
     // Get tournament from database with event_id and tour fields
     let query = supabase
@@ -64,10 +65,10 @@ export async function GET(
     
     if (isUuid) {
       // Try as UUID first
-      query = query.eq('id', params.slug);
+      query = query.eq('id', slug);
     } else {
       // Try by slug
-      query = query.eq('slug', params.slug);
+      query = query.eq('slug', slug);
     }
     
     const { data: tournament, error: tournamentError } = await query.single();

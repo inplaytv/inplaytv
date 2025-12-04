@@ -3,16 +3,15 @@ import { createServerClient } from '@/lib/supabaseServer';
 
 export async function GET(
   request: Request,
-  { params }: { params: { competitionId: string } }
+  { params }: { params: Promise<{ competitionId: string }> }
 ) {
   try {
+    const { competitionId } = await params;
     const supabase = await createServerClient();
 
     // Get current user (optional - leaderboard can be public)
     const { data: { user } } = await supabase.auth.getUser();
     console.log('🔐 User requesting leaderboard:', user?.email || 'Anonymous');
-
-    const { competitionId } = params;
     console.log('🎯 Fetching leaderboard for competition:', competitionId);
 
     // Fetch competition details with tournament info

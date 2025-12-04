@@ -5,9 +5,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { entryId: string } }
+  { params }: { params: Promise<{ entryId: string }> }
 ) {
   try {
+    const { entryId } = await params;
     const supabase = await createServerClient();
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -28,7 +29,7 @@ export async function GET(
           start_at
         )
       `)
-      .eq('id', params.entryId)
+      .eq('id', entryId)
       .single();
 
     if (entryError || !entry) {
@@ -61,7 +62,7 @@ export async function GET(
           world_ranking
         )
       `)
-      .eq('entry_id', params.entryId)
+      .eq('entry_id', entryId)
       .order('slot_position', { ascending: true });
 
     if (picksError) {
