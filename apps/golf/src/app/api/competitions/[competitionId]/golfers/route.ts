@@ -7,44 +7,42 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Inline salary calculator (to avoid workspace dependency issues)
-const MIN_SALARY = 5000;
-const MAX_SALARY = 12500;
-const BASE_RANGE = MAX_SALARY - MIN_SALARY;
+// Dynamic salary calculator based on field size
+// Budget: £60,000 for 6 players = £10,000 average
+// Goal: Top 6 players = ~£75k (125% of budget - impossible)
+//       Bottom 6 players = ~£48k (80% of budget - need to mix with cheaper)
+const TEAM_BUDGET = 60000;
+const TEAM_SIZE = 6;
+const AVG_SALARY = TEAM_BUDGET / TEAM_SIZE; // £10,000
 
-const OWGR_FACTORS: { [key: number]: number } = {
-  1: 1.0,    // £12,500
-  2: 0.93,   // £12,000
-  5: 0.87,   // £11,500
-  10: 0.75,  // £10,600
-  25: 0.55,  // £9,100
-  50: 0.35,  // £7,600
-  100: 0.22, // £6,600
-  200: 0.08, // £5,600
-  300: 0.0,  // £5,000
-};
+function calculateDynamicSalaries(fieldSize: number): { min: number; max: number } {
+  // For 66 player field:
+  // Top player: £15,000 (25% of budget)
+  // Bottom player: £6,500 (10.8% of budget)
+  // This ensures bottom 6 = ~£48k (need mixing), top 6 = ~£75k (impossible)
+  const maxSalary = Math.round(TEAM_BUDGET * 0.25 / 100) * 100; // £15,000
+  const minSalary = Math.round(TEAM_BUDGET * 0.108 / 100) * 100; // £6,500
+  
+  return { min: minSalary, max: maxSalary };
+}
+
+function calculateSalaryFromFieldPosition(position: number, totalGolfers: number): number {
+  const { min, max } = calculateDynamicSalaries(totalGolfers);
+  const range = max - min;
+  
+  // Linear distribution from max to min
+  // Position 0 (best) = max, Position (n-1) (worst) = min
+  const ratio = position / Math.max(totalGolfers - 1, 1);
+  const salary = max - (range * ratio);
+  
+  // Round to nearest 100
+  const rounded = Math.round(salary / 100) * 100;
+  return Math.max(min, Math.min(max, rounded));
+}
 
 function getOWGRFactor(ranking: number): number {
-  if (ranking < 1) ranking = 1;
-  if (ranking >= 300) return 0.0;
-  if (OWGR_FACTORS[ranking] !== undefined) return OWGR_FACTORS[ranking];
-
-  const sortedRanks = Object.keys(OWGR_FACTORS).map(Number).sort((a, b) => a - b);
-  let lowerRank = sortedRanks[0];
-  let upperRank = sortedRanks[sortedRanks.length - 1];
-
-  for (let i = 0; i < sortedRanks.length - 1; i++) {
-    if (ranking >= sortedRanks[i] && ranking <= sortedRanks[i + 1]) {
-      lowerRank = sortedRanks[i];
-      upperRank = sortedRanks[i + 1];
-      break;
-    }
-  }
-
-  const lowerFactor = OWGR_FACTORS[lowerRank];
-  const upperFactor = OWGR_FACTORS[upperRank];
-  const ratio = (ranking - lowerRank) / (upperRank - lowerRank);
-  return lowerFactor + (upperFactor - lowerFactor) * ratio;
+  // Not used anymore - keeping for backwards compatibility
+  return 0;
 }
 
 function roundToClean(value: number): number {
@@ -61,13 +59,12 @@ function roundToClean(value: number): number {
   else cleanRemainder = 100;
 
   const result = (hundreds * 100) + (cleanRemainder === 100 ? 100 : cleanRemainder);
-  return Math.max(MIN_SALARY, Math.min(MAX_SALARY, result));
+  return result;
 }
 
-function calculateSalary(worldRanking: number): number {
-  const owgrFactor = getOWGRFactor(worldRanking);
-  const baseSalary = MIN_SALARY + (BASE_RANGE * owgrFactor);
-  return roundToClean(baseSalary);
+function calculateSalary(worldRanking: number, fieldPosition: number, totalGolfers: number): number {
+  const salary = calculateSalaryFromFieldPosition(fieldPosition, totalGolfers);
+  return roundToClean(salary);
 }
 
 // GET - Fetch golfers available in a competition
@@ -135,34 +132,35 @@ export async function GET(
       }
     }
 
-    // Flatten the data structure and calculate salaries
-    const golfers = (data || [])
+    // Flatten and sort by world ranking first to get proper field positions
+    let golfersWithRank = (data || [])
       .filter((member: any) => member.golfers)
-      .map((member: any, index: number) => {
-        const golfer = member.golfers;
+      .map((member: any) => ({
+        ...member,
+        golfer: member.golfers
+      }))
+      .sort((a, b) => {
+        const rankA = a.golfer.world_rank || 999999;
+        const rankB = b.golfer.world_rank || 999999;
+        return rankA - rankB;
+      });
+
+    const totalGolfers = golfersWithRank.length;
+    
+    // Now calculate salaries based on field position
+    const golfers = golfersWithRank.map((member: any, fieldPosition: number) => {
+        const golfer = member.golfer;
+        const { min } = calculateDynamicSalaries(totalGolfers);
         
-        // Priority: 1. tournament_golfer_salaries, 2. world_rank calculation, 3. salary_pennies, 4. distributed range
-        let finalSalary = MIN_SALARY;
+        // Priority: 1. tournament_golfer_salaries, 2. field position calculation
+        let finalSalary = min;
         
         if (salariesMap[member.golfer_id] && salariesMap[member.golfer_id] > 0) {
           // Use tournament-specific salary from tournament_golfer_salaries table
           finalSalary = salariesMap[member.golfer_id];
-        } else if (golfer.world_rank && golfer.world_rank > 0) {
-          // Calculate from world ranking - THIS IS THE PRIMARY METHOD
-          finalSalary = calculateSalary(golfer.world_rank);
-        } else if (golfer.salary_pennies && golfer.salary_pennies > 0 && golfer.salary_pennies >= 500000 && golfer.salary_pennies <= 1250000) {
-          // Use salary_pennies ONLY if world_rank not available AND pennies value is reasonable (£5000-£12500)
-          // This filters out bad data like 10000 pennies (£100)
-          finalSalary = Math.round(golfer.salary_pennies / 100);
         } else {
-          // Distribute evenly across range if no valid data available
-          // This gives a spread from £5000 to £12500
-          const totalGolfers = data.length;
-          const position = index / Math.max(totalGolfers - 1, 1); // 0 to 1
-          finalSalary = Math.round(MIN_SALARY + (BASE_RANGE * (1 - position)));
-          // Round to nearest 500
-          finalSalary = Math.round(finalSalary / 500) * 500;
-          finalSalary = Math.max(MIN_SALARY, Math.min(MAX_SALARY, finalSalary));
+          // Calculate from field position (0 = best player, n-1 = worst player)
+          finalSalary = calculateSalary(golfer.world_rank || 999, fieldPosition, totalGolfers);
         }
         
         return {
@@ -176,6 +174,7 @@ export async function GET(
         };
       });
 
+    // Already sorted by world ranking from above
     return NextResponse.json(golfers);
   } catch (error: any) {
     console.error('GET competition golfers error:', error);
