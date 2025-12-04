@@ -276,6 +276,7 @@ export default function TournamentDetailPage() {
       const data = await res.json();
       
       // Sort competitions: maintain type order, but closed ones drop to bottom
+      const now = new Date();
       const sortedCompetitions = [...data.competitions].sort((a, b) => {
         // Competition type order (how they're played during tournament)
         const typeOrder: Record<string, number> = {
@@ -290,9 +291,9 @@ export default function TournamentDetailPage() {
         const aTypeOrder = typeOrder[a.competition_types.slug] || 99;
         const bTypeOrder = typeOrder[b.competition_types.slug] || 99;
         
-        // Check if competitions are closed
-        const aIsClosed = ['reg_closed', 'completed', 'cancelled'].includes(a.status);
-        const bIsClosed = ['reg_closed', 'completed', 'cancelled'].includes(b.status);
+        // Check if registration is closed based on reg_close_at timestamp
+        const aIsClosed = a.reg_close_at ? now >= new Date(a.reg_close_at) : false;
+        const bIsClosed = b.reg_close_at ? now >= new Date(b.reg_close_at) : false;
         
         // Closed competitions go to bottom, but maintain type order within each group
         if (aIsClosed && !bIsClosed) return 1;
