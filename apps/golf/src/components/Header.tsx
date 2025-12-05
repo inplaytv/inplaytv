@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import UserMenu from './UserMenu';
 import GolfDataDropdown from './GolfDataDropdown';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabaseClient';
 
 export default function Header() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
