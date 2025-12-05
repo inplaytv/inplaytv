@@ -744,16 +744,58 @@ export default function TournamentDetailPage() {
                   <div className={styles.dividerLine}></div>
                 </div>
 
-                <div className={styles.competitionsGrid}>
-                  {one2OneTemplates.map((template) => (
-                    <One2OneCard
-                      key={template.id}
-                      template={template}
-                      tournament={tournament}
-                      formatCurrency={formatCurrency}
-                    />
-                  ))}
-                </div>
+                {/* ONE 2 ONE Hub Card */}
+                <Link href={`/one-2-one/${tournament.slug}`} className={styles.one2OneHubCard}>
+                  <div className={styles.hubCardHeader}>
+                    <div className={styles.hubCardIcon}>
+                      <i className="fas fa-swords"></i>
+                    </div>
+                    <div className={styles.hubCardTitle}>
+                      <h3>ONE 2 ONE MATCHMAKING</h3>
+                      <p>Head-to-head battles • Winner takes all • Auto-matched opponents</p>
+                    </div>
+                    <div className={styles.hubCardArrow}>
+                      <i className="fas fa-arrow-right"></i>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.hubCardStats}>
+                    <div className={styles.hubStat}>
+                      <div className={styles.hubStatIcon}>
+                        <i className="fas fa-trophy"></i>
+                      </div>
+                      <div className={styles.hubStatContent}>
+                        <span className={styles.hubStatValue}>{one2OneTemplates.length}</span>
+                        <span className={styles.hubStatLabel}>Competition Types</span>
+                      </div>
+                    </div>
+                    <div className={styles.hubStat}>
+                      <div className={styles.hubStatIcon}>
+                        <i className={`fas fa-${one2OneTemplates.some(t => t.is_open) ? 'door-open' : 'door-closed'}`}></i>
+                      </div>
+                      <div className={styles.hubStatContent}>
+                        <span className={styles.hubStatValue}>
+                          {one2OneTemplates.filter(t => t.is_open).length} Open
+                        </span>
+                        <span className={styles.hubStatLabel}>Registration Status</span>
+                      </div>
+                    </div>
+                    <div className={styles.hubStat}>
+                      <div className={styles.hubStatIcon}>
+                        <i className="fas fa-users"></i>
+                      </div>
+                      <div className={styles.hubStatContent}>
+                        <span className={styles.hubStatValue}>1v1</span>
+                        <span className={styles.hubStatLabel}>Match Format</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.hubCardCta}>
+                    <span>View All ONE 2 ONE Competitions</span>
+                    <i className="fas fa-arrow-right"></i>
+                  </div>
+                </Link>
               </>
             )}
           </>
