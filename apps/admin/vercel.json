@@ -1,5 +1,5 @@
 {
   "buildCommand": "cd ../.. && pnpm run build --filter=admin",
-  "installCommand": "cd ../.. && pnpm install",
+  "installCommand": "pnpm install",
   "framework": "nextjs"
 }
