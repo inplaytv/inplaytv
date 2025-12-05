@@ -1,11 +1,5 @@
 {
   "buildCommand": "cd ../.. && pnpm run build --filter=golf",
   "installCommand": "cd ../.. && pnpm install",
-  "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/tournaments/auto-update-statuses",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  "framework": "nextjs"
 }
