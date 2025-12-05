@@ -39,6 +39,7 @@ export default function One2OnePage() {
   const [templates, setTemplates] = useState<One2OneTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [customEntryFees, setCustomEntryFees] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function fetchData() {
@@ -162,7 +163,8 @@ export default function One2OnePage() {
           <h2 className={styles.sectionTitle}>Available Competitions</h2>
           <div className={styles.competitionsGrid}>
             {templates.map((template) => {
-              const prizePool = (template.entry_fee_pennies * 2 * (100 - template.admin_fee_percent)) / 100;
+              const customFee = customEntryFees[template.id] || template.entry_fee_pennies;
+              const prizePool = (customFee * 2 * (100 - template.admin_fee_percent)) / 100;
               const isClosed = !template.is_open;
 
               return (
@@ -192,8 +194,23 @@ export default function One2OnePage() {
                         <i className="fas fa-ticket-alt"></i>
                       </div>
                       <div className={styles.statContent}>
-                        <span className={styles.statLabel}>Entry Fee</span>
-                        <span className={styles.statValue}>{formatCurrency(template.entry_fee_pennies)}</span>
+                        <span className={styles.statLabel}>Entry Fee (Adjustable)</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                          <input
+                            type="range"
+                            min="500"
+                            max="10000"
+                            step="100"
+                            value={customFee}
+                            onChange={(e) => setCustomEntryFees(prev => ({ ...prev, [template.id]: parseInt(e.target.value) }))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#f59e0b'
+                            }}
+                            disabled={isClosed}
+                          />
+                        </div>
+                        <span className={styles.statValue}>{formatCurrency(customFee)}</span>
                       </div>
                     </div>
                     <div className={styles.cardStat}>
@@ -236,7 +253,7 @@ export default function One2OnePage() {
                     {!isClosed ? (
                       <button
                         className={styles.btnFindMatch}
-                        onClick={() => router.push(`/one-2-one/${tournament.slug}/build-team?template=${template.id}`)}
+                        onClick={() => router.push(`/one-2-one/${tournament.slug}/build-team?template=${template.id}&entryFee=${customFee}`)}
                       >
                         <i className="fas fa-swords"></i>
                         <span>Find Match</span>
