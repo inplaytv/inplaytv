@@ -417,12 +417,6 @@ export default function TournamentsPage() {
   return (
     <RequireAuth>
       <div className={styles.wrap} style={{ paddingTop: '2rem' }}>
-        {/* Page Header */}
-        <div className={styles.pageHeader}>
-          <h1 className={styles.pageTitle}>Tournament Selection</h1>
-          <p className={styles.pageSubtitle}>Choose your fantasy golf competition</p>
-        </div>
-
         {/* Tournaments Display */}
         {tournaments.length === 0 ? (
           <div className={styles.emptyState}>
@@ -476,10 +470,26 @@ export default function TournamentsPage() {
               
               return (
                 <>
-            {/* Featured Tournaments - First 2 */}
-            {upcomingTournaments.slice(0, 2).length > 0 && (
-              <div className={styles.featuredCardsGrid}>
-                {upcomingTournaments.slice(0, 2).map(tournament => {
+            {/* Featured Tournaments Carousel - All featured tournaments */}
+            {upcomingTournaments.length > 0 && (
+              <div className={styles.carouselSection}>
+                <div className={styles.carouselContainer}>
+                  <button 
+                    className={styles.carouselArrow} 
+                    style={{ left: '1rem' }}
+                    onClick={() => {
+                      const track = document.querySelector(`.${styles.carouselTrack}`) as HTMLElement;
+                      if (track) {
+                        const containerWidth = track.clientWidth;
+                        track.scrollBy({ left: -containerWidth, behavior: 'smooth' });
+                      }
+                    }}
+                  >
+                    <i className="fas fa-chevron-left"></i>
+                  </button>
+                  
+                  <div className={styles.carouselTrack}>
+                    {upcomingTournaments.map(tournament => {
                   // Find Full Course competition for featured display
                   const fullCourseComp = tournament.competitions.find(
                     c => c.competition_types?.name === 'Full Course'
@@ -531,20 +541,12 @@ export default function TournamentsPage() {
                   const isRegistrationOpen = registrationIsOpen;
                   
                   return (
-                    <div key={tournament.id} className={`${styles.featuredCompetitionCard} ${styles.glass}`} style={{ position: 'relative', paddingTop: '3.5rem' }}>
+                    <div key={tournament.id} className={`${styles.featuredCompetitionCard} ${styles.glass}`} style={{ 
+                      position: 'relative', 
+                      paddingTop: '3.5rem'
+                    }}>
                       {/* Badge - Top Left */}
-                      {tournamentInProgress ? (
-                        <div style={{ 
-                          position: 'absolute',
-                          top: '1rem',
-                          left: '1rem',
-                          zIndex: 10
-                        }}>
-                          <span className={styles.statusBadge} style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white' }}>
-                            Tournament In Play
-                          </span>
-                        </div>
-                      ) : isRegistrationOpen && (
+                      {isRegistrationOpen ? (
                         <div style={{ 
                           position: 'absolute',
                           top: '1rem',
@@ -553,6 +555,17 @@ export default function TournamentsPage() {
                         }}>
                           <span className={styles.statusBadge}>
                             Registration Open
+                          </span>
+                        </div>
+                      ) : tournamentInProgress && (
+                        <div style={{ 
+                          position: 'absolute',
+                          top: '1rem',
+                          left: '1rem',
+                          zIndex: 10
+                        }}>
+                          <span className={styles.statusBadge} style={{ color: 'white' }}>
+                            Tournament InPlay
                           </span>
                         </div>
                       )}
@@ -733,6 +746,7 @@ export default function TournamentsPage() {
                             <Link 
                               href={`/tournaments/${tournament.slug}`}
                               className={styles.btnSecondary}
+                              style={{ whiteSpace: 'nowrap' }}
                             >
                               <i className="fas fa-layer-group"></i>
                               View All Competitions
@@ -748,54 +762,76 @@ export default function TournamentsPage() {
                     </div>
                   );
                 })}
+                  </div>
+
+                  <button 
+                    className={styles.carouselArrow} 
+                    style={{ right: '1rem' }}
+                    onClick={() => {
+                      const track = document.querySelector(`.${styles.carouselTrack}`) as HTMLElement;
+                      if (track) {
+                        const containerWidth = track.clientWidth;
+                        track.scrollBy({ left: containerWidth, behavior: 'smooth' });
+                      }
+                    }}
+                  >
+                    <i className="fas fa-chevron-right"></i>
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* Upcoming Tournaments - Show next 6 after featured */}
-            {upcomingTournaments.slice(2, 8).length > 0 && (
-              <div className={styles.upcomingCardsGrid}>
-                {upcomingTournaments.slice(2, 8).map(tournament => {
-                  // Find Full Course competition for upcoming display
-                  const fullCourseComp = tournament.competitions.find(
-                    c => c.competition_types?.name === 'Full Course'
-                  );
-                  const featuredComp = tournament.featured_competition || fullCourseComp;
-                  const hasCompetitions = tournament.competitions.length > 0;
-                  
-                  // Use guaranteed prize pool from database if available, otherwise calculate
-                  const prizePool = featuredComp
-                    ? (featuredComp.guaranteed_prize_pool_pennies && featuredComp.guaranteed_prize_pool_pennies > 0
-                        ? featuredComp.guaranteed_prize_pool_pennies / 100
-                        : (featuredComp.entry_fee_pennies / 100) * featuredComp.entrants_cap * (1 - featuredComp.admin_fee_percent / 100))
-                    : tournament.competitions.reduce((sum, c) => sum + (c.entry_fee_pennies / 100) * c.entrants_cap * (1 - c.admin_fee_percent / 100), 0);
-                  
-                  const entryFee = featuredComp ? featuredComp.entry_fee_pennies / 100 : 0;
-                  const maxEntries = featuredComp ? featuredComp.entrants_cap : tournament.competitions.reduce((sum, c) => sum + c.entrants_cap, 0);
-                  
-                  // Use first place prize from database if available, otherwise calculate (25%)
-                  const firstPlace = featuredComp && featuredComp.first_place_prize_pennies && featuredComp.first_place_prize_pennies > 0
-                    ? featuredComp.first_place_prize_pennies / 100
-                    : prizePool * 0.25;
-                  
-                  return (
-                    <UpcomingTournamentCard 
-                      key={tournament.id}
-                      tournament={tournament}
-                      prizePool={prizePool}
-                      maxEntries={maxEntries}
-                      entryFee={entryFee}
-                      firstPlace={firstPlace}
-                      hasCompetitions={hasCompetitions}
-                      featuredComp={featuredComp}
-                      formatCurrency={formatCurrency}
-                      formatDateRange={formatDateRange}
-                      handleImageError={handleImageError}
-                      handleBuildTeam={handleBuildTeam}
-                    />
-                  );
-                })}
+            {/* ONE 2 ONE Hub Card - Hardcoded for Nedbank */}
+            <Link href={`/one-2-one/nedbank-golf-challenge-in-honour-of-gary-player`} className={styles.one2OneHubCard}>
+              <div className={styles.hubCardHeader}>
+                <div className={styles.hubCardIcon}>
+                  <i className="fas fa-swords"></i>
+                </div>
+                <div className={styles.hubCardTitle}>
+                  <h3>ONE 2 ONE MATCHMAKING</h3>
+                  <p>Head-to-head battles • Winner takes all • Auto-matched opponents</p>
+                </div>
+                <div className={styles.hubCardArrow}>
+                  <i className="fas fa-arrow-right"></i>
+                </div>
               </div>
-            )}
+              
+              <div className={styles.hubCardStats}>
+                <div className={styles.hubStat}>
+                  <div className={styles.hubStatIcon}>
+                    <i className="fas fa-trophy"></i>
+                  </div>
+                  <div className={styles.hubStatContent}>
+                    <span className={styles.hubStatValue}>5</span>
+                    <span className={styles.hubStatLabel}>Competition Types</span>
+                  </div>
+                </div>
+                <div className={styles.hubStat}>
+                  <div className={styles.hubStatIcon}>
+                    <i className="fas fa-door-open"></i>
+                  </div>
+                  <div className={styles.hubStatContent}>
+                    <span className={styles.hubStatValue}>2 Open</span>
+                    <span className={styles.hubStatLabel}>Registration Status</span>
+                  </div>
+                </div>
+                <div className={styles.hubStat}>
+                  <div className={styles.hubStatIcon}>
+                    <i className="fas fa-users"></i>
+                  </div>
+                  <div className={styles.hubStatContent}>
+                    <span className={styles.hubStatValue}>1v1</span>
+                    <span className={styles.hubStatLabel}>Match Format</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.hubCardCta}>
+                <span>View All ONE 2 ONE Competitions</span>
+                <i className="fas fa-arrow-right"></i>
+              </div>
+            </Link>
+
                 </>
               );
             })()}
