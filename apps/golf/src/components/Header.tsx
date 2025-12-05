@@ -29,9 +29,8 @@ export default function Header() {
         borderBottom: '1px solid rgba(255,255,255,0.1)',
         padding: '1rem 2rem',
       }}>
-        <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '1200px', margin: '0 auto' }}>
+        <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', maxWidth: '1200px', margin: '0 auto' }}>
           <span style={{ fontWeight: 'bold', fontSize: '1.25rem', color: '#fff' }}>⛳ InPlay Golf</span>
-          <UserMenu />
         </nav>
       </header>
     );
