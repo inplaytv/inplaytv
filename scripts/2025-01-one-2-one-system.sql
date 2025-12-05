@@ -302,6 +302,7 @@ COMMENT ON FUNCTION public.update_instance_player_count IS 'Keeps instance curre
 -- Create the 5 ONE 2 ONE competition types
 -- All Rounds closes at Round 1 start (covers all 4 rounds)
 -- Individual rounds close at their respective round start
+-- Order: All Rounds first, then Round 1-4
 INSERT INTO public.competition_templates (name, short_name, description, entry_fee_pennies, admin_fee_percent, rounds_covered, reg_close_round)
 VALUES 
   ('ONE 2 ONE - All Rounds', 'All Rounds', 'Head-to-head across all 4 rounds of the tournament', 1000, 10.00, ARRAY[1,2,3,4], 1),

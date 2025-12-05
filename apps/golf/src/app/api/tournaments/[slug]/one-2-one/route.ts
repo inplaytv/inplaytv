@@ -32,11 +32,11 @@ export async function GET(
     }
 
     // Get all active ONE 2 ONE templates
+    // Order: All Rounds first (4 rounds), then individual rounds (1-4)
     const { data: templates, error: templatesError } = await supabase
       .from('competition_templates')
       .select('*')
-      .eq('status', 'active')
-      .order('rounds_covered');
+      .eq('status', 'active');
 
     if (templatesError) {
       console.error('Error fetching templates:', templatesError);
@@ -46,9 +46,24 @@ export async function GET(
       );
     }
 
+    // Sort: All Rounds first (length=4), then by first round number
+    const sortedTemplates = (templates || []).sort((a, b) => {
+      const aLength = a.rounds_covered?.length || 0;
+      const bLength = b.rounds_covered?.length || 0;
+      
+      // All Rounds (4 rounds) comes first
+      if (aLength === 4 && bLength !== 4) return -1;
+      if (bLength === 4 && aLength !== 4) return 1;
+      
+      // Otherwise sort by first round number
+      const aFirst = a.rounds_covered?.[0] || 0;
+      const bFirst = b.rounds_covered?.[0] || 0;
+      return aFirst - bFirst;
+    });
+
     // For each template, get first available instance or check if we need to create one
     const templatesWithAvailability = await Promise.all(
-      (templates || []).map(async (template) => {
+      sortedTemplates.map(async (template) => {
         // Calculate reg_close_at for this template
         let regCloseAt: string | null = null;
         if (template.reg_close_round) {
