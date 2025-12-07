@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 interface UpcomingTournament {
   id: string;
   name: string;
-  tour: 'PGA' | 'LPGA' | 'European';
+  tour: 'PGA' | 'LPGA' | 'European' | 'euro'; // 'euro' for database compatibility
   startDate: string;
   endDate: string;
   location: string;

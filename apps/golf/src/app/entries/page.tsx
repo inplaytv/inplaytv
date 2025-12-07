@@ -12,11 +12,20 @@ interface Entry {
   entry_name: string | null;
   created_at: string;
   entry_fee_paid: number;
+  entry_fee_pennies?: number; // For ONE 2 ONE
+  admin_fee_percent?: number; // For ONE 2 ONE
   competition_id: string;
+  instance_id?: string; // For ONE 2 ONE competitions
   tournament_competitions: {
     id: string;
     start_date: string;
     end_date: string;
+    entry_fee_pennies?: number;
+    admin_fee_percent?: number;
+    is_one_2_one?: boolean;
+    match_status?: string;
+    current_players?: number;
+    max_players?: number;
     tournaments: {
       name: string;
       status: string;
@@ -575,7 +584,7 @@ interface CompetitionEntrant {
                           {entry.tournament_competitions?.is_one_2_one && (
                             <div style={{ marginTop: '4px', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                {entry.tournament_competitions.current_players < entry.tournament_competitions.max_players ? (
+                                {(entry.tournament_competitions.current_players ?? 0) < (entry.tournament_competitions.max_players ?? 2) ? (
                                   <span style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',

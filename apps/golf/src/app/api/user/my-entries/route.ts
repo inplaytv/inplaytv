@@ -67,7 +67,8 @@ export async function GET() {
         if (competitionsError) {
           throw competitionsError;
         }
-        competitions = data;
+        // Add is_one_2_one flag to regular competitions
+        competitions = data?.map(comp => ({ ...comp, is_one_2_one: false }));
       }
 
       // Fetch competition_instances (ONE 2 ONE)
@@ -136,7 +137,11 @@ export async function GET() {
 
       // Combine regular competitions and instances
       const allCompetitions = [
-        ...(competitions || []),
+        ...(competitions || []).map(comp => ({
+          ...comp,
+          is_one_2_one: false,
+          competition_type_name: null // Will be filled from typeMap
+        })),
         ...(instances || []).map((inst: any) => ({
           id: inst.id,
           tournament_id: inst.tournament_id,

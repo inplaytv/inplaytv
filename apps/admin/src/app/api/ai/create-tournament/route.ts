@@ -9,6 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 interface CompetitionData {
   name: string;
   type: string;
+  typeId?: string; // Optional type ID from database
   entryFee: number;
   entrantsCap: number;
   adminFeePercent: number;
