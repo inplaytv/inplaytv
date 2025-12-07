@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+interface CompetitionType {
+  id: string;
+  name: string;
+  slug: string;
+  default_entry_fee_pennies: number | null;
+  default_entrants_cap: number | null;
+  default_admin_fee_percent: number | null;
+  default_reg_open_days_before: number | null;
+  rounds_applicable: number[] | null;
+}
 
 interface CompetitionSuggestion {
   name: string;
   type: string;
+  typeId: string;
   entryFee: number;
   entrantsCap: number;
   adminFeePercent: number;
@@ -26,24 +43,19 @@ function generateSlug(name: string): string {
     .trim();
 }
 
-function calculateRegDates(startDate: string): { regOpenAt: string; regCloseAt: string } {
+function calculateRegDates(startDate: string, daysBeforeStart: number = 6): { regOpenAt: string } {
   const start = new Date(startDate);
   
-  // Registration opens 6 days before tournament
+  // Registration opens N days before tournament
   const regOpen = new Date(start);
-  regOpen.setDate(regOpen.getDate() - 6);
-  
-  // Registration closes at 6:30 AM on tournament day (most tournaments start ~7 AM)
-  const regClose = new Date(start);
-  regClose.setHours(6, 30, 0, 0);
+  regOpen.setDate(regOpen.getDate() - daysBeforeStart);
   
   return {
     regOpenAt: regOpen.toISOString(),
-    regCloseAt: regClose.toISOString(),
   };
 }
 
-function generateCompetitions(
+async function generateCompetitions(
   tournament: {
     name: string;
     tour: string;
@@ -54,123 +66,89 @@ function generateCompetitions(
     round3_tee_time?: string;
     round4_tee_time?: string;
   }
-): CompetitionSuggestion[] {
-  const { regOpenAt } = calculateRegDates(tournament.startDate);
+): Promise<CompetitionSuggestion[]> {
+  console.log('🔍 Fetching competition types from database...');
+  
+  // Fetch competition types from database (no status filter - column doesn't exist)
+  const { data: competitionTypes, error } = await supabase
+    .from('competition_types')
+    .select('*')
+    .order('created_at');
+
+  if (error) {
+    console.error('❌ Database error fetching competition types:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+  }
+
+  if (!competitionTypes || competitionTypes.length === 0) {
+    console.error('❌ No competition types found in database');
+    console.log('📊 Returning empty array - check database has active competition types');
+    return [];
+  }
+
+  console.log(`✅ Fetched ${competitionTypes.length} active competition types from database`);
+  console.log('📋 Competition types:', competitionTypes.map(ct => ct.name).join(', '));
+
   const startDate = new Date(tournament.startDate);
-  
-  // Calculate round-based registration close times
-  // If tee times available from DataGolf, use them minus 15 minutes
-  // Otherwise fall back to 6:30 AM on the day each round starts
-  
-  const round1Close = tournament.round1_tee_time 
-    ? new Date(new Date(tournament.round1_tee_time).getTime() - 15 * 60000) // 15 minutes before tee time
-    : (() => {
-        const d = new Date(startDate);
-        d.setHours(6, 30, 0, 0);
-        return d;
-      })();
-  
-  const round2Close = tournament.round2_tee_time
-    ? new Date(new Date(tournament.round2_tee_time).getTime() - 15 * 60000)
-    : (() => {
-        const d = new Date(startDate);
-        d.setDate(d.getDate() + 1);
-        d.setHours(6, 30, 0, 0);
-        return d;
-      })();
-  
-  const round3Close = tournament.round3_tee_time
-    ? new Date(new Date(tournament.round3_tee_time).getTime() - 15 * 60000)
-    : (() => {
-        const d = new Date(startDate);
-        d.setDate(d.getDate() + 2);
-        d.setHours(6, 30, 0, 0);
-        return d;
-      })();
-  
-  const round4Close = tournament.round4_tee_time
-    ? new Date(new Date(tournament.round4_tee_time).getTime() - 15 * 60000)
-    : (() => {
-        const d = new Date(startDate);
-        d.setDate(d.getDate() + 3);
-        d.setHours(6, 30, 0, 0);
-        return d;
-      })();
-  
-  // Determine if this is a major tournament
-  const isMajor = 
-    tournament.name.includes('Masters') ||
-    tournament.name.includes('PGA Championship') ||
-    tournament.name.includes('U.S. Open') ||
-    tournament.name.includes('Open Championship') ||
-    tournament.name.includes('British Open') ||
-    tournament.name.includes('Women\'s PGA') ||
-    tournament.name.includes('Women\'s Open');
-  
-  // Base entry fee based on tour and prestige
-  let baseFee = 10;
-  if (tournament.tour === 'LPGA') baseFee = 8;
-  if (tournament.tour === 'European') baseFee = 12;
-  if (isMajor) baseFee *= 2;
-  
-  // Standard 6 competitions for all tournaments
-  const competitions: CompetitionSuggestion[] = [
-    {
-      name: 'Full Course',
-      type: 'full_course',
-      entryFee: baseFee,
-      entrantsCap: 1000,
-      adminFeePercent: 10,
+  const competitions: CompetitionSuggestion[] = [];
+
+  // Calculate round close times from tournament round_X_tee_time
+  // Closes 15 minutes before each round starts
+  const getRoundCloseTime = (roundTeeTime: string | undefined, dayOffset: number): Date => {
+    if (roundTeeTime) {
+      const closeTime = new Date(roundTeeTime);
+      closeTime.setMinutes(closeTime.getMinutes() - 15);
+      return closeTime;
+    }
+    // Fallback: 6:30 AM on the day the round starts
+    const fallback = new Date(startDate);
+    fallback.setDate(fallback.getDate() + dayOffset);
+    fallback.setHours(6, 30, 0, 0);
+    return fallback;
+  };
+
+  const round1Close = getRoundCloseTime(tournament.round1_tee_time, 0);
+  const round2Close = getRoundCloseTime(tournament.round2_tee_time, 1);
+  const round3Close = getRoundCloseTime(tournament.round3_tee_time, 2);
+  const round4Close = getRoundCloseTime(tournament.round4_tee_time, 3);
+
+  const roundCloseTimes = [round1Close, round2Close, round3Close, round4Close];
+
+  for (const compType of competitionTypes) {
+    // Determine registration close time based on rounds_applicable
+    let regCloseAt: Date;
+    
+    if (compType.rounds_applicable && compType.rounds_applicable.length > 0) {
+      // Close before the first applicable round
+      const firstRound = Math.min(...compType.rounds_applicable);
+      regCloseAt = roundCloseTimes[firstRound - 1]; // Array is 0-indexed
+    } else {
+      // Default to closing before Round 1
+      regCloseAt = round1Close;
+    }
+
+    // Calculate registration open time
+    const daysBeforeStart = compType.default_reg_open_days_before || 6;
+    const { regOpenAt } = calculateRegDates(tournament.startDate, daysBeforeStart);
+
+    // Use template defaults or £10 default for entry fee
+    const entryFeePennies = compType.default_entry_fee_pennies || 1000; // £10 default
+    const entrantsCap = compType.default_entrants_cap || 1000;
+    const adminFeePercent = compType.default_admin_fee_percent || 10;
+
+    competitions.push({
+      name: compType.name,
+      type: compType.slug,
+      typeId: compType.id,
+      entryFee: entryFeePennies / 100, // Convert pennies to pounds for display
+      entrantsCap,
+      adminFeePercent,
       regOpenAt,
-      regCloseAt: round1Close.toISOString(), // Closes before Round 1
-    },
-    {
-      name: 'First To Strike',
-      type: 'first_to_strike',
-      entryFee: Math.round(baseFee * 0.3),
-      entrantsCap: 600,
-      adminFeePercent: 10,
-      regOpenAt,
-      regCloseAt: round1Close.toISOString(), // Closes before Round 1
-    },
-    {
-      name: 'Beat The Cut',
-      type: 'beat_the_cut',
-      entryFee: Math.round(baseFee * 0.6),
-      entrantsCap: 750,
-      adminFeePercent: 10,
-      regOpenAt,
-      regCloseAt: round1Close.toISOString(), // Closes before Round 1
-    },
-    {
-      name: 'THE WEEKENDER',
-      type: 'the_weekender',
-      entryFee: Math.round(baseFee * 0.7),
-      entrantsCap: 800,
-      adminFeePercent: 10,
-      regOpenAt,
-      regCloseAt: round3Close.toISOString(), // Closes before Round 3
-    },
-    {
-      name: 'Final Strike',
-      type: 'final_strike',
-      entryFee: Math.round(baseFee * 0.5),
-      entrantsCap: 650,
-      adminFeePercent: 10,
-      regOpenAt,
-      regCloseAt: round4Close.toISOString(), // Closes before Round 4
-    },
-    {
-      name: 'ONE 2 ONE',
-      type: 'one_2_one',
-      entryFee: Math.round(baseFee * 0.4),
-      entrantsCap: 500,
-      adminFeePercent: 10,
-      regOpenAt,
-      regCloseAt: round1Close.toISOString(), // Closes before Round 1
-    },
-  ];
-  
+      regCloseAt: regCloseAt.toISOString(),
+    });
+  }
+
+  console.log(`✅ Generated ${competitions.length} competitions`);
   return competitions;
 }
 
@@ -233,8 +211,8 @@ export async function POST(request: NextRequest) {
     // Generate slug
     const slug = generateSlug(tournament.name);
     
-    // Generate competitions
-    const competitions = generateCompetitions(tournament);
+    // Generate competitions from database
+    const competitions = await generateCompetitions(tournament);
     
     // Suggest golfer group
     const suggestedGolferGroup = suggestGolferGroup(tournament);

@@ -19,13 +19,13 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's entry for this competition
+    // Get user's entry for this competition (check both competition_id and instance_id)
     const { data: entry, error: entryError } = await supabase
       .from('competition_entries')
       .select('*')
-      .eq('competition_id', competitionId)
+      .or(`competition_id.eq.${competitionId},instance_id.eq.${competitionId}`)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (entryError) {
       if (entryError.code === 'PGRST116') {
@@ -33,6 +33,10 @@ export async function GET(
         return NextResponse.json(null);
       }
       throw entryError;
+    }
+
+    if (!entry) {
+      return NextResponse.json(null);
     }
 
     // Get the picks for this entry
@@ -83,13 +87,13 @@ export async function PUT(
       );
     }
 
-    // Get existing entry
+    // Get existing entry (check both competition_id and instance_id)
     const { data: existingEntry, error: fetchError } = await supabase
       .from('competition_entries')
       .select('id, status')
-      .eq('competition_id', competitionId)
+      .or(`competition_id.eq.${competitionId},instance_id.eq.${competitionId}`)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !existingEntry) {
       return NextResponse.json(

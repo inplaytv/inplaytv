@@ -1,0 +1,11 @@
+[
+  {
+    "id": "f587d8e4-eef0-42c9-b008-6ffbd54e4e67",
+    "name": "Crown Australian Open",
+    "slug": "crown-australian-open",
+    "timezone": "Australia/Sydney",
+    "current_r4": "2025-12-07T07:09:00+00:00",
+    "correct_r4": "2025-12-06T20:09:00.000Z",
+    "hours_until": 3.1901330555555556
+  }
+]

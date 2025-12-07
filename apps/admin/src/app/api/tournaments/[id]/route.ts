@@ -79,10 +79,10 @@ export async function PUT(
         external_id: external_id || null,
         image_url: image_url || null,
         featured_competition_id: featured_competition_id || null,
-        round1_tee_time: round1_tee_time || null,
-        round2_tee_time: round2_tee_time || null,
-        round3_tee_time: round3_tee_time || null,
-        round4_tee_time: round4_tee_time || null,
+        round_1_start: round1_tee_time || null,
+        round_2_start: round2_tee_time || null,
+        round_3_start: round3_tee_time || null,
+        round_4_start: round4_tee_time || null,
       })
       .eq('id', params.id)
       .select()

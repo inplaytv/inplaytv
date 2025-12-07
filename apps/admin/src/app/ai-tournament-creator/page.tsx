@@ -19,6 +19,7 @@ interface TournamentSuggestion {
     competitions: Array<{
       name: string;
       type: string;
+      typeId?: string;
       entryFee: number;
       entrantsCap: number;
       adminFeePercent: number;

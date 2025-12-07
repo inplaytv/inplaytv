@@ -802,26 +802,26 @@ export default function TournamentsPage() {
                     <i className="fas fa-trophy"></i>
                   </div>
                   <div className={styles.hubStatContent}>
-                    <span className={styles.hubStatValue}>5</span>
-                    <span className={styles.hubStatLabel}>Competition Types</span>
+                    <span className={styles.hubStatLabel}>Winner Takes All</span>
+                    <span className={styles.hubStatValue}>Beat your opponent and take home 90% of the combined entry fees</span>
                   </div>
                 </div>
                 <div className={styles.hubStat}>
                   <div className={styles.hubStatIcon}>
-                    <i className="fas fa-door-open"></i>
+                    <i className="fas fa-sync-alt"></i>
                   </div>
                   <div className={styles.hubStatContent}>
-                    <span className={styles.hubStatValue}>2 Open</span>
-                    <span className={styles.hubStatLabel}>Registration Status</span>
+                    <span className={styles.hubStatLabel}>Auto-Matching</span>
+                    <span className={styles.hubStatValue}>First-come-first-served matching • No skill-based pairing</span>
                   </div>
                 </div>
                 <div className={styles.hubStat}>
                   <div className={styles.hubStatIcon}>
-                    <i className="fas fa-users"></i>
+                    <i className="fas fa-shield-alt"></i>
                   </div>
                   <div className={styles.hubStatContent}>
-                    <span className={styles.hubStatValue}>1v1</span>
-                    <span className={styles.hubStatLabel}>Match Format</span>
+                    <span className={styles.hubStatLabel}>Fair Play</span>
+                    <span className={styles.hubStatValue}>If no opponent joins, you'll get a full refund automatically</span>
                   </div>
                 </div>
               </div>

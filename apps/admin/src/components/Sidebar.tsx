@@ -41,6 +41,7 @@ const navSections: NavSection[] = [
       { label: 'AI Tournament Creator', href: '/ai-tournament-creator' },
       { label: 'Active Competitions', href: '/competitions' },
       { label: 'Competition Types', href: '/competition-types' },
+      { label: 'ONE 2 ONE Templates', href: '/one-2-one-templates' },
       { label: 'Tournament Golfers', href: '/golfers/groups' },
     ],
   },

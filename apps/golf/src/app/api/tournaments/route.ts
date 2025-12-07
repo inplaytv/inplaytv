@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
     // Get query parameter for context-specific filtering
     const searchParams = request.nextUrl.searchParams;
     const context = searchParams.get('context'); // 'leaderboard' or default (all tournaments)
+    const statusFilter = searchParams.get('status'); // 'active' for active tournaments
+    const one2oneFilter = searchParams.get('one2one'); // 'true' to only get tournaments with ONE 2 ONE
 
     // Base query
     let query = supabase
@@ -47,6 +49,11 @@ export async function GET(request: NextRequest) {
       query = query.gte('end_date', fourDaysAgoStr);
     }
 
+    // Status filter: Show only active tournaments
+    if (statusFilter === 'active') {
+      query = query.in('status', ['upcoming', 'registration_open', 'registration_closed', 'live']);
+    }
+
     query = query.order('start_date', { ascending: true });
 
     const { data: tournaments, error } = await query;
@@ -56,9 +63,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    let filteredTournaments = tournaments || [];
+
+    // If one2one filter is requested, only include tournaments with ONE 2 ONE templates
+    if (one2oneFilter === 'true') {
+      const { data: one2oneTemplates } = await supabase
+        .from('competition_templates')
+        .select('tournament_id')
+        .eq('status', 'active')
+        .not('rounds_covered', 'is', null)
+        .is('competition_type_id', null);
+
+      const tournamentsWithOne2One = new Set(
+        (one2oneTemplates || []).map((t: any) => t.tournament_id)
+      );
+
+      filteredTournaments = filteredTournaments.filter((t: any) => 
+        tournamentsWithOne2One.has(t.id)
+      );
+    }
+
     // For each tournament, fetch its competitions and featured competition details
     const tournamentsWithCompetitions = await Promise.all(
-      (tournaments || []).map(async (tournament) => {
+      filteredTournaments.map(async (tournament) => {
         const { data: competitions, error: compError } = await supabase
           .from('tournament_competitions')
           .select(`

@@ -145,38 +145,26 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Tournament created:', createdTournament.id);
     
-    // Step 3: Find competition type IDs
-    const { data: competitionTypes, error: typesError } = await supabase
-      .from('competition_types')
-      .select('id, name');
-    
-    if (typesError) {
-      console.error('❌ Error fetching competition types:', typesError);
-    }
-    
-    console.log('📊 Available competition types:', competitionTypes?.map(ct => ct.name));
-    
-    // Map competition names to their IDs
-    const typeMap = new Map(competitionTypes?.map(ct => [ct.name, ct.id]) || []);
-    
-    // Step 5: Create competitions with auto-calculated registration dates
-    const competitionsToInsert = competitions.map((comp, index) => {
-      const competitionTypeId = typeMap.get(comp.name) || null;
+    // Step 3: Create competitions with typeId from AI generation
+    const competitionsToInsert = competitions.map((comp) => {
+      // Use typeId if provided (from new database-driven generator), otherwise fall back to name lookup
+      let competitionTypeId = comp.typeId || null;
       
-      console.log(`🔍 Looking for: "${comp.name}" -> Found ID: ${competitionTypeId || 'NOT FOUND'}`);
+      if (!competitionTypeId && comp.name) {
+        console.log(`⚠️ No typeId for "${comp.name}", competition will be created without type reference`);
+      }
       
       // Convert entry fee from pounds to pennies
       const entryFeePennies = Math.round(comp.entryFee * 100);
       
-      // Use auto-calculated registration dates instead of provided ones
       return {
         tournament_id: createdTournament.id,
         competition_type_id: competitionTypeId,
         entry_fee_pennies: entryFeePennies,
         entrants_cap: comp.entrantsCap,
         admin_fee_percent: comp.adminFeePercent,
-        reg_open_at: regOpenDate.toISOString(),
-        reg_close_at: regCloseDate.toISOString(),
+        reg_open_at: comp.regOpenAt,
+        reg_close_at: comp.regCloseAt,
         status: 'upcoming',
       };
     });
@@ -201,8 +189,21 @@ export async function POST(request: NextRequest) {
       console.log('🏌️ Fetching tournament field from DataGolf...');
       
       // Determine tour for DataGolf API (pga, euro, kft, alt)
-      const tourParam = tournament.tour === 'PGA' ? 'pga' : 
-                        tournament.tour === 'European' ? 'euro' : 'pga';
+      // Check tournament name for special cases
+      let tourParam = 'pga'; // default
+      
+      if (tournament.name.toLowerCase().includes('q-school') || 
+          tournament.name.toLowerCase().includes('korn ferry')) {
+        tourParam = 'kft'; // Korn Ferry Tour
+      } else if (tournament.tour === 'European') {
+        tourParam = 'euro';
+      } else if (tournament.tour === 'LPGA') {
+        tourParam = 'lpga';
+      } else {
+        tourParam = 'pga';
+      }
+      
+      console.log(`📍 Using DataGolf tour: ${tourParam} for ${tournament.name}`);
       
       const apiKey = process.env.DATAGOLF_API_KEY;
       if (apiKey) {

@@ -70,7 +70,7 @@ async function fetchFromDataGolf(): Promise<UpcomingTournament[]> {
         tournaments.push({
           id: `euro-${t.event_id}`,
           name: t.event_name,
-          tour: 'European',
+          tour: 'euro',
           startDate: t.start_date,
           endDate: endDateString,
           location: t.location || 'TBD',

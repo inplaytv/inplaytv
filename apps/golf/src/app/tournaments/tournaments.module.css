@@ -1456,17 +1456,17 @@
 }
 
 .hubStatValue {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
 }
 
 .hubStatLabel {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.25rem;
 }
 
 .hubCardCta {

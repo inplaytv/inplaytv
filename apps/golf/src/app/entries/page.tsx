@@ -70,6 +70,13 @@ interface CompetitionEntrant {
   useEffect(() => {
     fetchCurrentUser();
     fetchEntries();
+    
+    // Poll for ONE 2 ONE status updates every 10 seconds
+    const pollInterval = setInterval(() => {
+      fetchEntries();
+    }, 10000);
+    
+    return () => clearInterval(pollInterval);
   }, []);
 
   async function fetchCurrentUser() {
@@ -88,14 +95,22 @@ interface CompetitionEntrant {
     if (selectedTournamentId && entries.length > 0) {
       const tournamentEntries = entries.filter(e => e.tournament_competitions?.tournaments?.name === selectedTournamentId);
       if (tournamentEntries.length > 0) {
-        fetchCompetitionEntrants(tournamentEntries[0].competition_id);
+        const compId = tournamentEntries[0].competition_id || tournamentEntries[0].instance_id;
+        if (compId) {
+          fetchCompetitionEntrants(compId);
+        }
       }
     }
   }, [selectedTournamentId, entries]);
 
   async function fetchEntries() {
     try {
-      const res = await fetch('/api/user/my-entries');
+      const res = await fetch('/api/user/my-entries', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        }
+      });
       if (!res.ok) throw new Error('Failed to fetch entries');
       const data = await res.json();
       const fetchedEntries = data.entries || [];
@@ -115,7 +130,11 @@ interface CompetitionEntrant {
     setLoadingEntrants(true);
     try {
       const res = await fetch(`/api/competitions/${competitionId}/entrants`);
-      if (!res.ok) throw new Error('Failed to fetch entrants');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('❌ Entrants API error:', errorData);
+        throw new Error(errorData.error || 'Failed to fetch entrants');
+      }
       const data = await res.json();
       setCompetitionEntrants(data.entrants || []);
       setMaxEntries(data.maxEntries || 0);
@@ -318,6 +337,28 @@ interface CompetitionEntrant {
                     >
                       📜 History {archivedCount > 0 && `(${archivedCount})`}
                     </button>
+                    <button
+                      onClick={() => {
+                        setLoading(true);
+                        fetchEntries();
+                      }}
+                      style={{
+                        padding: '4px 12px',
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        borderRadius: '6px',
+                        color: '#10b981',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <i className="fas fa-sync" style={{ fontSize: '10px' }}></i>
+                      Refresh
+                    </button>
                   </div>
                 </div>
                 <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>
@@ -509,14 +550,76 @@ interface CompetitionEntrant {
                           {index + 1}
                         </span>
                         <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <p style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.9)', margin: '0 0 2px 0' }}>
-                              {entry.entry_name || 'Anonymous Entry'}
-                            </p>
-                            <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500, marginLeft: '12px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <p style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.9)', margin: 0 }}>
+                                {entry.entry_name || 'Anonymous Entry'}
+                              </p>
+                              <span style={{ 
+                                fontSize: '10px', 
+                                fontWeight: 600, 
+                                color: 'rgba(255,255,255,0.5)', 
+                                background: 'rgba(255,255,255,0.1)',
+                                padding: '2px 6px',
+                                borderRadius: '6px',
+                                fontFamily: 'monospace'
+                              }}>
+                                #{entry.id.split('-')[0].toUpperCase()}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500 }}>
                               {entry.tournament_competitions?.competition_types?.name || 'Competition'}
                             </span>
                           </div>
+                          {/* ONE 2 ONE Match Status */}
+                          {entry.tournament_competitions?.is_one_2_one && (
+                            <div style={{ marginTop: '4px', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {entry.tournament_competitions.current_players < entry.tournament_competitions.max_players ? (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    fontSize: '10px',
+                                    fontWeight: 600,
+                                    color: '#fbbf24',
+                                    background: 'rgba(251, 191, 36, 0.15)',
+                                    border: '1px solid rgba(251, 191, 36, 0.3)',
+                                    borderRadius: '12px',
+                                    padding: '3px 8px',
+                                    width: 'fit-content'
+                                  }}>
+                                    🟡 Waiting for opponent
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    fontSize: '10px',
+                                    fontWeight: 600,
+                                    color: '#10b981',
+                                    background: 'rgba(16, 185, 129, 0.15)',
+                                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                                    borderRadius: '12px',
+                                    padding: '3px 8px',
+                                    width: 'fit-content'
+                                  }}>
+                                    🟢 Challenge Accepted
+                                  </span>
+                                )}
+                              </div>
+                              <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                Prize Pool: £{(() => {
+                                  // For ONE 2 ONE, entry_fee_pennies is at root level
+                                  // For regular competitions, it's nested in tournament_competitions
+                                  const entryFee = entry.entry_fee_pennies || entry.tournament_competitions?.entry_fee_pennies || 0;
+                                  const adminFeePercent = entry.admin_fee_percent || 10; // ONE 2 ONE uses template's admin fee
+                                  return ((entryFee * 2 * (100 - adminFeePercent)) / 100 / 100).toFixed(2);
+                                })()}
+                              </span>
+                            </div>
+                          )}
                           <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
                             {new Date(entry.created_at).toLocaleDateString()}
                           </p>
@@ -586,9 +689,22 @@ interface CompetitionEntrant {
                         {selectedEntry?.entry_name || 'Team Lineup'}
                       </p>
                       {selectedEntry && (
-                        <p style={{ fontSize: '12px', color: '#10b981', fontWeight: 500, marginBottom: '24px' }}>
-                          {selectedEntry.tournament_competitions?.competition_types?.name || 'Competition'}
-                        </p>
+                        <>
+                          <p style={{ fontSize: '12px', color: '#10b981', fontWeight: 500, marginBottom: '4px' }}>
+                            {selectedEntry.tournament_competitions?.competition_types?.name || 'Competition'}
+                          </p>
+                          {selectedEntry.tournament_competitions?.is_one_2_one && (
+                            <p style={{ fontSize: '13px', color: '#f59e0b', fontWeight: 700, marginBottom: '24px' }}>
+                              Prize Pool: £{(() => {
+                                // For ONE 2 ONE, entry_fee_pennies is at root level
+                                // For regular competitions, it's nested in tournament_competitions
+                                const entryFee = selectedEntry.entry_fee_pennies || selectedEntry.tournament_competitions?.entry_fee_pennies || 0;
+                                const adminFeePercent = selectedEntry.admin_fee_percent || 10; // ONE 2 ONE uses template's admin fee
+                                return ((entryFee * 2 * (100 - adminFeePercent)) / 100 / 100).toFixed(2);
+                              })()}
+                            </p>
+                          )}
+                        </>
                       )}
                     </>
                   );

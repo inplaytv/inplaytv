@@ -5,6 +5,9 @@ import { createClient } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+// Determine base URL at module level (will be consistent server/client)
+const BASE_URL = process.env.NEXT_PUBLIC_WEB_URL || 'https://www.inplay.tv';
+
 export default function LoginPage() {
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -237,9 +240,7 @@ export default function LoginPage() {
         </div>
 
         <a
-          href={typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-            ? 'http://localhost:3000/login' 
-            : 'https://www.inplay.tv/login'}
+          href={`${BASE_URL}/login`}
           style={styles.websiteLink}
         >
           Sign in on main website
@@ -248,9 +249,7 @@ export default function LoginPage() {
         <div style={styles.footer}>
           Don&apos;t have an account?{' '}
           <a 
-            href={typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-              ? 'http://localhost:3000/signup' 
-              : 'https://www.inplay.tv/signup'}
+            href={`${BASE_URL}/signup`}
             style={styles.link}
           >
             Sign up

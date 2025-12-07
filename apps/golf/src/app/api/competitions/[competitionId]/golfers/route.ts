@@ -81,7 +81,7 @@ function calculateSalary(worldRanking: number, fieldPosition: number, totalGolfe
   return roundToClean(salary);
 }
 
-// GET - Fetch golfers available in a competition
+// GET - Fetch golfers available in a competition (supports both tournament_competitions AND competition_instances)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ competitionId: string }> }
@@ -90,19 +90,27 @@ export async function GET(
     const { competitionId } = await params;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get the competition to find its tournament_id
+    // Try tournament_competitions first (regular competitions)
     const { data: competition, error: compError } = await supabase
       .from('tournament_competitions')
       .select('tournament_id')
       .eq('id', competitionId)
-      .single();
+      .maybeSingle();
 
-    if (compError) {
-      console.error('Error fetching competition:', compError);
-      throw compError;
+    let tournamentId = competition?.tournament_id;
+
+    // If not found, try competition_instances (ONE 2 ONE)
+    if (!tournamentId) {
+      const { data: instance, error: instanceError } = await supabase
+        .from('competition_instances')
+        .select('tournament_id')
+        .eq('id', competitionId)
+        .maybeSingle();
+      
+      tournamentId = instance?.tournament_id;
     }
 
-    if (!competition?.tournament_id) {
+    if (!tournamentId) {
       return NextResponse.json([]);
     }
 
@@ -121,7 +129,7 @@ export async function GET(
           image_url
         )
       `)
-      .eq('tournament_id', competition.tournament_id);
+      .eq('tournament_id', tournamentId);
 
     if (error) {
       console.error('Error fetching tournament golfers:', error);
@@ -132,11 +140,11 @@ export async function GET(
     const golferIds = (data || []).map((m: any) => m.golfer_id).filter(Boolean);
     
     let salariesMap: { [key: string]: number } = {};
-    if (golferIds.length > 0 && competition.tournament_id) {
+    if (golferIds.length > 0 && tournamentId) {
       const { data: salariesData } = await supabase
         .from('tournament_golfer_salaries')
         .select('golfer_id, salary')
-        .eq('tournament_id', competition.tournament_id)
+        .eq('tournament_id', tournamentId)
         .in('golfer_id', golferIds);
       
       if (salariesData) {

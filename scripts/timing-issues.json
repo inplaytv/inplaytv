@@ -1,0 +1,82 @@
+[
+  {
+    "tournament": "Hero World Challenge",
+    "tournament_slug": "hero-world-challenge",
+    "competition": "Beat The Cut",
+    "competition_slug": "beat-the-cut",
+    "competition_id": "9b989a64-8963-4f82-b459-b437be84ec8a",
+    "current_reg_close": "2025-12-03T23:45:00+00:00",
+    "correct_reg_close": "2025-12-03T23:45:00.000Z",
+    "round_start": "2025-12-04T00:00:00+00:00"
+  },
+  {
+    "tournament": "Hero World Challenge",
+    "tournament_slug": "hero-world-challenge",
+    "competition": "Final Strike",
+    "competition_slug": "final-strike",
+    "competition_id": "18da1599-21e3-487f-889a-75623bce7952",
+    "current_reg_close": "2025-12-06T23:45:00+00:00",
+    "correct_reg_close": "2025-12-06T23:45:00.000Z",
+    "round_start": "2025-12-07T00:00:00+00:00"
+  },
+  {
+    "tournament": "Nedbank Golf Challenge in honour of Gary Player",
+    "tournament_slug": "nedbank-golf-challenge-in-honour-of-gary-player",
+    "competition": "THE WEEKENDER",
+    "competition_slug": "the-weekender",
+    "competition_id": "652ad1e1-9ca0-41f4-b4a2-3e9e88196027",
+    "current_reg_close": "2025-12-05T23:45:00+00:00",
+    "correct_reg_close": "2025-12-05T23:45:00.000Z",
+    "round_start": "2025-12-06T00:00:00+00:00"
+  },
+  {
+    "tournament": "Nedbank Golf Challenge in honour of Gary Player",
+    "tournament_slug": "nedbank-golf-challenge-in-honour-of-gary-player",
+    "competition": "Final Strike",
+    "competition_slug": "final-strike",
+    "competition_id": "5724f8e6-b946-4244-8ec0-a008b3b5c416",
+    "current_reg_close": "2025-12-07T06:15:00+00:00",
+    "correct_reg_close": "2025-12-07T06:15:00.000Z",
+    "round_start": "2025-12-07T06:30:00+00:00"
+  },
+  {
+    "tournament": "Nedbank Golf Challenge in honour of Gary Player",
+    "tournament_slug": "nedbank-golf-challenge-in-honour-of-gary-player",
+    "competition": "Beat The Cut",
+    "competition_slug": "beat-the-cut",
+    "competition_id": "cbce40f3-1569-46f7-88dc-e8e58e27de7d",
+    "current_reg_close": "2025-12-03T23:45:00+00:00",
+    "correct_reg_close": "2025-12-03T23:45:00.000Z",
+    "round_start": "2025-12-04T00:00:00+00:00"
+  },
+  {
+    "tournament": "Crown Australian Open",
+    "tournament_slug": "crown-australian-open",
+    "competition": "THE WEEKENDER",
+    "competition_slug": "the-weekender",
+    "competition_id": "dd06ea2b-8bb2-42c4-88e4-7d1056d3ebec",
+    "current_reg_close": "2025-12-05T23:45:00+00:00",
+    "correct_reg_close": "2025-12-05T23:45:00.000Z",
+    "round_start": "2025-12-06T00:00:00+00:00"
+  },
+  {
+    "tournament": "Crown Australian Open",
+    "tournament_slug": "crown-australian-open",
+    "competition": "Final Strike",
+    "competition_slug": "final-strike",
+    "competition_id": "392161ed-e63a-46c5-a79f-1cbef8880f64",
+    "current_reg_close": "2025-12-07T06:15:00+00:00",
+    "correct_reg_close": "2025-12-07T06:15:00.000Z",
+    "round_start": "2025-12-07T06:30:00+00:00"
+  },
+  {
+    "tournament": "Crown Australian Open",
+    "tournament_slug": "crown-australian-open",
+    "competition": "Beat The Cut",
+    "competition_slug": "beat-the-cut",
+    "competition_id": "c9b36e6a-39de-4d20-bb50-88baa2505d36",
+    "current_reg_close": "2025-12-03T23:45:00+00:00",
+    "correct_reg_close": "2025-12-03T23:45:00.000Z",
+    "round_start": "2025-12-04T00:00:00+00:00"
+  }
+]

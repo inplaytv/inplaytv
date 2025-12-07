@@ -20,7 +20,7 @@ export async function GET(
     // Get tournament by slug
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('id, name, slug, start_date, current_round, round_1_start, round_2_start, round_3_start, round_4_start')
+      .select('id, name, slug, start_date, end_date, current_round, status, is_visible, round_1_start, round_2_start, round_3_start, round_4_start')
       .eq('slug', slug)
       .single();
 
@@ -76,7 +76,8 @@ export async function GET(
         // Check if registration is still open
         const now = new Date();
         const closeDate = regCloseAt ? new Date(regCloseAt) : null;
-        const isOpen = closeDate ? now < closeDate : false;
+        // If no close date is set, registration is open. Otherwise check if we're before the close date.
+        const isOpen = closeDate ? now < closeDate : true;
 
         // Get available instance count
         const { count, error: countError } = await supabase

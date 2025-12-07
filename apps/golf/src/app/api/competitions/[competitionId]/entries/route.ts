@@ -38,8 +38,11 @@ export async function POST(
       );
     }
 
-    // Get competition details for entry fee and validation
-    const { data: competition, error: compError } = await supabase
+    // Get competition details for entry fee and validation (supports both tournament_competitions AND competition_instances)
+    let competition: any = null;
+    
+    // Try tournament_competitions first
+    const { data: compData, error: compError } = await supabase
       .from('tournament_competitions')
       .select(`
         entry_fee_pennies,
@@ -49,9 +52,45 @@ export async function POST(
         )
       `)
       .eq('id', competitionId)
-      .single();
+      .maybeSingle();
 
-    if (compError) throw compError;
+    if (compData) {
+      competition = compData;
+    } else {
+      // Try competition_instances (ONE 2 ONE)
+      const { data: instanceData, error: instanceError } = await supabase
+        .from('competition_instances')
+        .select(`
+          reg_close_at,
+          start_at,
+          tournament_id,
+          competition_templates!competition_instances_template_id_fkey (
+            entry_fee_pennies
+          ),
+          tournaments!competition_instances_tournament_id_fkey (
+            start_date
+          )
+        `)
+        .eq('id', competitionId)
+        .maybeSingle();
+
+      if (instanceData) {
+        const template: any = instanceData.competition_templates;
+        const tournament: any = instanceData.tournaments;
+        competition = {
+          entry_fee_pennies: template?.entry_fee_pennies || 0,
+          reg_close_at: instanceData.reg_close_at,
+          tournaments: tournament,
+        };
+      }
+    }
+
+    if (!competition) {
+      return NextResponse.json(
+        { error: 'Competition not found' },
+        { status: 404 }
+      );
+    }
 
     // CRITICAL SERVER-SIDE VALIDATION: Check if registration deadline has passed
     // This is the ONLY check needed - reg_close_at is already set appropriately for each competition type
@@ -127,9 +166,13 @@ export async function POST(
     // NOW create the entry (only after payment succeeds)
     console.log('📝 Creating competition entry...');
     
-    const entryData = {
+    // Determine if this is a ONE 2 ONE instance (instance_id should be set)
+    const isInstance = !compData; // If we didn't find it in tournament_competitions, it's an instance
+    
+    const entryData: any = {
       user_id: user.id,
-      competition_id: competitionId,
+      competition_id: isInstance ? null : competitionId, // NULL for instances
+      instance_id: isInstance ? competitionId : null, // Set instance_id for ONE 2 ONE
       entry_name,
       total_salary,
       entry_fee_paid: status === 'submitted' ? competition.entry_fee_pennies : 0,
@@ -159,6 +202,39 @@ export async function POST(
     }
 
     console.log('✅ Entry created:', newEntry.id);
+
+    // If ONE 2 ONE instance and submitted, increment current_players count
+    if (isInstance && status === 'submitted') {
+      console.log('📊 Incrementing current_players for ONE 2 ONE instance...');
+      
+      // Get current count
+      const { data: instanceData, error: instanceFetchError } = await supabase
+        .from('competition_instances')
+        .select('current_players, max_players')
+        .eq('id', competitionId)
+        .single();
+      
+      if (instanceFetchError) {
+        console.error('⚠️ Failed to fetch instance data:', instanceFetchError);
+      } else if (instanceData) {
+        const newCount = instanceData.current_players + 1;
+        const newStatus = newCount >= instanceData.max_players ? 'full' : 'open';
+        
+        const { error: updateInstanceError } = await supabase
+          .from('competition_instances')
+          .update({ 
+            current_players: newCount,
+            status: newStatus,
+          })
+          .eq('id', competitionId);
+        
+        if (updateInstanceError) {
+          console.error('⚠️ Failed to update instance count:', updateInstanceError);
+        } else {
+          console.log(`✅ Instance updated: ${newCount}/${instanceData.max_players} players (status: ${newStatus})`);
+        }
+      }
+    }
 
     // Insert picks if provided
     if (picks && picks.length > 0) {

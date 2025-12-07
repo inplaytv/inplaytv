@@ -19,16 +19,7 @@ export async function GET(
     // Fetch the entry to check ownership and get competition details
     const { data: entry, error: entryError } = await supabase
       .from('competition_entries')
-      .select(`
-        id,
-        user_id,
-        competition_id,
-        captain_golfer_id,
-        tournament_competitions!inner (
-          id,
-          start_at
-        )
-      `)
+      .select('id, user_id, competition_id, instance_id, captain_golfer_id')
       .eq('id', entryId)
       .single();
 
@@ -36,9 +27,25 @@ export async function GET(
       return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
     }
 
+    // Get start time from competition or instance
+    let startDate: string | null = null;
+    if (entry.competition_id) {
+      const { data: comp } = await supabase
+        .from('tournament_competitions')
+        .select('start_at')
+        .eq('id', entry.competition_id)
+        .single();
+      startDate = comp?.start_at;
+    } else if (entry.instance_id) {
+      const { data: inst } = await supabase
+        .from('competition_instances')
+        .select('start_at')
+        .eq('id', entry.instance_id)
+        .single();
+      startDate = inst?.start_at;
+    }
+
     const isOwner = entry.user_id === user.id;
-    const compData: any = entry.tournament_competitions;
-    const startDate = Array.isArray(compData) ? compData[0]?.start_at : compData?.start_at;
     const tournamentStarted = startDate ? new Date() >= new Date(startDate) : false;
 
     // Allow access if user owns the entry OR tournament has started
@@ -71,10 +78,11 @@ export async function GET(
 
     // Fetch current salaries from competition_golfers as fallback for entries without salary_at_selection
     const golferIds = (picks || []).map(p => p.golfer_id);
+    const compId = entry.competition_id || entry.instance_id;
     const { data: competitionGolfers } = await supabase
       .from('competition_golfers')
       .select('golfer_id, salary')
-      .eq('competition_id', entry.competition_id)
+      .eq('competition_id', compId)
       .in('golfer_id', golferIds);
 
     const currentSalaryMap = new Map(

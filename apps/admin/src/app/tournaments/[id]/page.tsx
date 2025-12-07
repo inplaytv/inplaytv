@@ -163,10 +163,10 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
           external_id: tournamentData.external_id || '',
           image_url: tournamentData.image_url || '',
           featured_competition_id: tournamentData.featured_competition_id || '',
-          round1_tee_time: tournamentData.round1_tee_time ? tournamentData.round1_tee_time.slice(0, 16) : '',
-          round2_tee_time: tournamentData.round2_tee_time ? tournamentData.round2_tee_time.slice(0, 16) : '',
-          round3_tee_time: tournamentData.round3_tee_time ? tournamentData.round3_tee_time.slice(0, 16) : '',
-          round4_tee_time: tournamentData.round4_tee_time ? tournamentData.round4_tee_time.slice(0, 16) : '',
+          round1_tee_time: tournamentData.round_1_start ? tournamentData.round_1_start.slice(0, 16) : '',
+          round2_tee_time: tournamentData.round_2_start ? tournamentData.round_2_start.slice(0, 16) : '',
+          round3_tee_time: tournamentData.round_3_start ? tournamentData.round_3_start.slice(0, 16) : '',
+          round4_tee_time: tournamentData.round_4_start ? tournamentData.round_4_start.slice(0, 16) : '',
         });
       }
 
