@@ -91,6 +91,22 @@ export async function POST(
       }
     }
 
+    // Check if user is the challenge creator (first entry)
+    const { data: creatorEntry, error: creatorError } = await supabase
+      .from('competition_entries')
+      .select('user_id')
+      .eq('instance_id', instanceId)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (!creatorError && creatorEntry?.user_id === user.id) {
+      return NextResponse.json(
+        { error: 'Cannot accept your own challenge' },
+        { status: 403 }
+      );
+    }
+
     // Check if user already joined this instance
     const { data: existingEntry, error: existingError } = await supabase
       .from('competition_entries')

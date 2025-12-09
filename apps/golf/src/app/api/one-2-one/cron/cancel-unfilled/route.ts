@@ -6,7 +6,9 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 /**
  * POST /api/one-2-one/cron/cancel-unfilled
- * Cron job to cancel instances with < 2 players after reg_close_at
+ * Cron job to:
+ * 1. Delete 'pending' instances older than 30 minutes (abandoned team builders)
+ * 2. Cancel 'open' instances with < 2 players after reg_close_at
  * Should be called every minute by Vercel Cron or similar
  * Requires cron secret for security
  */
@@ -24,9 +26,37 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Find instances that should be cancelled
     const now = new Date().toISOString();
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+    // STEP 1: Delete abandoned 'pending' instances (older than 30 minutes)
+    console.log('🧹 Cleaning up abandoned pending instances...');
+    const { data: pendingInstances, error: pendingError } = await supabase
+      .from('competition_instances')
+      .select('id, instance_number, created_at')
+      .eq('status', 'pending')
+      .lt('created_at', thirtyMinutesAgo);
+
+    let deletedPending = 0;
+    if (pendingInstances && pendingInstances.length > 0) {
+      console.log(`Found ${pendingInstances.length} abandoned pending instances to delete`);
+      
+      for (const instance of pendingInstances) {
+        const { error: deleteError } = await supabase
+          .from('competition_instances')
+          .delete()
+          .eq('id', instance.id);
+        
+        if (!deleteError) {
+          deletedPending++;
+          console.log(`✅ Deleted pending instance ${instance.id} (created ${instance.created_at})`);
+        } else {
+          console.error(`❌ Failed to delete pending instance ${instance.id}:`, deleteError);
+        }
+      }
+    }
+
+    // STEP 2: Find 'open' instances that should be cancelled (past reg_close_at with < 2 players)
     const { data: instances, error: instancesError } = await supabase
       .from('competition_instances')
       .select('*')
@@ -145,8 +175,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: `Processed ${instances.length} instances`,
-      cancelled: cancelledCount,
+      message: `Processed cleanup`,
+      deletedPending: deletedPending,
+      cancelledOpen: cancelledCount,
       refunded: refundedCount,
       results
     });

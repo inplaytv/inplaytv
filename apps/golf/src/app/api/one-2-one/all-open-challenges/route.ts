@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
           admin_fee_percent
         )
       `)
-      .eq('status', 'open')
+      .in('status', ['pending', 'open'])  // Show both pending (awaiting first team) and open challenges
       .lt('current_players', 2)
       .order('created_at', { ascending: false })
       .limit(50);
@@ -77,7 +77,9 @@ export async function GET(request: NextRequest) {
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
     // Transform data for frontend
-    const challenges = (instances || []).map((inst: any) => {
+    const challenges = (instances || [])
+      .filter(inst => creatorEntryMap.has(inst.id))  // Only show instances with at least 1 entry
+      .map((inst: any) => {
       const entry = creatorEntryMap.get(inst.id);
       const profile = profileMap.get(entry?.user_id);
       

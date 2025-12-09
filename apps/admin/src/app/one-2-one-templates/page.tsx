@@ -41,13 +41,22 @@ export default function One2OneTemplatesPage() {
 
   const fetchTemplates = async () => {
     try {
+      console.log('Fetching templates from /api/one-2-one-templates...');
       const res = await fetch('/api/one-2-one-templates');
+      console.log('Response status:', res.status);
+      
       if (res.ok) {
         const data = await res.json();
+        console.log('Templates received:', data);
         setTemplates(data);
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('API error:', res.status, errorData);
+        setError(`Failed to load templates: ${errorData.error || res.statusText}`);
       }
     } catch (err) {
       console.error('Failed to fetch templates:', err);
+      setError('Network error loading templates');
     } finally {
       setLoading(false);
     }
@@ -170,6 +179,20 @@ export default function One2OneTemplatesPage() {
           Manage ONE 2 ONE competition templates (head-to-head matchmaking)
         </p>
       </div>
+
+      {error && !showForm && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: '6px',
+          padding: '0.875rem',
+          marginBottom: '1rem',
+          color: '#ef4444',
+          fontSize: '0.875rem',
+        }}>
+          {error}
+        </div>
+      )}
 
       {!showForm && (
         <button

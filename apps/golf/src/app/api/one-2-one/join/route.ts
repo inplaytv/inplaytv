@@ -11,36 +11,78 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { templateId, tournamentId, entryFeePennies } = body;
 
-    console.log('🔍 ONE 2 ONE Join Request FULL BODY:', body);
-    console.log('🔍 entryFeePennies VALUE:', entryFeePennies, 'TYPE:', typeof entryFeePennies);
-
     if (!templateId || !tournamentId) {
-      console.error('❌ Missing required fields');
+      console.error('[Join] Missing required fields:', { templateId: !!templateId, tournamentId: !!tournamentId });
       return NextResponse.json(
         { error: 'Template ID and Tournament ID are required' },
         { status: 400 }
       );
     }
 
-    // Check if templateId is actually an instance ID (UUID format with specific instance)
-    // First, try to find this as an existing instance
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if templateId is actually an instance ID (user accepting existing challenge)
     const { data: existingInstance, error: instanceCheckError } = await supabase
       .from('competition_instances')
-      .select('id, template_id, current_players, max_players, status')
+      .select('id, template_id, tournament_id, current_players, max_players, status')
       .eq('id', templateId)
-      .eq('tournament_id', tournamentId)
-      .single();
+      .maybeSingle();
 
-    if (!instanceCheckError && existingInstance) {
-      // This is an existing instance - user is accepting a challenge
-      console.log('✅ Found specific instance to join:', existingInstance.id);
-      if (existingInstance.status === 'open' && existingInstance.current_players < existingInstance.max_players) {
+    if (instanceCheckError) {
+      console.error('[Join] Error checking for existing instance:', instanceCheckError);
+      // Continue to create new instance
+    } else if (existingInstance) {
+      console.log('[Join] 🔍 User accepting existing challenge:', existingInstance.id);
+      
+      // CRITICAL: Check if user already has an entry for THIS instance
+      const { data: existingUserEntry } = await supabase
+        .from('competition_entries')
+        .select('id')
+        .eq('instance_id', existingInstance.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingUserEntry) {
+        console.log('[Join] ❌ BLOCKED: User already has entry for this instance');
+        return NextResponse.json(
+          { error: 'You have already accepted this challenge' },
+          { status: 400 }
+        );
+      }
+
+      // User is accepting an existing challenge - verify they're not the creator
+      const { data: creatorEntry } = await supabase
+        .from('competition_entries')
+        .select('user_id')
+        .eq('instance_id', existingInstance.id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (creatorEntry?.user_id === user.id) {
+        console.log('[Join] ❌ BLOCKED: Cannot accept own challenge');
+        return NextResponse.json(
+          { error: 'Cannot accept your own challenge' },
+          { status: 403 }
+        );
+      }
+
+      const isAvailable = (existingInstance.status === 'pending' || existingInstance.status === 'open') 
+        && existingInstance.current_players < existingInstance.max_players;
+      
+      if (isAvailable) {
+        console.log('[Join] ✅ ALLOWING: User can join this instance');
         return NextResponse.json({
           instanceId: existingInstance.id,
           isNew: false,
           message: 'Joining existing challenge'
         });
       } else {
+        console.log('[Join] ❌ BLOCKED: Challenge no longer available');
         return NextResponse.json(
           { error: 'This challenge is no longer available' },
           { status: 400 }
@@ -48,9 +90,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Not a specific instance, treat as template ID and CREATE A NEW CHALLENGE
-    // (no longer auto-matching - users browse Challenge Board to accept)
-    console.log('🆕 Creating new challenge for template:', templateId);
+    // Template ID provided - create a new challenge instance
     
     // Get the next instance number
     const { data: existingInstances } = await supabase
@@ -68,7 +108,6 @@ export async function POST(request: NextRequest) {
     console.log('📊 Next instance number:', nextInstanceNumber);
 
     // Get template details for registration close time
-    console.log('🔍 Fetching template details...');
     const { data: template, error: templateError } = await supabase
       .from('competition_templates')
       .select('reg_close_round')
@@ -76,17 +115,14 @@ export async function POST(request: NextRequest) {
       .single();
     
     if (templateError) {
-      console.error('❌ Error fetching template:', templateError);
+      console.error('[Join] Error fetching template:', templateError);
       return NextResponse.json(
         { error: 'Failed to fetch template details', details: templateError.message },
         { status: 500 }
       );
     }
 
-    console.log('✅ Template reg_close_round:', template.reg_close_round);
-
     // Get tournament round times to calculate reg_close_at
-    console.log('🔍 Fetching tournament details...');
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
       .select('round_1_start, round_2_start, round_3_start, round_4_start, end_date')
@@ -94,7 +130,7 @@ export async function POST(request: NextRequest) {
       .single();
     
     if (tournamentError) {
-      console.error('❌ Error fetching tournament:', tournamentError);
+      console.error('[Join] Error fetching tournament:', tournamentError);
       return NextResponse.json(
         { error: 'Failed to fetch tournament details', details: tournamentError.message },
         { status: 500 }
@@ -122,10 +158,6 @@ export async function POST(request: NextRequest) {
       startAt = tournament.round_1_start;
     }
 
-    console.log('📅 Instance times - reg_close:', regCloseAt, 'start:', startAt, 'end:', endAt);
-
-    console.log('💾 Creating new instance...');
-    console.log('💾 ABOUT TO INSERT entry_fee_pennies:', entryFeePennies);
     const { data: newInstance, error: createError } = await supabase
       .from('competition_instances')
       .insert({
@@ -133,28 +165,23 @@ export async function POST(request: NextRequest) {
         tournament_id: tournamentId,
         instance_number: nextInstanceNumber,
         entry_fee_pennies: entryFeePennies,
-        status: 'open',
+        status: 'pending',
         current_players: 0,
         max_players: 2,
         reg_close_at: regCloseAt,
         start_at: startAt,
         end_at: endAt,
       })
-      .select('id, entry_fee_pennies')
+      .select('id')
       .single();
 
     if (createError) {
-      console.error('❌ Error creating instance:', createError);
+      console.error('[Join] Error creating instance:', createError);
       return NextResponse.json(
         { error: 'Failed to create new instance', details: createError.message },
         { status: 500 }
       );
     }
-
-    console.log('✅ Instance created successfully:', newInstance);
-    console.log('✅ Saved entry_fee_pennies:', newInstance.entry_fee_pennies);
-
-    console.log('✅ Created new instance:', newInstance.id);
 
     return NextResponse.json({
       instanceId: newInstance.id,
@@ -162,7 +189,7 @@ export async function POST(request: NextRequest) {
       currentPlayers: 0
     });
   } catch (error: any) {
-    console.error('ONE 2 ONE join error:', error);
+    console.error('[Join] Error:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

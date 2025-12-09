@@ -144,7 +144,9 @@ export default function One2OnePage() {
   const handleJoinCompetition = async (templateOrInstanceId: string, entryFee: number) => {
     if (!tournament) return;
     
+    console.log('🚀 Starting challenge creation - setting joiningTemplate to:', templateOrInstanceId);
     setJoiningTemplate(templateOrInstanceId);
+    console.log('🚀 joiningTemplate set, button should now show "Submitting Challenge..."');
     
     try {
       // Call API to find or create an instance
@@ -214,12 +216,13 @@ export default function One2OnePage() {
           setAllTournaments(tournaments);
         }
 
-        // Fetch current tournament data
+        // Fetch tournament data for templates but DON'T auto-select it
         const response = await fetch(`/api/tournaments/${slug}/one-2-one`);
         if (!response.ok) throw new Error('Failed to fetch ONE 2 ONE data');
         
       const data = await response.json();
-      setTournament(data.tournament);
+      // DON'T set tournament - force user to select it fresh
+      // setTournament(data.tournament);
       setTemplates(data.templates || []);        // Initialize customEntryFees with template defaults
         const initialFees: Record<string, number> = {};
         (data.templates || []).forEach((template: One2OneTemplate) => {
@@ -227,10 +230,9 @@ export default function One2OnePage() {
         });
         setCustomEntryFees(initialFees);
         
-        // Set first template as selected by default
-        if (data.templates && data.templates.length > 0) {
-          setSelectedTemplate(data.templates[0]);
-        }
+        // Don't auto-select any template or tournament - let user choose both
+        console.log('🔍 Page loaded - tournament and selectedTemplate should be NULL');
+        console.log('🔍 Available templates:', data.templates?.length);
         
         // Fetch all open challenges
         fetchOpenChallenges();
@@ -305,12 +307,12 @@ export default function One2OnePage() {
     );
   }
 
-  if (error || !tournament) {
+  if (error) {
     return (
       <div className={styles.container}>
         <div className={styles.error}>
           <i className="fas fa-exclamation-triangle"></i>
-          <p>{error || 'Tournament not found'}</p>
+          <p>{error}</p>
           <Link href="/tournaments" className={styles.backButton}>
             Back to Tournaments
           </Link>
@@ -420,7 +422,7 @@ export default function One2OnePage() {
               {/* Dropdown Content */}
               <div style={{
                 position: 'absolute',
-                top: 'calc(100% + 1rem - 125px)',
+                top: 'calc(100% + 1rem - 175px)',
                 left: 0,
                 right: 0,
                 background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(31, 41, 55, 0.98))',
@@ -623,7 +625,7 @@ export default function One2OnePage() {
                       background: 'rgba(251, 191, 36, 0.05)',
                       borderRadius: '16px',
                       border: '1px solid rgba(251, 191, 36, 0.2)',
-                      padding: '1.5rem',
+                      padding: '1rem 1.5rem',
                         marginTop: '1rem'
                       }}>
                         {/* Prize Pool & Entry Fee - Side by Side */}
@@ -659,7 +661,7 @@ export default function One2OnePage() {
                                 display: 'block',
                                 marginBottom: '2px'
                               }}>
-                                Winner Takes
+                                Winner Takes All
                               </span>
                               <div style={{ 
                                 fontSize: '1.5rem', 
@@ -822,9 +824,13 @@ export default function One2OnePage() {
                                     });
                                     setCustomEntryFees(initialFees);
                                     
-                                    // Set first template as selected by default
-                                    if (data.templates && data.templates.length > 0) {
-                                      setSelectedTemplate(data.templates[0]);
+                                    // Try to keep the same round selection if it exists in new tournament
+                                    if (selectedTemplate) {
+                                      const matchingTemplate = data.templates?.find(
+                                        (t: One2OneTemplate) => t.rounds_covered.length === selectedTemplate.rounds_covered.length &&
+                                        t.rounds_covered.every((r: number, i: number) => r === selectedTemplate.rounds_covered[i])
+                                      );
+                                      setSelectedTemplate(matchingTemplate || null);
                                     } else {
                                       setSelectedTemplate(null);
                                     }
@@ -939,138 +945,167 @@ export default function One2OnePage() {
                         })}
                       </div>
                       
-                      {/* Confirmation Summary Section */}
-                      {tournament && selectedTemplate && (() => {
-                        const customFee = customEntryFees[selectedTemplate.id] || selectedTemplate.entry_fee_pennies;
-                        const prizePool = customFee * 2 * 0.95;
-                        const isClosed = !selectedTemplate.is_open;
-                        
-                        return (
-                          <div style={{
-                            marginTop: '1.5rem',
-                            padding: '1.5rem',
-                            background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(16, 185, 129, 0.1))',
-                            border: '2px solid rgba(251, 191, 36, 0.3)',
-                            borderRadius: '12px'
+                      {/* Confirmation Summary Section - Always Visible */}
+                      <div style={{
+                        marginTop: '1.5rem',
+                        padding: '1.5rem',
+                        background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(16, 185, 129, 0.1))',
+                        border: '2px solid rgba(251, 191, 36, 0.3)',
+                        borderRadius: '12px'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          marginBottom: '1rem'
+                        }}>
+                          <i className="fas fa-clipboard-list" style={{ color: '#fbbf24', fontSize: '1.2rem' }}></i>
+                          <h4 style={{ 
+                            margin: 0, 
+                            fontSize: '1rem', 
+                            fontWeight: 700,
+                            color: '#fbbf24',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px'
                           }}>
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.5rem',
-                              marginBottom: '1rem'
-                            }}>
-                              <i className="fas fa-check-circle" style={{ color: '#10b981', fontSize: '1.2rem' }}></i>
-                              <h4 style={{ 
-                                margin: 0, 
-                                fontSize: '1rem', 
-                                fontWeight: 700,
-                                color: '#fbbf24',
-                                textTransform: 'uppercase',
-                                letterSpacing: '1px'
-                              }}>
-                                Challenge Summary
-                              </h4>
+                            Challenge Summary
+                          </h4>
+                        </div>
+                        
+                        {/* Summary Grid */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: '1rem',
+                          marginBottom: '1.5rem'
+                        }}>
+                          <div style={{
+                            padding: '0.75rem',
+                            background: 'rgba(0,0,0,0.2)',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            opacity: tournament ? 1 : 0.5
+                          }}>
+                            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '1rem' }}>🏆</span>
+                              Tournament
                             </div>
-                            
-                            {/* Summary Grid */}
-                            <div style={{
-                              display: 'grid',
-                              gridTemplateColumns: '1fr 1fr',
-                              gap: '1rem',
-                              marginBottom: '1.5rem'
-                            }}>
-                              <div style={{
-                                padding: '0.75rem',
-                                background: 'rgba(0,0,0,0.2)',
-                                borderRadius: '8px',
-                                border: '1px solid rgba(255,255,255,0.1)'
-                              }}>
-                                <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <span style={{ fontSize: '1rem' }}>🏆</span>
-                                  Tournament
-                                </div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff' }}>{tournament.name}</div>
-                              </div>
-                              
-                              <div style={{
-                                padding: '0.75rem',
-                                background: 'rgba(0,0,0,0.2)',
-                                borderRadius: '8px',
-                                border: '1px solid rgba(255,255,255,0.1)'
-                              }}>
-                                <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <span style={{ fontSize: '1rem' }}>🎯</span>
-                                  Round
-                                </div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff' }}>{getRoundDescription(selectedTemplate.rounds_covered)}</div>
-                              </div>
-                              
-                              <div style={{
-                                padding: '0.75rem',
-                                background: 'rgba(0,0,0,0.2)',
-                                borderRadius: '8px',
-                                border: '1px solid rgba(255,255,255,0.1)'
-                              }}>
-                                <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <span style={{ fontSize: '1rem' }}>💰</span>
-                                  Entry Fee
-                                </div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#fbbf24' }}>{formatCurrency(customFee)}</div>
-                              </div>
-                              
-                              <div style={{
-                                padding: '0.75rem',
-                                background: 'rgba(0,0,0,0.2)',
-                                borderRadius: '8px',
-                                border: '1px solid rgba(255,255,255,0.1)'
-                              }}>
-                                <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <span style={{ fontSize: '1rem' }}>🏅</span>
-                                  Prize Pool
-                                </div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#10b981' }}>{formatCurrency(prizePool)}</div>
-                              </div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: tournament ? '#fff' : 'rgba(255,255,255,0.4)' }}>
+                              {tournament ? tournament.name : 'Not selected'}
                             </div>
-                            
-                            {/* Create Challenge Button */}
+                          </div>
+                          
+                          <div style={{
+                            padding: '0.75rem',
+                            background: 'rgba(0,0,0,0.2)',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            opacity: selectedTemplate ? 1 : 0.5
+                          }}>
+                            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '1rem' }}>🎯</span>
+                              Round
+                            </div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: selectedTemplate ? '#fff' : 'rgba(255,255,255,0.4)' }}>
+                              {selectedTemplate ? getRoundDescription(selectedTemplate.rounds_covered) : 'Not selected'}
+                            </div>
+                          </div>
+                          
+                          <div style={{
+                            padding: '0.75rem',
+                            background: 'rgba(0,0,0,0.2)',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            opacity: selectedTemplate ? 1 : 0.5
+                          }}>
+                            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '1rem' }}>💰</span>
+                              Entry Fee
+                            </div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: selectedTemplate ? '#fbbf24' : 'rgba(255,255,255,0.4)' }}>
+                              {selectedTemplate ? formatCurrency(customEntryFees[selectedTemplate.id] || selectedTemplate.entry_fee_pennies) : '—'}
+                            </div>
+                          </div>
+                          
+                          <div style={{
+                            padding: '0.75rem',
+                            background: 'rgba(0,0,0,0.2)',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            opacity: selectedTemplate ? 1 : 0.5
+                          }}>
+                            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '1rem' }}>🏅</span>
+                              Prize Pool
+                            </div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: selectedTemplate ? '#10b981' : 'rgba(255,255,255,0.4)' }}>
+                              {selectedTemplate ? formatCurrency(Math.round(((customEntryFees[selectedTemplate.id] || selectedTemplate.entry_fee_pennies) * 2 * (100 - selectedTemplate.admin_fee_percent)) / 100)) : '—'}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Status Message when incomplete */}
+                        {(!tournament || !selectedTemplate) && (
+                          <div style={{
+                            padding: '0.75rem',
+                            background: 'rgba(251, 191, 36, 0.1)',
+                            border: '1px solid rgba(251, 191, 36, 0.3)',
+                            borderRadius: '8px',
+                            marginBottom: '1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                          }}>
+                            <i className="fas fa-info-circle" style={{ color: '#fbbf24', fontSize: '1rem' }}></i>
+                            <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>
+                              {!selectedTemplate && !tournament ? 'Select a round and tournament to continue' : 
+                               !selectedTemplate ? 'Select a round to continue' : 
+                               'Select a tournament to continue'}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Create Challenge Button */}
+                        {(() => {
+                          const isClosed = selectedTemplate ? !selectedTemplate.is_open : false;
+                          const isDisabled = !tournament || !selectedTemplate || joiningTemplate !== null || isClosed;
+                          
+                          return (
                             <button
                               className={styles.btnFindMatch}
-                              onClick={() => {
-                                if (!isConfirmed) {
-                                  setIsConfirmed(true);
-                                } else {
-                                  handleJoinCompetition(selectedTemplate.id, customFee);
-                                  setMenuOpen(false);
-                                  setIsConfirmed(false);
-                                }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isDisabled) return;
+                                const customFee = customEntryFees[selectedTemplate!.id] || selectedTemplate!.entry_fee_pennies;
+                                handleJoinCompetition(selectedTemplate!.id, customFee);
+                                setMenuOpen(false);
                               }}
-                              disabled={joiningTemplate === selectedTemplate.id || isClosed}
+                              disabled={isDisabled}
                               style={{ 
                                 width: '100%', 
                                 margin: 0, 
                                 fontSize: '1.1rem', 
                                 padding: '1.25rem',
-                                background: isClosed 
+                                background: isDisabled
                                   ? 'rgba(255,255,255,0.1)' 
-                                  : isConfirmed
-                                    ? 'linear-gradient(135deg, #10b981, #059669)'
-                                    : 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-                                opacity: isClosed ? 0.5 : 1,
-                                boxShadow: isConfirmed ? '0 4px 12px rgba(16, 185, 129, 0.4)' : '0 4px 12px rgba(251, 191, 36, 0.4)',
-                                color: isClosed ? 'rgba(255,255,255,0.5)' : isConfirmed ? '#fff' : '#000',
+                                  : 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                                opacity: isDisabled ? 0.5 : 1,
+                                boxShadow: !isDisabled ? '0 4px 12px rgba(251, 191, 36, 0.4)' : 'none',
+                                color: isDisabled ? 'rgba(255,255,255,0.5)' : joiningTemplate !== null ? '#fff' : '#000',
                                 fontWeight: 700,
-                                transition: 'all 0.3s ease'
+                                transition: 'all 0.3s ease',
+                                cursor: isDisabled ? 'not-allowed' : 'pointer'
                               }}
                             >
-                              {joiningTemplate === selectedTemplate.id ? (
+                              {joiningTemplate === selectedTemplate?.id ? (
                                 <>
-                                  <i className="fas fa-spinner fa-spin"></i>
-                                  <span>Creating Challenge...</span>
+                                  <i className="fas fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
+                                  <span>Submitting Challenge...</span>
                                 </>
-                              ) : isConfirmed ? (
+                              ) : joiningTemplate !== null ? (
                                 <>
-                                  <span style={{ fontSize: '1.3rem', marginRight: '0.5rem' }}>🚀</span>
-                                  <span>Create Challenge Now</span>
+                                  <i className="fas fa-hourglass-half" style={{ marginRight: '0.5rem' }}></i>
+                                  <span>Please wait...</span>
                                 </>
                               ) : (
                                 <>
@@ -1079,9 +1114,9 @@ export default function One2OnePage() {
                                 </>
                               )}
                             </button>
-                          </div>
-                        );
-                      })()}
+                          );
+                        })()}
+                      </div>
                       </>
                     )}
                   </div>
@@ -1164,9 +1199,9 @@ export default function One2OnePage() {
                 {!isMobile && <div>Tournament</div>}
                 {!isMobile && !isTablet && (
                   <>
-                    <div style={{ marginLeft: '150px', whiteSpace: 'nowrap' }}>Round</div>
-                    <div style={{ marginLeft: '150px', whiteSpace: 'nowrap' }}>Entry Fee</div>
-                    <div style={{ marginLeft: '150px', whiteSpace: 'nowrap' }}>Prize Pool</div>
+                    <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>Round</div>
+                    <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>Entry Fee</div>
+                    <div style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>Prize Pool</div>
                   </>
                 )}
                 {!isMobile && <div style={{ textAlign: 'right' }}>Action</div>}
@@ -1235,7 +1270,7 @@ export default function One2OnePage() {
 
                   {/* Round */}
                   {!isMobile && !isTablet && (
-                    <div style={{ marginLeft: '150px', display: 'flex', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{
                       fontSize: '0.85rem',
                       fontWeight: 600,
@@ -1252,7 +1287,7 @@ export default function One2OnePage() {
 
                   {/* Entry Fee */}
                   {!isMobile && !isTablet && (
-                    <div style={{ marginLeft: '150px', display: 'flex', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <p style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#fbbf24', whiteSpace: 'nowrap' }}>
                         {formatCurrency(challenge.entryFeePennies)}
                       </p>
@@ -1261,7 +1296,7 @@ export default function One2OnePage() {
 
                   {/* Prize Pool */}
                   {!isMobile && !isTablet && (
-                    <div style={{ marginLeft: '150px', display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
                     <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#10b981', whiteSpace: 'nowrap' }}>
                       {formatCurrency(Math.round((challenge.entryFeePennies * 2 * (100 - (challenge.adminFeePercent || 10))) / 100))}
                     </p>

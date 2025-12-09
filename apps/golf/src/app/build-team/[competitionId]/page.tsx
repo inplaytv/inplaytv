@@ -31,6 +31,7 @@ interface Competition {
   entrants_cap: number;
   reg_open_at: string | null;
   reg_close_at: string | null;
+  is_one_2_one?: boolean; // ONE 2 ONE specific flag
 }
 
 interface ExistingEntry {
@@ -78,6 +79,34 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
   useEffect(() => {
     fetchCompetitionData();
   }, [competitionId]);
+
+  // Warn user before leaving if they have selected golfers
+  useEffect(() => {
+    const hasSelection = lineup.some(slot => slot.golfer !== null);
+    
+    // Always warn for ONE 2 ONE challenges, even without selections (to prevent orphaned instances)
+    const shouldWarn = competition?.is_one_2_one || hasSelection;
+    
+    if (shouldWarn) {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        
+        // Clear, explicit warning messages
+        const warningMessage = competition?.is_one_2_one
+          ? 'Navigating away will cancel your challenge. Are you sure you want to leave?'
+          : 'Navigating away will cancel your selections. Are you sure you want to leave?';
+        
+        e.returnValue = warningMessage; // Required for Chrome
+        return warningMessage;
+      };
+
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
+  }, [lineup, competition?.is_one_2_one]);
 
   async function fetchCompetitionData() {
     try {
@@ -447,6 +476,10 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
     }
 
     try {
+      // TEMPORARY: Skip activation for now due to 500 error
+      // TODO: Fix activation route
+      console.log('⏭️ Skipping activation temporarily');
+
       // Prepare lineup data
       const picks = lineup
         .filter(slot => slot.golfer !== null)
@@ -549,6 +582,28 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
           </div>
         )}
 
+        {/* Warning Banner for ONE 2 ONE */}
+        {competition?.is_one_2_one && (
+          <div style={{
+            marginBottom: '20px',
+            padding: '16px 20px',
+            background: 'rgba(251, 191, 36, 0.15)',
+            border: '1px solid rgba(251, 191, 36, 0.4)',
+            borderRadius: '12px',
+            color: '#fbbf24',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            fontSize: '15px',
+            fontWeight: 500,
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 4px 16px rgba(251, 191, 36, 0.15)'
+          }}>
+            <i className="fas fa-exclamation-triangle" style={{ fontSize: '18px' }}></i>
+            <span>⚠️ Navigating away will cancel your challenge. Complete your team to activate it on the Challenge Board.</span>
+          </div>
+        )}
+
         {/* Page Header - Above All Containers */}
         <div style={{ 
           display: 'flex', 
@@ -569,6 +624,9 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
               color: 'rgba(255,255,255,0.9)',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
               flexShrink: 0
             }}
             onMouseEnter={(e) => {
@@ -578,7 +636,8 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
               e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
             }}
           >
-            ← Back To Tournaments
+            <span>←</span>
+            <span>{competition?.is_one_2_one ? 'Back To Create Challenge' : 'Back To Tournaments'}</span>
           </button>
         </div>
 

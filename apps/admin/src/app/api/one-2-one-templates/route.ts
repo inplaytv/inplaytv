@@ -7,26 +7,10 @@ import { createAdminClient } from '@/lib/supabaseAdminServer';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createAdminClient();
-
-    // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const adminClient = createAdminClient();
 
     // Fetch all ONE 2 ONE templates
-    const { data: templates, error } = await supabase
+    const { data: templates, error } = await adminClient
       .from('competition_templates')
       .select('*')
       .order('rounds_covered', { ascending: true });
@@ -51,24 +35,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createAdminClient();
-
-    // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
+    const adminClient = createAdminClient();
     const body = await request.json();
     const {
       name,
@@ -91,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert new template
-    const { data: template, error } = await supabase
+    const { data: template, error } = await adminClient
       .from('competition_templates')
       .insert({
         name,
@@ -127,23 +94,7 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createAdminClient();
-
-    // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const adminClient = createAdminClient();
 
     const { searchParams } = new URL(request.url);
     const templateId = searchParams.get('id');
@@ -168,7 +119,7 @@ export async function PUT(request: NextRequest) {
     } = body;
 
     // Update template
-    const { data: template, error } = await supabase
+    const { data: template, error } = await adminClient
       .from('competition_templates')
       .update({
         name,

@@ -33,6 +33,7 @@ export async function GET(
         .from('competition_instances')
         .select(`
           max_players,
+          entry_fee_pennies,
           competition_templates!competition_instances_template_id_fkey (
             entry_fee_pennies,
             admin_fee_percent
@@ -45,7 +46,7 @@ export async function GET(
         const template: any = instanceData.competition_templates;
         competition = {
           entrants_cap: instanceData.max_players,
-          entry_fee_pennies: template?.entry_fee_pennies || 0,
+          entry_fee_pennies: instanceData.entry_fee_pennies || template?.entry_fee_pennies || 0,
           admin_fee_percent: template?.admin_fee_percent || 10
         };
       }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabaseServer';
+import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -21,6 +22,45 @@ export async function POST(
 
     const body = await request.json();
     const { entry_name, total_salary, captain_golfer_id, status, picks } = body;
+
+    console.log('[Entries] 🔍 DUPLICATE CHECK v2 - Checking for existing entries for user:', user.id, 'competition:', competitionId);
+
+    // CRITICAL: Check if user already has an entry for THIS SPECIFIC competition/instance
+    // Must check the exact instance_id or competition_id match
+    const { data: existingEntries, error: existingError } = await supabase
+      .from('competition_entries')
+      .select('id, status, instance_id, competition_id')
+      .eq('user_id', user.id)
+      .or(`competition_id.eq.${competitionId},instance_id.eq.${competitionId}`);
+
+    if (existingError) {
+      console.error('[Entries] Error checking for existing entry:', existingError);
+    }
+
+    // Check if ANY of the entries match THIS specific instance/competition
+    const duplicateEntry = existingEntries?.find(entry => 
+      entry.instance_id === competitionId || entry.competition_id === competitionId
+    );
+
+    if (duplicateEntry) {
+      console.log('[Entries] ❌ DUPLICATE BLOCKED:', {
+        existingEntryId: duplicateEntry.id,
+        forInstance: duplicateEntry.instance_id,
+        forCompetition: duplicateEntry.competition_id,
+        attemptingToEnter: competitionId
+      });
+      return NextResponse.json(
+        { error: 'You have already entered this competition' },
+        { status: 400 }
+      );
+    }
+    
+    if (existingEntries && existingEntries.length > 0) {
+      console.log('[Entries] ✅ User has other entries but not for THIS instance:', {
+        totalEntries: existingEntries.length,
+        checkingInstance: competitionId
+      });
+    }
 
     // Validate required fields
     if (total_salary === undefined || total_salary === null) {
@@ -64,6 +104,8 @@ export async function POST(
           reg_close_at,
           start_at,
           tournament_id,
+          status,
+          entry_fee_pennies,
           competition_templates!competition_instances_template_id_fkey (
             entry_fee_pennies
           ),
@@ -75,10 +117,16 @@ export async function POST(
         .maybeSingle();
 
       if (instanceData) {
+        console.log('🔍 Instance status check:', { 
+          instanceId: competitionId,
+          currentStatus: instanceData.status,
+          submissionStatus: status 
+        });
+
         const template: any = instanceData.competition_templates;
         const tournament: any = instanceData.tournaments;
         competition = {
-          entry_fee_pennies: template?.entry_fee_pennies || 0,
+          entry_fee_pennies: instanceData.entry_fee_pennies || template?.entry_fee_pennies || 0,
           reg_close_at: instanceData.reg_close_at,
           tournaments: tournament,
         };
@@ -168,6 +216,8 @@ export async function POST(
     
     // Determine if this is a ONE 2 ONE instance (instance_id should be set)
     const isInstance = !compData; // If we didn't find it in tournament_competitions, it's an instance
+    console.log('[Entries] Competition type:', isInstance ? 'ONE 2 ONE Instance' : 'Regular Competition');
+    console.log('[Entries] Competition ID:', competitionId);
     
     const entryData: any = {
       user_id: user.id,
@@ -203,35 +253,68 @@ export async function POST(
 
     console.log('✅ Entry created:', newEntry.id);
 
-    // If ONE 2 ONE instance and submitted, increment current_players count
+    // If ONE 2 ONE instance and submitted, manage current_players count
     if (isInstance && status === 'submitted') {
-      console.log('📊 Incrementing current_players for ONE 2 ONE instance...');
+      console.log('[Entries] Managing ONE 2 ONE instance players for:', competitionId);
       
-      // Get current count
-      const { data: instanceData, error: instanceFetchError } = await supabase
-        .from('competition_instances')
-        .select('current_players, max_players')
-        .eq('id', competitionId)
-        .single();
-      
-      if (instanceFetchError) {
-        console.error('⚠️ Failed to fetch instance data:', instanceFetchError);
-      } else if (instanceData) {
-        const newCount = instanceData.current_players + 1;
-        const newStatus = newCount >= instanceData.max_players ? 'full' : 'open';
-        
-        const { error: updateInstanceError } = await supabase
-          .from('competition_instances')
-          .update({ 
-            current_players: newCount,
-            status: newStatus,
-          })
-          .eq('id', competitionId);
-        
-        if (updateInstanceError) {
-          console.error('⚠️ Failed to update instance count:', updateInstanceError);
+      // Check how many SUBMITTED entries exist for this instance (including the one just created)
+      const { data: allEntries, error: countError } = await supabase
+        .from('competition_entries')
+        .select('id, user_id, created_at')
+        .eq('instance_id', competitionId)
+        .eq('status', 'submitted')
+        .order('created_at', { ascending: true });
+
+      if (countError) {
+        console.error('[Entries] Error fetching entries:', countError);
+      } else if (allEntries) {
+        const entryCount = allEntries.length;
+        console.log('[Entries] Total submitted entries:', entryCount);
+        console.log('[Entries] Entry details:', allEntries.map(e => ({ user_id: e.user_id, created_at: e.created_at })));
+
+        if (entryCount === 1) {
+          // First entry - activate the instance to 'open' with 1 player
+          console.log('[Entries] First player submission - activating instance to open');
+          const { error: activateError } = await supabase
+            .from('competition_instances')
+            .update({ 
+              status: 'open',
+              current_players: 1,
+            })
+            .eq('id', competitionId);
+          
+          if (activateError) {
+            console.error('[Entries] ❌ Failed to activate instance:', activateError);
+          } else {
+            console.log('[Entries] ✅ Instance activated to open with 1 player');
+          }
+        } else if (entryCount === 2) {
+          // Second entry - mark instance as 'full' with 2 players
+          console.log('[Entries] Second player submission - marking instance as full');
+          
+          // Use service role to bypass RLS for instance status update
+          const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          );
+          
+          const { data: updateResult, error: updateError } = await supabaseAdmin
+            .from('competition_instances')
+            .update({ 
+              status: 'full',
+              current_players: 2,
+            })
+            .eq('id', competitionId)
+            .select();
+          
+          if (updateError) {
+            console.error('[Entries] ❌ Failed to mark instance as full:', updateError);
+          } else {
+            console.log('[Entries] ✅ Instance update result:', updateResult);
+            console.log('[Entries] ✅ Rows updated:', updateResult?.length);
+          }
         } else {
-          console.log(`✅ Instance updated: ${newCount}/${instanceData.max_players} players (status: ${newStatus})`);
+          console.warn('[Entries] ⚠️ Unexpected entry count:', entryCount, '(expected 1 or 2)');
         }
       }
     }

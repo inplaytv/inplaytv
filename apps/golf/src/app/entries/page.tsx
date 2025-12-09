@@ -26,6 +26,7 @@ interface Entry {
     match_status?: string;
     current_players?: number;
     max_players?: number;
+    creator_user_id?: string;
     tournaments: {
       name: string;
       status: string;
@@ -584,39 +585,72 @@ interface CompetitionEntrant {
                           {entry.tournament_competitions?.is_one_2_one && (
                             <div style={{ marginTop: '4px', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                {(entry.tournament_competitions.current_players ?? 0) < (entry.tournament_competitions.max_players ?? 2) ? (
-                                  <span style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    fontSize: '10px',
-                                    fontWeight: 600,
-                                    color: '#fbbf24',
-                                    background: 'rgba(251, 191, 36, 0.15)',
-                                    border: '1px solid rgba(251, 191, 36, 0.3)',
-                                    borderRadius: '12px',
-                                    padding: '3px 8px',
-                                    width: 'fit-content'
-                                  }}>
-                                    🟡 Waiting for opponent
-                                  </span>
-                                ) : (
-                                  <span style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    fontSize: '10px',
-                                    fontWeight: 600,
-                                    color: '#10b981',
-                                    background: 'rgba(16, 185, 129, 0.15)',
-                                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                                    borderRadius: '12px',
-                                    padding: '3px 8px',
-                                    width: 'fit-content'
-                                  }}>
-                                    🟢 Challenge Accepted
-                                  </span>
-                                )}
+                                {(() => {
+                                  const currentPlayers = entry.tournament_competitions.current_players ?? 0;
+                                  const maxPlayers = entry.tournament_competitions.max_players ?? 2;
+                                  const isCreator = entry.tournament_competitions.creator_user_id === currentUserId;
+                                  const isFull = currentPlayers >= maxPlayers;
+                                  
+                                  // If match is not full yet
+                                  if (!isFull) {
+                                    return (
+                                      <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '10px',
+                                        fontWeight: 600,
+                                        color: '#fbbf24',
+                                        background: 'rgba(251, 191, 36, 0.15)',
+                                        border: '1px solid rgba(251, 191, 36, 0.3)',
+                                        borderRadius: '12px',
+                                        padding: '3px 8px',
+                                        width: 'fit-content'
+                                      }}>
+                                        🟡 Waiting for opponent
+                                      </span>
+                                    );
+                                  }
+                                  
+                                  // Match is full - show different message based on creator status
+                                  if (isCreator) {
+                                    return (
+                                      <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '10px',
+                                        fontWeight: 600,
+                                        color: '#10b981',
+                                        background: 'rgba(16, 185, 129, 0.15)',
+                                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                                        borderRadius: '12px',
+                                        padding: '3px 8px',
+                                        width: 'fit-content'
+                                      }}>
+                                        🟢 Opponent Found
+                                      </span>
+                                    );
+                                  } else {
+                                    return (
+                                      <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '10px',
+                                        fontWeight: 600,
+                                        color: '#10b981',
+                                        background: 'rgba(16, 185, 129, 0.15)',
+                                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                                        borderRadius: '12px',
+                                        padding: '3px 8px',
+                                        width: 'fit-content'
+                                      }}>
+                                        🟢 Challenge Accepted
+                                      </span>
+                                    );
+                                  }
+                                })()}
                               </div>
                               <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
                                 Prize Pool: £{(() => {

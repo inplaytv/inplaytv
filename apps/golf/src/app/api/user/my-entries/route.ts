@@ -31,12 +31,6 @@ export async function GET() {
       const competitionIds = Array.from(new Set(entries.map(e => e.competition_id).filter(Boolean)));
       const instanceIds = Array.from(new Set(entries.map(e => e.instance_id).filter(Boolean)));
       
-      console.log('🔍 Fetching data for:', { 
-        totalEntries: entries.length, 
-        competitionIds: competitionIds.length, 
-        instanceIds: instanceIds.length 
-      });
-      
       // Fetch entry picks
       const { data: allPicks } = await supabase
         .from('entry_picks')
@@ -92,23 +86,45 @@ export async function GET() {
             )
           `)
           .in('id', instanceIds)
-          .in('status', ['open', 'active']);  // Only show open or active matches, not 'full' or 'completed'
+          .in('status', ['pending', 'open', 'full', 'active', 'completed']);
 
         if (instancesError) {
           throw instancesError;
         }
         instances = data;
+
+        // For ONE 2 ONE instances, check if current user is the creator (first entry)
+        if (instances && instances.length > 0) {
+          const { data: allInstanceEntries, error: entriesError } = await supabase
+            .from('competition_entries')
+            .select('id, instance_id, user_id, created_at')
+            .in('instance_id', instanceIds)
+            .not('user_id', 'is', null)
+            .order('created_at', { ascending: true });
+
+          if (entriesError) {
+            console.error('Error fetching instance entries for creator check:', entriesError);
+          }
+
+          // Map of instance_id to creator's user_id
+          const creatorMap = new Map();
+          allInstanceEntries?.forEach(entry => {
+            if (!creatorMap.has(entry.instance_id) && entry.user_id) {
+              creatorMap.set(entry.instance_id, entry.user_id);
+            }
+          });
+
+          // Add is_creator flag to instances
+          instances = instances.map(inst => ({
+            ...inst,
+            creator_user_id: creatorMap.get(inst.id)
+          }));
+        }
       }
 
       // Filter out entries with deleted instances or competitions FIRST
       const validCompetitionIds = new Set(competitions?.map(c => c.id) || []);
       const validInstanceIds = new Set(instances?.map(i => i.id) || []);
-      
-      console.log('📝 Filtering entries:', {
-        totalEntries: entries.length,
-        validCompetitions: validCompetitionIds.size,
-        validInstances: validInstanceIds.size
-      });
       
       const beforeFilter = entries.length;
       entries = entries.filter(entry => {
@@ -122,12 +138,6 @@ export async function GET() {
         }
         // If neither, filter it out (orphaned entry)
         return false;
-      });
-      
-      console.log('✅ Filtered:', {
-        before: beforeFilter,
-        after: entries.length,
-        removed: beforeFilter - entries.length
       });
 
       // If no valid entries left, return empty array
@@ -154,6 +164,7 @@ export async function GET() {
           match_status: inst.status,
           current_players: inst.current_players,
           max_players: inst.max_players,
+          creator_user_id: inst.creator_user_id,
           competition_type_name: inst.competition_templates?.name || 'ONE 2 ONE'
         }))
       ];

@@ -1,0 +1,236 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import styles from './NavigationMenu.module.css';
+
+interface MenuItem {
+  label: string;
+  href: string;
+  icon: string;
+  description?: string;
+}
+
+interface MenuCategory {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+  gradient: string;
+  items: MenuItem[];
+}
+
+const menuCategories: MenuCategory[] = [
+  {
+    id: 'golf',
+    label: 'Golf',
+    icon: 'fa-golf-ball-tee',
+    color: '#10b981',
+    gradient: 'linear-gradient(135deg, #10b981, #059669)',
+    items: [
+      { 
+        label: 'Lobby', 
+        href: '/', 
+        icon: 'fa-home',
+        description: 'Main dashboard'
+      },
+      { 
+        label: 'Tournaments', 
+        href: '/tournaments', 
+        icon: 'fa-trophy',
+        description: 'Browse competitions'
+      },
+      { 
+        label: '1-2-1 Matchmaker', 
+        href: '/one-2-one/alfred-dunhill-championship', 
+        icon: 'fa-swords',
+        description: 'Head-to-head challenges'
+      },
+      { 
+        label: 'My Scorecards', 
+        href: '/entries', 
+        icon: 'fa-clipboard-list',
+        description: 'View your entries'
+      },
+      { 
+        label: 'Leaderboards', 
+        href: '/leaderboards', 
+        icon: 'fa-ranking-star',
+        description: 'Competition standings'
+      },
+      { 
+        label: 'Golfer Stats', 
+        href: '/golfers', 
+        icon: 'fa-chart-line',
+        description: 'Player performance'
+      },
+      { 
+        label: 'How To Play', 
+        href: '/how-to-play', 
+        icon: 'fa-book-open',
+        description: 'Rules & guides'
+      },
+    ]
+  },
+  {
+    id: 'football',
+    label: 'Football',
+    icon: 'fa-futbol',
+    color: '#3b82f6',
+    gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+    items: [
+      { 
+        label: 'Coming Soon', 
+        href: '#', 
+        icon: 'fa-clock',
+        description: 'Football competitions launching soon'
+      }
+    ]
+  },
+  {
+    id: 'horse-racing',
+    label: 'Horse Racing',
+    icon: 'fa-horse-head',
+    color: '#f59e0b',
+    gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+    items: [
+      { 
+        label: 'Coming Soon', 
+        href: '#', 
+        icon: 'fa-clock',
+        description: 'Horse racing competitions launching soon'
+      }
+    ]
+  }
+];
+
+export default function NavigationMenu() {
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setActiveCategory(null);
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  // Close menu on route change
+  useEffect(() => {
+    setIsOpen(false);
+    setActiveCategory(null);
+  }, [pathname]);
+
+  const handleCategoryClick = (categoryId: string) => {
+    if (activeCategory === categoryId) {
+      setIsOpen(false);
+      setActiveCategory(null);
+    } else {
+      setActiveCategory(categoryId);
+      setIsOpen(true);
+    }
+  };
+
+  const activeMenu = menuCategories.find(cat => cat.id === activeCategory);
+
+  return (
+    <div className={styles.navigationMenu} ref={menuRef}>
+      {/* Category Buttons */}
+      <div className={styles.categoryButtons}>
+        {menuCategories.map((category) => (
+          <button
+            key={category.id}
+            onClick={() => handleCategoryClick(category.id)}
+            className={`${styles.categoryButton} ${activeCategory === category.id ? styles.active : ''}`}
+            style={{
+              '--category-color': category.color,
+              '--category-gradient': category.gradient,
+            } as React.CSSProperties}
+          >
+            <i className={`fas ${category.icon}`}></i>
+            <span>{category.label}</span>
+            <i className={`fas fa-chevron-down ${styles.chevron} ${activeCategory === category.id ? styles.rotated : ''}`}></i>
+          </button>
+        ))}
+      </div>
+
+      {/* Dropdown Panel */}
+      {isOpen && activeMenu && (
+        <>
+          {/* Backdrop */}
+          <div className={styles.backdrop} onClick={() => {
+            setIsOpen(false);
+            setActiveCategory(null);
+          }} />
+          
+          {/* Dropdown Content */}
+          <div 
+            className={styles.dropdownPanel}
+            style={{
+              '--category-color': activeMenu.color,
+            } as React.CSSProperties}
+          >
+            {/* Header */}
+            <div 
+              className={styles.dropdownHeader}
+              style={{ background: activeMenu.gradient }}
+            >
+              <i className={`fas ${activeMenu.icon}`}></i>
+              <span>{activeMenu.label}</span>
+              <span className={styles.itemCount}>{activeMenu.items.length} {activeMenu.items.length === 1 ? 'item' : 'items'}</span>
+            </div>
+
+            {/* Menu Items */}
+            <div className={styles.menuItems}>
+              {activeMenu.items.map((item, index) => (
+                <Link
+                  key={index}
+                  href={item.href}
+                  className={`${styles.menuItem} ${pathname === item.href ? styles.activeItem : ''}`}
+                  onClick={(e) => {
+                    if (item.href === '#') {
+                      e.preventDefault();
+                    }
+                  }}
+                >
+                  <div className={styles.menuItemIcon}>
+                    <i className={`fas ${item.icon}`}></i>
+                  </div>
+                  <div className={styles.menuItemContent}>
+                    <div className={styles.menuItemLabel}>{item.label}</div>
+                    {item.description && (
+                      <div className={styles.menuItemDescription}>{item.description}</div>
+                    )}
+                  </div>
+                  {pathname === item.href && (
+                    <div className={styles.activeIndicator}>
+                      <i className="fas fa-circle"></i>
+                    </div>
+                  )}
+                </Link>
+              ))}
+            </div>
+
+            {/* Footer (optional) */}
+            <div className={styles.dropdownFooter}>
+              <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
+                {activeMenu.id === 'golf' ? 'All Golf Competitions' : `${activeMenu.label} - Launching Soon`}
+              </span>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

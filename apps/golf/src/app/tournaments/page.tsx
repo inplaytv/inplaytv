@@ -781,8 +781,11 @@ export default function TournamentsPage() {
               </div>
             )}
 
-            {/* ONE 2 ONE Hub Card - Hardcoded for Nedbank */}
-            <Link href={`/one-2-one/nedbank-golf-challenge-in-honour-of-gary-player`} className={styles.one2OneHubCard}>
+            {/* ONE 2 ONE Hub Card - Dynamic first tournament */}
+            <Link 
+              href={tournaments.length > 0 ? `/one-2-one/${tournaments[0].slug}` : '/one-2-one/nedbank-golf-challenge-in-honour-of-gary-player'} 
+              className={styles.one2OneHubCard}
+            >
               <div className={styles.hubCardHeader}>
                 <div className={styles.hubCardIcon}>
                   <i className="fas fa-swords"></i>

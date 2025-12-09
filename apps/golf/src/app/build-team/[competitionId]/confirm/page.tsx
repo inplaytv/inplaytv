@@ -440,61 +440,88 @@ export default function ConfirmLineupPage({ params }: { params: Promise<{ compet
 
           {/* Right Column: Advertising Containers */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Ad Container 1 */}
+            {/* Ad Container 1 - Premium Golf Gear */}
             <div style={{
-              padding: '24px',
               background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%)',
               border: '1px solid rgba(212, 175, 55, 0.18)',
               borderRadius: '16px',
               backdropFilter: 'blur(16px)',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
-              textAlign: 'center',
-              minHeight: '150px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <i className="fas fa-ad" style={{ fontSize: '32px', color: 'rgba(255,255,255,0.3)', marginBottom: '12px' }}></i>
-              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>Advertisement Space 1</p>
+              overflow: 'hidden',
+              cursor: 'pointer',
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 30px 60px -12px rgba(0, 0, 0, 0.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.4)';
+            }}
+            onClick={() => window.open('https://example.com/golf-gear', '_blank')}
+            >
+              <img 
+                src="/ads/ad-slot-1.svg" 
+                alt="Premium Golf Gear Advertisement" 
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+              />
             </div>
 
-            {/* Ad Container 2 */}
+            {/* Ad Container 2 - Book Tee Times */}
             <div style={{
-              padding: '24px',
               background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%)',
               border: '1px solid rgba(212, 175, 55, 0.18)',
               borderRadius: '16px',
               backdropFilter: 'blur(16px)',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
-              textAlign: 'center',
-              minHeight: '150px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <i className="fas fa-ad" style={{ fontSize: '32px', color: 'rgba(255,255,255,0.3)', marginBottom: '12px' }}></i>
-              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>Advertisement Space 2</p>
+              overflow: 'hidden',
+              cursor: 'pointer',
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 30px 60px -12px rgba(0, 0, 0, 0.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.4)';
+            }}
+            onClick={() => window.open('https://example.com/tee-times', '_blank')}
+            >
+              <img 
+                src="/ads/ad-slot-2.svg" 
+                alt="Book Tee Times Advertisement" 
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+              />
             </div>
 
-            {/* Ad Container 3 */}
+            {/* Ad Container 3 - Smart Golf Tech */}
             <div style={{
-              padding: '24px',
               background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%)',
               border: '1px solid rgba(212, 175, 55, 0.18)',
               borderRadius: '16px',
               backdropFilter: 'blur(16px)',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
-              textAlign: 'center',
-              minHeight: '150px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <i className="fas fa-ad" style={{ fontSize: '32px', color: 'rgba(255,255,255,0.3)', marginBottom: '12px' }}></i>
-              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>Advertisement Space 3</p>
+              overflow: 'hidden',
+              cursor: 'pointer',
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 30px 60px -12px rgba(0, 0, 0, 0.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.4)';
+            }}
+            onClick={() => window.open('https://example.com/golf-tech', '_blank')}
+            >
+              <img 
+                src="/ads/ad-slot-3.svg" 
+                alt="Smart Golf Technology Advertisement" 
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+              />
             </div>
           </div>
         </div>
