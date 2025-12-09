@@ -1,12 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient, isAdmin } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabaseAdminServer';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // Note: This API is called from an admin-protected page
-    // The page itself uses RequireAdmin, so we don't need to check again here
+    // Authenticate the user
+    const supabase = await createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    console.log('Wallet Users API - Auth check:', { 
+      hasUser: !!user, 
+      userId: user?.id,
+      authError: authError?.message 
+    });
+
+    if (authError || !user) {
+      console.error('Wallet Users API - Auth failed:', authError);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    const userIsAdmin = await isAdmin(user.id);
+    
+    console.log('Wallet Users API - Admin check:', { 
+      userId: user.id, 
+      isAdmin: userIsAdmin 
+    });
+
+    if (!userIsAdmin) {
+      console.error('Wallet Users API - User is not admin:', user.id);
+      return NextResponse.json({ error: 'Forbidden - Admin only' }, { status: 403 });
+    }
 
     // Get search query if provided
     const searchParams = request.nextUrl.searchParams;
