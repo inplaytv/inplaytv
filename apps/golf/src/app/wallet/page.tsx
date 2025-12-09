@@ -240,7 +240,8 @@ function WalletPageContent() {
           </div>
         </div>
 
-        {/* Top Up Section */}
+        {/* Top Up Section - DISABLED FOR TESTING */}
+        {false && (
         <div style={{
           background: 'rgba(255,255,255,0.05)',
           border: '1px solid rgba(255,255,255,0.1)',
@@ -344,6 +345,7 @@ function WalletPageContent() {
             {isTopUpLoading ? 'Processing...' : '💳 Top Up Wallet'}
           </button>
         </div>
+        )}
 
         {/* Withdraw Section */}
         <div style={{
