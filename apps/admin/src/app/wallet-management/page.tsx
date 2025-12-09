@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabaseClient';
+import { useState, useEffect } from 'react';
 import RequireAdmin from '@/components/RequireAdmin';
 
 interface User {
   id: string;
   email: string;
   username: string | null;
-  wallet_balance_cents: number;
+  full_name: string | null;
+  balance_cents: number;
+  created_at: string;
 }
 
 export default function WalletManagementPage() {
@@ -20,404 +21,391 @@ export default function WalletManagementPage() {
 }
 
 function WalletManagementContent() {
-  const supabase = createClient();
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Credit modal state
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [creditAmount, setCreditAmount] = useState('');
   const [creditReason, setCreditReason] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [crediting, setCrediting] = useState(false);
+  const [creditSuccess, setCreditSuccess] = useState(false);
 
+  // Load users on mount
   useEffect(() => {
     loadUsers();
   }, []);
 
+  // Filter users when search term changes
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredUsers(users);
+      return;
+    }
+
+    const term = searchTerm.toLowerCase();
+    const filtered = users.filter(user => 
+      user.email.toLowerCase().includes(term) ||
+      (user.username && user.username.toLowerCase().includes(term)) ||
+      (user.full_name && user.full_name.toLowerCase().includes(term))
+    );
+    setFilteredUsers(filtered);
+  }, [searchTerm, users]);
+
   async function loadUsers() {
     try {
-      // Get all users with their wallet balances
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          email,
-          username,
-          wallets!inner(balance_cents)
-        `)
-        .order('email', { ascending: true });
-
-      if (error) throw error;
-
-      // Transform the data
-      const usersData = data?.map((profile: any) => ({
-        id: profile.id,
-        email: profile.email,
-        username: profile.username,
-        wallet_balance_cents: profile.wallets?.balance_cents || 0,
-      })) || [];
-
-      setUsers(usersData);
-    } catch (error) {
-      console.error('Error loading users:', error);
-      setMessage({ type: 'error', text: 'Failed to load users' });
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/wallet/users');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setUsers(data.users || []);
+      setFilteredUsers(data.users || []);
+    } catch (err) {
+      console.error('Failed to load users:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load users');
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleCreditWallet() {
-    if (!selectedUser || !creditAmount) {
-      setMessage({ type: 'error', text: 'Please select a user and enter an amount' });
+  async function handleCredit() {
+    if (!selectedUser || !creditAmount) return;
+
+    const amountCents = Math.round(parseFloat(creditAmount) * 100);
+    
+    if (isNaN(amountCents) || amountCents < 100 || amountCents > 100000000) {
+      setError('Amount must be between $1 and $1,000,000');
       return;
     }
-
-    const amountPounds = parseFloat(creditAmount);
-    if (isNaN(amountPounds) || amountPounds < 1 || amountPounds > 10000) {
-      setMessage({ type: 'error', text: 'Please enter a valid amount between £1 and £10,000' });
-      return;
-    }
-
-    const amountCents = Math.round(amountPounds * 100);
-
-    setIsProcessing(true);
-    setMessage(null);
 
     try {
+      setCrediting(true);
+      setError(null);
+      
       const response = await fetch('/api/wallet/credit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: selectedUser.id,
           amount_cents: amountCents,
-          reason: creditReason || 'admin_credit',
+          reason: creditReason || undefined,
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to credit wallet');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
-      setMessage({ type: 'success', text: data.message });
+      const result = await response.json();
       
-      // Update the user's balance in the list
+      // Update the user in the list
       setUsers(users.map(u => 
         u.id === selectedUser.id 
-          ? { ...u, wallet_balance_cents: data.new_balance_cents }
+          ? { ...u, balance_cents: result.new_balance_cents }
           : u
       ));
-
-      // Update selected user
-      setSelectedUser({
-        ...selectedUser,
-        wallet_balance_cents: data.new_balance_cents,
-      });
-
-      // Reset form
-      setCreditAmount('');
-      setCreditReason('');
-
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to credit wallet' });
+      
+      // Show success and reset form
+      setCreditSuccess(true);
+      setTimeout(() => {
+        setSelectedUser(null);
+        setCreditAmount('');
+        setCreditReason('');
+        setCreditSuccess(false);
+      }, 2000);
+      
+    } catch (err) {
+      console.error('Failed to credit wallet:', err);
+      setError(err instanceof Error ? err.message : 'Failed to credit wallet');
     } finally {
-      setIsProcessing(false);
+      setCrediting(false);
     }
   }
 
-  const filteredUsers = users.filter(user =>
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  function formatCents(cents: number): string {
+    return `$${(cents / 100).toFixed(2)}`;
+  }
 
   if (loading) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
-        Loading users...
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+        <div style={{ color: 'rgba(255,255,255,0.6)' }}>Loading users...</div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1 style={{ fontSize: '1.875rem', fontWeight: 700, marginBottom: '1.5rem', color: '#fff' }}>
-        Wallet Management
-      </h1>
+    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontWeight: 700 }}>Wallet Management</h1>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
+          Credit user wallets and view balances
+        </p>
+      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-        {/* Users List */}
-        <div>
-          <div style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '12px',
-            padding: '1.5rem',
-          }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff', marginBottom: '1rem' }}>
-              Select User
-            </h2>
-
-            {/* Search */}
-            <input
-              type="text"
-              placeholder="Search by email or username..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '8px',
-                color: '#fff',
-                fontSize: '0.875rem',
-                marginBottom: '1rem',
-              }}
-            />
-
-            {/* Users List */}
-            <div style={{
-              maxHeight: '500px',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
-            }}>
-              {filteredUsers.map((user) => (
-                <div
-                  key={user.id}
-                  onClick={() => setSelectedUser(user)}
-                  style={{
-                    padding: '1rem',
-                    background: selectedUser?.id === user.id 
-                      ? 'rgba(102, 126, 234, 0.2)' 
-                      : 'rgba(255,255,255,0.03)',
-                    border: selectedUser?.id === user.id
-                      ? '1px solid rgba(102, 126, 234, 0.5)'
-                      : '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (selectedUser?.id !== user.id) {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedUser?.id !== user.id) {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-                    }
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ color: '#fff', fontWeight: 600, marginBottom: '0.25rem' }}>
-                        {user.username || user.email}
-                      </div>
-                      {user.username && (
-                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>
-                          {user.email}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{
-                      color: '#10b981',
-                      fontWeight: 700,
-                      fontSize: '1rem',
-                    }}>
-                      £{(user.wallet_balance_cents / 100).toFixed(2)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {filteredUsers.length === 0 && (
-                <div style={{ 
-                  textAlign: 'center', 
-                  padding: '2rem', 
-                  color: 'rgba(255,255,255,0.4)' 
-                }}>
-                  No users found
-                </div>
-              )}
-            </div>
-          </div>
+      {error && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: '10px',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          color: '#ef4444'
+        }}>
+          {error}
         </div>
+      )}
 
-        {/* Credit Form */}
-        <div>
-          <div style={{
+      {/* Search */}
+      <div style={{
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '10px',
+        padding: '1rem',
+        marginBottom: '1.5rem',
+      }}>
+        <input
+          type="text"
+          placeholder="Search by email, username, or name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '0.7rem 1rem',
             background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '12px',
-            padding: '1.5rem',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: '6px',
+            fontSize: '0.9rem',
+            color: '#fff',
+            outline: 'none',
+          }}
+        />
+      </div>
+
+      {/* Users List */}
+      <div style={{ display: 'grid', gap: '1rem' }}>
+        {filteredUsers.length === 0 ? (
+          <div style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '10px',
+            padding: '2rem',
+            textAlign: 'center',
+            color: 'rgba(255,255,255,0.6)'
           }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff', marginBottom: '1rem' }}>
-              Credit Wallet
-            </h2>
-
-            {selectedUser ? (
-              <>
-                {/* Selected User Info */}
-                <div style={{
-                  background: 'rgba(102, 126, 234, 0.1)',
-                  border: '1px solid rgba(102, 126, 234, 0.3)',
-                  borderRadius: '8px',
-                  padding: '1rem',
-                  marginBottom: '1.5rem',
-                }}>
-                  <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>
-                    Selected User
-                  </div>
-                  <div style={{ color: '#fff', fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>
-                    {selectedUser.username || selectedUser.email}
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem' }}>
-                    Current Balance: <span style={{ color: '#10b981', fontWeight: 600 }}>
-                      £{(selectedUser.wallet_balance_cents / 100).toFixed(2)}
+            {searchTerm ? 'No users found matching your search' : 'No users found'}
+          </div>
+        ) : (
+          filteredUsers.map((user) => (
+            <div key={user.id} style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '10px',
+              padding: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '2rem',
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                  <p style={{ fontWeight: 600, color: '#fff' }}>{user.email}</p>
+                  {user.username && (
+                    <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>
+                      @{user.username}
                     </span>
-                  </div>
+                  )}
                 </div>
+                {user.full_name && (
+                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.75rem' }}>
+                    {user.full_name}
+                  </p>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Balance:</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '1.1rem', fontWeight: 600, color: '#10b981' }}>
+                    {formatCents(user.balance_cents)}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedUser(user)}
+                disabled={selectedUser?.id === user.id}
+                style={{
+                  padding: '0.7rem 1.5rem',
+                  background: selectedUser?.id === user.id ? 'rgba(255,255,255,0.1)' : 'rgba(16, 185, 129, 0.2)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  borderRadius: '6px',
+                  color: '#10b981',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: selectedUser?.id === user.id ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseOver={(e) => {
+                  if (!selectedUser || selectedUser.id !== user.id) {
+                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.3)';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!selectedUser || selectedUser.id !== user.id) {
+                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.2)';
+                  }
+                }}
+              >
+                Credit Wallet
+              </button>
+            </div>
+          ))
+        )}
+      </div>
 
-                {/* Amount Input */}
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{
-                    display: 'block',
-                    color: 'rgba(255,255,255,0.6)',
-                    fontSize: '0.875rem',
-                    marginBottom: '0.5rem',
-                  }}>
-                    Amount (£)
+      {/* Credit Modal */}
+      {selectedUser && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem',
+          zIndex: 50,
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: '500px',
+            background: 'rgba(20, 20, 30, 0.98)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: '12px',
+            padding: '2rem',
+            backdropFilter: 'blur(10px)',
+          }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>Credit Wallet</h2>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+              Add funds to {selectedUser.email}'s wallet
+            </p>
+            
+            {creditSuccess ? (
+              <div style={{ textAlign: 'center', padding: '3rem 0' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✓</div>
+                <p style={{ fontSize: '1.1rem', fontWeight: 600, color: '#10b981' }}>
+                  Wallet credited successfully!
+                </p>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600 }}>
+                    Amount (USD)
                   </label>
                   <input
                     type="number"
-                    min="1"
-                    max="10000"
+                    placeholder="0.00"
                     step="0.01"
+                    min="1"
+                    max="1000000"
                     value={creditAmount}
                     onChange={(e) => setCreditAmount(e.target.value)}
-                    placeholder="Enter amount"
+                    disabled={crediting}
                     style={{
                       width: '100%',
-                      padding: '0.75rem',
-                      background: 'rgba(0,0,0,0.3)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: '8px',
+                      padding: '0.7rem 1rem',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '6px',
+                      fontSize: '0.9rem',
                       color: '#fff',
-                      fontSize: '1rem',
+                      outline: 'none',
                     }}
                   />
+                  <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.5rem' }}>
+                    Minimum: $1.00, Maximum: $1,000,000.00
+                  </p>
                 </div>
 
-                {/* Reason Input */}
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{
-                    display: 'block',
-                    color: 'rgba(255,255,255,0.6)',
-                    fontSize: '0.875rem',
-                    marginBottom: '0.5rem',
-                  }}>
-                    Reason (optional)
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600 }}>
+                    Reason (Optional)
                   </label>
-                  <input
-                    type="text"
+                  <textarea
+                    placeholder="e.g., Promotional credit, Refund, etc."
                     value={creditReason}
                     onChange={(e) => setCreditReason(e.target.value)}
-                    placeholder="e.g., Testing, Promotion, Compensation"
+                    disabled={crediting}
+                    rows={3}
                     style={{
                       width: '100%',
-                      padding: '0.75rem',
-                      background: 'rgba(0,0,0,0.3)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: '8px',
+                      padding: '0.7rem 1rem',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '6px',
+                      fontSize: '0.9rem',
                       color: '#fff',
-                      fontSize: '0.875rem',
+                      outline: 'none',
+                      resize: 'vertical',
                     }}
                   />
                 </div>
 
-                {/* Quick Amount Buttons */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-                    Quick amounts
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {[5, 10, 20, 50, 100].map((amount) => (
-                      <button
-                        key={amount}
-                        onClick={() => setCreditAmount(amount.toString())}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          background: 'rgba(255,255,255,0.05)',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          borderRadius: '6px',
-                          color: '#fff',
-                          fontSize: '0.875rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                      >
-                        £{amount}
-                      </button>
-                    ))}
-                  </div>
+                <div style={{ display: 'flex', gap: '1rem', paddingTop: '1rem' }}>
+                  <button
+                    onClick={() => {
+                      setSelectedUser(null);
+                      setCreditAmount('');
+                      setCreditReason('');
+                      setError(null);
+                    }}
+                    disabled={crediting}
+                    style={{
+                      flex: 1,
+                      padding: '0.7rem 1.5rem',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '6px',
+                      color: '#fff',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      cursor: crediting ? 'not-allowed' : 'pointer',
+                      opacity: crediting ? 0.5 : 1,
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCredit}
+                    disabled={crediting || !creditAmount}
+                    style={{
+                      flex: 1,
+                      padding: '0.7rem 1.5rem',
+                      background: (!crediting && creditAmount) ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      borderRadius: '6px',
+                      color: (!crediting && creditAmount) ? '#10b981' : 'rgba(255,255,255,0.3)',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      cursor: (crediting || !creditAmount) ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {crediting ? 'Processing...' : 'Confirm Credit'}
+                  </button>
                 </div>
-
-                {/* Submit Button */}
-                <button
-                  onClick={handleCreditWallet}
-                  disabled={isProcessing || !creditAmount}
-                  style={{
-                    width: '100%',
-                    padding: '1rem',
-                    background: isProcessing || !creditAmount
-                      ? 'rgba(102, 126, 234, 0.3)'
-                      : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    cursor: isProcessing || !creditAmount ? 'not-allowed' : 'pointer',
-                    opacity: isProcessing || !creditAmount ? 0.6 : 1,
-                  }}
-                >
-                  {isProcessing ? 'Processing...' : '✅ Credit Wallet'}
-                </button>
-
-                {/* Message */}
-                {message && (
-                  <div style={{
-                    marginTop: '1rem',
-                    padding: '1rem',
-                    background: message.type === 'success'
-                      ? 'rgba(16, 185, 129, 0.1)'
-                      : 'rgba(239, 68, 68, 0.1)',
-                    border: `1px solid ${message.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-                    borderRadius: '8px',
-                    color: message.type === 'success' ? '#10b981' : '#ef4444',
-                    fontSize: '0.875rem',
-                  }}>
-                    {message.text}
-                  </div>
-                )}
               </>
-            ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '3rem 1rem',
-                color: 'rgba(255,255,255,0.4)',
-              }}>
-                👈 Select a user to credit their wallet
-              </div>
             )}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
