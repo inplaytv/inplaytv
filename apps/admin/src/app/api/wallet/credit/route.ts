@@ -55,15 +55,22 @@ export async function POST(request: NextRequest) {
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Verify target user exists
+    console.log('Credit API - Looking up user:', user_id);
+    
     const { data: targetUser, error: targetUserError } = await supabaseAdmin
       .from('profiles')
-      .select('id, email, username')
+      .select('id')
       .eq('id', user_id)
       .single();
 
+    console.log('Credit API - User lookup result:', { 
+      found: !!targetUser, 
+      error: targetUserError?.message 
+    });
+
     if (targetUserError || !targetUser) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'User not found', details: targetUserError?.message },
         { status: 404 }
       );
     }
