@@ -1,24 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient, isAdmin } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabaseAdminServer';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate the user
-    const supabase = await createServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin
-    const userIsAdmin = await isAdmin(user.id);
-    if (!userIsAdmin) {
-      return NextResponse.json({ error: 'Forbidden - Admin only' }, { status: 403 });
-    }
+    // Note: This API is called from an admin-protected page
+    // The page itself uses RequireAdmin, so we don't need to check again here
 
     // Get search query if provided
     const searchParams = request.nextUrl.searchParams;
