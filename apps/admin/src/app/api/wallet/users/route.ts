@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/auth';
+import { createServerClient, isAdmin } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabaseAdminServer';
 
 export const dynamic = 'force-dynamic';
@@ -15,13 +15,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user is admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_admin) {
+    const userIsAdmin = await isAdmin(user.id);
+    if (!userIsAdmin) {
       return NextResponse.json({ error: 'Forbidden - Admin only' }, { status: 403 });
     }
 
