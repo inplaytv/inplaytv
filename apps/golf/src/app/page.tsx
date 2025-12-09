@@ -148,7 +148,7 @@ export default function LobbyPage() {
   return (
     <RequireAuth>
       <div className={styles.container}>
-        {/* Hero Section */}
+        {/* Hero Section with Stats */}
         <div className={styles.hero}>
           <div className={styles.heroContent}>
             <div className={styles.welcomeSection}>
@@ -158,115 +158,94 @@ export default function LobbyPage() {
               <p className={styles.welcomeSubtitle}>Ready to dominate the greens?</p>
             </div>
             
-            <div className={styles.balanceCard}>
-              <div className={styles.balanceIcon}>
-                <i className="fas fa-wallet"></i>
+            {/* Cards container on the right */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.546rem', width: '60%', flexShrink: 0 }}>
+              {/* Stats Grid inside Hero */}
+              <div className={styles.statsGrid}>
+              <div className={styles.statCard}>
+                <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                  <i className="fas fa-trophy"></i>
+                </div>
+                <div className={styles.statContent}>
+                  <div className={styles.statValue}>{userStats.activeEntries}</div>
+                  <div className={styles.statLabel}>Active Entries</div>
+                </div>
               </div>
-              <div className={styles.balanceContent}>
-                <div className={styles.balanceLabel}>Your Balance</div>
-                <div className={styles.balanceAmount}>{formatCurrency(balance)}</div>
+
+              <div className={styles.statCard}>
+                <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}>
+                  <i className="fas fa-clipboard-list"></i>
+                </div>
+                <div className={styles.statContent}>
+                  <div className={styles.statValue}>{userStats.totalEntries}</div>
+                  <div className={styles.statLabel}>Total Entries</div>
+                </div>
               </div>
-              <Link href="/wallet" className={styles.topUpButton}>
-                <i className="fas fa-plus"></i>
-                <span>Top Up</span>
+
+              <div className={styles.statCard}>
+                <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                  <i className="fas fa-coins"></i>
+                </div>
+                <div className={styles.statContent}>
+                  <div className={styles.statValue}>{formatCurrency(userStats.totalWinnings)}</div>
+                  <div className={styles.statLabel}>Total Winnings</div>
+                </div>
+              </div>
+
+              <div className={styles.statCard}>
+                <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}>
+                  <i className="fas fa-percentage"></i>
+                </div>
+                <div className={styles.statContent}>
+                  <div className={styles.statValue}>{userStats.winRate}%</div>
+                  <div className={styles.statLabel}>Win Rate</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions inside Hero */}
+            <div className={styles.actionGrid}>
+              <Link href="/tournaments" className={styles.actionCard}>
+                <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                  <i className="fas fa-trophy"></i>
+                </div>
+                <div className={styles.actionContent}>
+                  <h3>Browse Tournaments</h3>
+                  <p>Enter competitions & win prizes</p>
+                </div>
+              </Link>
+
+              <Link href="/one-2-one/alfred-dunhill-championship" className={styles.actionCard}>
+                <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                  <i className="fas fa-swords"></i>
+                </div>
+                <div className={styles.actionContent}>
+                  <h3>1-2-1 Matchmaker</h3>
+                  <p>Challenge players head-to-head</p>
+                </div>
+              </Link>
+
+              <Link href="/entries" className={styles.actionCard}>
+                <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}>
+                  <i className="fas fa-clipboard-list"></i>
+                </div>
+                <div className={styles.actionContent}>
+                  <h3>My Scorecards</h3>
+                  <p>Track your active entries</p>
+                </div>
+              </Link>
+
+              <Link href="/leaderboards" className={styles.actionCard}>
+                <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}>
+                  <i className="fas fa-ranking-star"></i>
+                </div>
+                <div className={styles.actionContent}>
+                  <h3>Leaderboards</h3>
+                  <p>Check competition standings</p>
+                </div>
               </Link>
             </div>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className={styles.statsGrid}>
-          <div className={styles.statCard}>
-            <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
-              <i className="fas fa-trophy"></i>
             </div>
-            <div className={styles.statContent}>
-              <div className={styles.statValue}>{userStats.activeEntries}</div>
-              <div className={styles.statLabel}>Active Entries</div>
-            </div>
-          </div>
-
-          <div className={styles.statCard}>
-            <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}>
-              <i className="fas fa-clipboard-list"></i>
-            </div>
-            <div className={styles.statContent}>
-              <div className={styles.statValue}>{userStats.totalEntries}</div>
-              <div className={styles.statLabel}>Total Entries</div>
-            </div>
-          </div>
-
-          <div className={styles.statCard}>
-            <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
-              <i className="fas fa-coins"></i>
-            </div>
-            <div className={styles.statContent}>
-              <div className={styles.statValue}>{formatCurrency(userStats.totalWinnings)}</div>
-              <div className={styles.statLabel}>Total Winnings</div>
-            </div>
-          </div>
-
-          <div className={styles.statCard}>
-            <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}>
-              <i className="fas fa-percentage"></i>
-            </div>
-            <div className={styles.statContent}>
-              <div className={styles.statValue}>{userStats.winRate}%</div>
-              <div className={styles.statLabel}>Win Rate</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className={styles.quickActions}>
-          <h2 className={styles.sectionTitle}>
-            <i className="fas fa-bolt"></i>
-            Quick Actions
-          </h2>
-          <div className={styles.actionGrid}>
-            <Link href="/tournaments" className={styles.actionCard}>
-              <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
-                <i className="fas fa-trophy"></i>
-              </div>
-              <div className={styles.actionContent}>
-                <h3>Browse Tournaments</h3>
-                <p>Enter competitions & win prizes</p>
-              </div>
-              <i className="fas fa-arrow-right"></i>
-            </Link>
-
-            <Link href="/one-2-one/alfred-dunhill-championship" className={styles.actionCard}>
-              <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
-                <i className="fas fa-swords"></i>
-              </div>
-              <div className={styles.actionContent}>
-                <h3>1-2-1 Matchmaker</h3>
-                <p>Challenge players head-to-head</p>
-              </div>
-              <i className="fas fa-arrow-right"></i>
-            </Link>
-
-            <Link href="/entries" className={styles.actionCard}>
-              <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}>
-                <i className="fas fa-clipboard-list"></i>
-              </div>
-              <div className={styles.actionContent}>
-                <h3>My Scorecards</h3>
-                <p>Track your active entries</p>
-              </div>
-              <i className="fas fa-arrow-right"></i>
-            </Link>
-
-            <Link href="/leaderboards" className={styles.actionCard}>
-              <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}>
-                <i className="fas fa-ranking-star"></i>
-              </div>
-              <div className={styles.actionContent}>
-                <h3>Leaderboards</h3>
-                <p>Check competition standings</p>
-              </div>
-              <i className="fas fa-arrow-right"></i>
-            </Link>
           </div>
         </div>
 

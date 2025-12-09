@@ -794,7 +794,8 @@ export default function TournamentsPage() {
                   <h3>ONE 2 ONE MATCHMAKING</h3>
                   <p>Head-to-head battles • Winner takes all • Auto-matched opponents</p>
                 </div>
-                <div className={styles.hubCardArrow}>
+                <div className={styles.hubCardCta}>
+                  <span>View All ONE 2 ONE Competitions</span>
                   <i className="fas fa-arrow-right"></i>
                 </div>
               </div>
@@ -827,11 +828,6 @@ export default function TournamentsPage() {
                     <span className={styles.hubStatValue}>If no opponent joins, you'll get a full refund automatically</span>
                   </div>
                 </div>
-              </div>
-
-              <div className={styles.hubCardCta}>
-                <span>View All ONE 2 ONE Competitions</span>
-                <i className="fas fa-arrow-right"></i>
               </div>
             </Link>
 

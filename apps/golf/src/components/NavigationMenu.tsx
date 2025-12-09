@@ -36,6 +36,12 @@ const menuCategories: MenuCategory[] = [
         description: 'Main dashboard'
       },
       { 
+        label: 'My Scorecards', 
+        href: '/entries', 
+        icon: 'fa-clipboard-list',
+        description: 'View your entries'
+      },
+      { 
         label: 'Tournaments', 
         href: '/tournaments', 
         icon: 'fa-trophy',
@@ -46,12 +52,6 @@ const menuCategories: MenuCategory[] = [
         href: '/one-2-one/alfred-dunhill-championship', 
         icon: 'fa-swords',
         description: 'Head-to-head challenges'
-      },
-      { 
-        label: 'My Scorecards', 
-        href: '/entries', 
-        icon: 'fa-clipboard-list',
-        description: 'View your entries'
       },
       { 
         label: 'Leaderboards', 
