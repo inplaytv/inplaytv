@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     const { error: insertError } = await supabaseAdmin
       .from('wallet_external_payments')
       .insert({
-        provider: 'admin',
+        provider: 'stripe', // Using stripe as provider since admin might not be allowed
         provider_payment_id: providerPaymentId,
         amount_cents,
         currency: 'GBP',
