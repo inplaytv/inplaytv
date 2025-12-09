@@ -141,24 +141,32 @@ export default function One2OnePage() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleJoinCompetition = async (templateOrInstanceId: string, entryFee: number) => {
-    if (!tournament) return;
+  const handleJoinCompetition = async (templateOrInstanceId: string, entryFee: number, tournamentIdFromChallenge?: string) => {
+    // For accepting challenges, get tournament ID from the challenge
+    // For creating challenges, get it from the selected tournament
+    const tournamentId = tournamentIdFromChallenge || tournament?.id;
     
-    console.log('🚀 Starting challenge creation - setting joiningTemplate to:', templateOrInstanceId);
+    if (!tournamentId) {
+      console.error('❌ No tournament selected');
+      setError('Please select a tournament first');
+      return;
+    }
+    
+    console.log('🚀 Starting challenge - setting joiningTemplate to:', templateOrInstanceId);
     setJoiningTemplate(templateOrInstanceId);
     console.log('🚀 joiningTemplate set, button should now show "Submitting Challenge..."');
     
     try {
       // Call API to find or create an instance
       // Can accept either a template ID (create new) or instance ID (join existing)
-      console.log('🔍 Calling join API with:', { id: templateOrInstanceId, tournamentId: tournament.id, entryFee });
+      console.log('🔍 Calling join API with:', { id: templateOrInstanceId, tournamentId, entryFee });
       
       const response = await fetch('/api/one-2-one/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           templateId: templateOrInstanceId, // Works for both template and instance IDs
-          tournamentId: tournament.id,
+          tournamentId: tournamentId,
           entryFeePennies: entryFee
         })
       });
@@ -1356,7 +1364,7 @@ export default function One2OnePage() {
                   {!isMobile && (
                   <div style={{ textAlign: 'right' }}>
                     <button
-                      onClick={() => handleJoinCompetition(challenge.instanceId, challenge.entryFeePennies)}
+                      onClick={() => handleJoinCompetition(challenge.instanceId, challenge.entryFeePennies, challenge.tournamentId)}
                       disabled={joiningTemplate === challenge.instanceId}
                       style={{
                         padding: '0.625rem 1.25rem',
@@ -1405,7 +1413,7 @@ export default function One2OnePage() {
                   {isMobile && (
                     <div style={{ marginTop: '0.75rem' }}>
                       <button
-                        onClick={() => handleJoinCompetition(challenge.instanceId, challenge.entryFeePennies)}
+                        onClick={() => handleJoinCompetition(challenge.instanceId, challenge.entryFeePennies, challenge.tournamentId)}
                         disabled={joiningTemplate === challenge.instanceId}
                         style={{
                           width: '100%',

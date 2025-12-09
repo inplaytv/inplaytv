@@ -26,7 +26,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if templateId is actually an instance ID (user accepting existing challenge)
-    const { data: existingInstance, error: instanceCheckError } = await supabase
+    // Use service role to bypass RLS for checking instance availability
+    const { createClient } = require('@supabase/supabase-js');
+    const serviceSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: existingInstance, error: instanceCheckError } = await serviceSupabase
       .from('competition_instances')
       .select('id, template_id, tournament_id, current_players, max_players, status')
       .eq('id', templateId)
@@ -38,8 +45,8 @@ export async function POST(request: NextRequest) {
     } else if (existingInstance) {
       console.log('[Join] 🔍 User accepting existing challenge:', existingInstance.id);
       
-      // CRITICAL: Check if user already has an entry for THIS instance
-      const { data: existingUserEntry } = await supabase
+      // CRITICAL: Check if user already has an entry for THIS instance using service role
+      const { data: existingUserEntry } = await serviceSupabase
         .from('competition_entries')
         .select('id')
         .eq('instance_id', existingInstance.id)
@@ -54,8 +61,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // User is accepting an existing challenge - verify they're not the creator
-      const { data: creatorEntry } = await supabase
+      // User is accepting an existing challenge - verify they're not the creator using service role
+      const { data: creatorEntry } = await serviceSupabase
         .from('competition_entries')
         .select('user_id')
         .eq('instance_id', existingInstance.id)
