@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@/lib/auth';
+import { createServerClient, isAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,14 +16,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized - Please log in' }, { status: 401 });
     }
 
-    // Verify user is admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_admin) {
+    // Verify user is admin using RPC function
+    const userIsAdmin = await isAdmin(user.id);
+    
+    if (!userIsAdmin) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
