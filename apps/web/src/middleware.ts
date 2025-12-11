@@ -60,6 +60,11 @@ async function getMaintenanceMode(): Promise<string> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
+  // Skip middleware entirely in development (localhost)
+  if (process.env.NODE_ENV === 'development') {
+    return NextResponse.next();
+  }
+  
   // Always allow static assets and Next.js internals
   if (
     pathname.startsWith('/_next') ||
