@@ -40,6 +40,8 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const { maintenance_mode } = body;
+    
+    console.log('[API Settings] Received request to update mode:', maintenance_mode);
 
     if (!['live', 'coming-soon', 'maintenance'].includes(maintenance_mode)) {
       return NextResponse.json(
@@ -51,7 +53,7 @@ export async function PUT(request: NextRequest) {
     const adminClient = createAdminClient();
 
     // Update or insert setting
-    const { error } = await adminClient
+    const { data, error } = await adminClient
       .from('site_settings')
       .upsert({
         setting_key: 'maintenance_mode',
@@ -59,16 +61,24 @@ export async function PUT(request: NextRequest) {
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'setting_key'
-      });
+      })
+      .select();
 
-    if (error) throw error;
+    console.log('[API Settings] Database response:', { data, error });
+
+    if (error) {
+      console.error('[API Settings] Database error:', error);
+      throw error;
+    }
+
+    console.log('[API Settings] Successfully updated to:', maintenance_mode);
 
     return NextResponse.json({
       success: true,
       maintenance_mode,
     });
   } catch (error: any) {
-    console.error('Error updating site settings:', error);
+    console.error('[API Settings] Error updating site settings:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to update settings' },
       { status: 500 }

@@ -32,6 +32,7 @@ export default function SiteSettingsPage() {
 
   const handleSave = async (newMode: MaintenanceMode) => {
     try {
+      console.log('[Site Settings] Saving mode:', newMode);
       setSaving(true);
       setMessage(null);
 
@@ -41,15 +42,20 @@ export default function SiteSettingsPage() {
         body: JSON.stringify({ maintenance_mode: newMode }),
       });
 
+      console.log('[Site Settings] Response status:', response.status);
+      
+      const result = await response.json();
+      console.log('[Site Settings] Response data:', result);
+
       if (!response.ok) {
-        const result = await response.json();
         throw new Error(result.error || 'Failed to update settings');
       }
 
       setMode(newMode);
       setMessage({ type: 'success', text: `Site mode changed to: ${newMode.toUpperCase()}` });
+      console.log('[Site Settings] Mode updated successfully');
     } catch (err: any) {
-      console.error('Error updating settings:', err);
+      console.error('[Site Settings] Error updating settings:', err);
       setMessage({ type: 'error', text: err.message });
     } finally {
       setSaving(false);
