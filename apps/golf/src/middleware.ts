@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Cache for maintenance mode (reduces database queries)
+let maintenanceModeCache: { mode: string; timestamp: number } | null = null;
+const CACHE_TTL = 30000; // 30 seconds
+
 // Check if user is admin
 async function isAdmin(userId: string): Promise<boolean> {
   try {
@@ -22,8 +26,14 @@ async function isAdmin(userId: string): Promise<boolean> {
   }
 }
 
-// Get current maintenance mode from database
+// Get current maintenance mode from database (with caching)
 async function getMaintenanceMode(): Promise<string> {
+  // Check cache first
+  const now = Date.now();
+  if (maintenanceModeCache && (now - maintenanceModeCache.timestamp) < CACHE_TTL) {
+    return maintenanceModeCache.mode;
+  }
+
   try {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,11 +46,12 @@ async function getMaintenanceMode(): Promise<string> {
       .eq('setting_key', 'maintenance_mode')
       .single();
 
-    if (error || !data) {
-      return 'live';
-    }
-
-    return data.setting_value || 'live';
+    const mode = (error || !data) ? 'live' : (data.setting_value || 'live');
+    
+    // Update cache
+    maintenanceModeCache = { mode, timestamp: now };
+    
+    return mode;
   } catch {
     return 'live';
   }
