@@ -4,11 +4,16 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Allow homepage and static assets
+  // Allow all auth routes, API routes, and static assets
   if (
     pathname === '/' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/verify-email') ||
+    pathname.startsWith('/verified') ||
     pathname.startsWith('/images') ||
     pathname.startsWith('/fonts') ||
     pathname === '/favicon.ico'
@@ -16,11 +21,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // Redirect all other routes to homepage with coming soon message
-  const url = request.nextUrl.clone();
-  url.pathname = '/';
-  url.searchParams.set('message', 'coming-soon');
-  return NextResponse.redirect(url);
+  // For now, allow all other routes through
+  // Maintenance mode control via Admin → Settings → Site
+  return NextResponse.next();
 }
 
 export const config = {
@@ -34,3 +37,4 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
+

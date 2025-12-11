@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     
     const { data: targetUser, error: targetUserError } = await supabaseAdmin
       .from('profiles')
-      .select('id')
+      .select('id, display_name, username')
       .eq('id', user_id)
       .single();
 
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: `Successfully credited £${(amount_cents / 100).toFixed(2)} to ${targetUser.username || targetUser.email}`,
+      message: `Successfully credited £${(amount_cents / 100).toFixed(2)} to ${targetUser.display_name || targetUser.username || user_id}`,
       new_balance_cents: walletData?.balance_cents || 0,
       credited_by: user.email,
     });

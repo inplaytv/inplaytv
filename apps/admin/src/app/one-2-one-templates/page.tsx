@@ -41,17 +41,13 @@ export default function One2OneTemplatesPage() {
 
   const fetchTemplates = async () => {
     try {
-      console.log('Fetching templates from /api/one-2-one-templates...');
       const res = await fetch('/api/one-2-one-templates');
-      console.log('Response status:', res.status);
       
       if (res.ok) {
         const data = await res.json();
-        console.log('Templates received:', data);
         setTemplates(data);
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('API error:', res.status, errorData);
         setError(`Failed to load templates: ${errorData.error || res.statusText}`);
       }
     } catch (err) {
@@ -336,15 +332,20 @@ export default function One2OneTemplatesPage() {
                   step="0.01"
                   value={formData.entry_fee_pounds}
                   onChange={(e) => setFormData({ ...formData, entry_fee_pounds: e.target.value })}
+                  disabled={true}
                   style={{
                     width: '100%',
                     padding: '0.625rem',
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.2)',
+                    background: 'rgba(0,0,0,0.2)',
+                    border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: '4px',
-                    color: '#fff',
+                    color: 'rgba(255,255,255,0.4)',
+                    cursor: 'not-allowed',
                   }}
                 />
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem', marginBottom: 0 }}>
+                  ℹ️ Users set stakes using the slider in challenge popup
+                </p>
               </div>
 
               <div>

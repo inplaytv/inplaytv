@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabaseServer';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(
   request: Request,
@@ -8,11 +9,16 @@ export async function GET(
   try {
     const { competitionId } = await params;
     const supabase = await createServerClient();
+    
+    // Use admin client for querying profiles (bypasses RLS for public leaderboard data)
+    const adminClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
+    );
 
     // Get current user (optional - leaderboard can be public)
     const { data: { user } } = await supabase.auth.getUser();
-    console.log('🔐 User requesting leaderboard:', user?.email || 'Anonymous');
-    console.log('🎯 Fetching leaderboard for competition:', competitionId);
 
     // Fetch competition details with tournament info
     const { data: competition, error: compError } = await supabase
@@ -46,8 +52,6 @@ export async function GET(
       return NextResponse.json({ error: 'Competition not found' }, { status: 404 });
     }
 
-    console.log('✅ Competition found:', competition.competition_types);
-
     // Fetch all entries for this competition with user details
     const { data: entries, error: entriesError } = await supabase
       .from('competition_entries')
@@ -69,26 +73,14 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch entries' }, { status: 500 });
     }
 
-    console.log(`📊 Found ${entries?.length || 0} entries for this competition`);
-    if (entries && entries.length > 0) {
-      console.log('Sample entry:', entries[0]);
-    }
-
     // Fetch all picks for these entries
     const entryIds = entries?.map(e => e.id) || [];
-    console.log('🔍 Fetching picks for entry IDs:', entryIds);
     
     // First get all picks
     const { data: allPicks, error: picksError } = await supabase
       .from('entry_picks')
       .select('entry_id, golfer_id, slot_position')
       .in('entry_id', entryIds);
-
-    console.log('📊 Picks query result:', { 
-      picksCount: allPicks?.length || 0, 
-      error: picksError,
-      samplePick: allPicks?.[0]
-    });
 
     if (picksError) {
       console.error('❌ Error fetching picks:', picksError);
@@ -99,8 +91,6 @@ export async function GET(
     const golferIdsSet = new Set(allPicks?.map(p => p.golfer_id) || []);
     const golferIds = Array.from(golferIdsSet);
     const userIds = Array.from(new Set(entries?.map(e => e.user_id) || []));
-    console.log('🎯 Fetching golfer details for IDs:', golferIds);
-    console.log('👤 Fetching user profiles for IDs:', userIds);
 
     // Get golfer details separately
     const { data: golfers, error: golfersError } = await supabase
@@ -108,14 +98,15 @@ export async function GET(
       .select('id, first_name, last_name, country')
       .in('id', golferIds);
 
-    // Get user profiles
-    const { data: profiles, error: profilesError } = await supabase
+    // Get user profiles (using admin client to bypass RLS)
+    const { data: profiles, error: profilesError } = await adminClient
       .from('profiles')
-      .select('id, username, full_name')
+      .select('id, username, display_name, first_name, last_name')
       .in('id', userIds);
 
-    console.log('👥 Golfers fetched:', golfers?.length || 0);
-    console.log('👤 Profiles fetched:', profiles?.length || 0);
+    if (profilesError) {
+      console.error('❌ Profile fetch error:', profilesError);
+    }
 
     if (golfersError) {
       console.error('❌ Error fetching golfers:', golfersError);
@@ -153,7 +144,14 @@ export async function GET(
     const leaderboardEntries = entries?.map((entry, index) => {
       const picks = picksByEntry[entry.id] || [];
       const userProfile = profileMap.get(entry.user_id);
-      const username = userProfile?.username || userProfile?.full_name || `User ${entry.user_id.substring(0, 8)}`;
+      
+      // Try display_name first, then construct from first/last names, then username, then fallback
+      const username = userProfile?.display_name || 
+                      (userProfile?.first_name && userProfile?.last_name 
+                        ? `${userProfile.first_name} ${userProfile.last_name}`.trim() 
+                        : null) ||
+                      userProfile?.username || 
+                      `User ${entry.user_id.substring(0, 8)}`;
       
       // TODO: Calculate actual fantasy points from golfer scores
       // For now, return mock data structure

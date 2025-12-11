@@ -412,6 +412,25 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
   }
 
   async function handleRemoveGolfer(golferId: string, golferName: string) {
+    // Check if scorecards have been purchased
+    try {
+      const checkRes = await fetch(`/api/tournaments/${params.id}/golfers/check-usage?golfer_id=${golferId}`);
+      if (checkRes.ok) {
+        const usage = await checkRes.json();
+        if (usage.hasEntries) {
+          const proceed = confirm(
+            `⚠️ WARNING: "${golferName}" is being used in ${usage.entryCount} scorecard(s)!\n\n` +
+            `Removing this golfer may affect existing games and user entries.\n\n` +
+            `Are you absolutely sure you want to proceed?`
+          );
+          if (!proceed) return;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to check golfer usage:', err);
+      // Continue with removal if check fails
+    }
+
     if (!confirm(`Remove "${golferName}" from this tournament?`)) {
       return;
     }

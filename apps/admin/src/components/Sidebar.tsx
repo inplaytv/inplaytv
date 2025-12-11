@@ -29,7 +29,6 @@ const navSections: NavSection[] = [
     icon: '👤',
     items: [
       { label: 'All Users', href: '/users' },
-      { label: 'User Details', href: '/users/details' },
     ],
   },
   {
@@ -76,8 +75,21 @@ const navSections: NavSection[] = [
     title: 'Settings',
     icon: '⚙',
     items: [
+      { label: 'Site', href: '/settings/site' },
+      { label: 'Security', href: '/settings/security' },
       { label: 'Admins', href: '/settings/admins' },
       { label: 'Logs', href: '/settings/logs' },
+    ],
+  },
+  {
+    title: 'Email',
+    icon: '✉️',
+    items: [
+      { label: 'Inbox', href: '/email/inbox' },
+      { label: 'Outbox', href: '/email/outbox' },
+      { label: 'Compose', href: '/email/compose' },
+      { label: 'Templates', href: '/email/templates' },
+      { label: 'Contacts', href: '/email/contacts' },
     ],
   },
 ];

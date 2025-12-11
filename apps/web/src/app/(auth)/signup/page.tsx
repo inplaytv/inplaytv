@@ -12,6 +12,8 @@ export default function SignUpPage() {
   const [mode, setMode] = useState<SignUpMode>('password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -35,6 +37,12 @@ export default function SignUpPage() {
       return;
     }
 
+    if (!firstName.trim() || !lastName.trim()) {
+      setMessage('Please enter your first and last name');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // Check if username is already taken
       const { data: existingUser } = await supabase
@@ -49,35 +57,39 @@ export default function SignUpPage() {
         return;
       }
 
-      // Sign up with email and password
+      // Sign up with email and password - include metadata for trigger
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            username: username,
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            name: `${firstName.trim()} ${lastName.trim()}`,
+            onboarding_complete: true,
+          }
+        }
       });
 
       if (error) {
         setMessage(`Error: ${error.message}`);
       } else if (data.user) {
-        // Create profile with username
-        await supabase.from('profiles').upsert({
-          id: data.user.id,
-          username: username,
-          name: username, // Also set name to username for backward compatibility
-          onboarding_complete: true,
-        });
-        
+        // Profile is auto-created by database trigger with metadata
         // Check if email confirmation is required
         if (data.user.email_confirmed_at) {
-          // Email already confirmed (instant signup - verification disabled)
+          // Email already confirmed (instant signup - email verification disabled in Supabase)
           setMessage('Account created! Redirecting to golf app...');
-          setTimeout(() => window.location.href = getGolfAppUrl(), 1000);
+          setTimeout(() => window.location.href = getGolfAppUrl(), 1500);
         } else {
           // Email confirmation required - redirect to verification page
-          router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+          setMessage('Account created! Please check your email to verify your account.');
+          setTimeout(() => router.push(`/verify-email?email=${encodeURIComponent(email)}`), 2000);
         }
       }
     } catch (err) {
-      setMessage('An unexpected error occurred');
+      console.error('Signup error:', err);
+      setMessage(`An unexpected error occurred: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -219,6 +231,38 @@ export default function SignUpPage() {
 
         <form onSubmit={handlePasswordSignUp} style={styles.form}>
           <div>
+            <label htmlFor="firstName" style={styles.label}>
+              First Name
+            </label>
+            <input
+              id="firstName"
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              style={styles.input}
+              placeholder="Enter your first name"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="lastName" style={styles.label}>
+              Last Name
+            </label>
+            <input
+              id="lastName"
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              style={styles.input}
+              placeholder="Enter your last name"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
             <label htmlFor="username" style={styles.label}>
               Username
             </label>
@@ -231,6 +275,7 @@ export default function SignUpPage() {
               style={styles.input}
               placeholder="Choose a unique username"
               minLength={3}
+              disabled={isLoading}
             />
           </div>
 

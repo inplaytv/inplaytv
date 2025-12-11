@@ -23,44 +23,7 @@ export async function POST(
     const body = await request.json();
     const { entry_name, total_salary, captain_golfer_id, status, picks } = body;
 
-    console.log('[Entries] 🔍 DUPLICATE CHECK v2 - Checking for existing entries for user:', user.id, 'competition:', competitionId);
-
-    // CRITICAL: Check if user already has an entry for THIS SPECIFIC competition/instance
-    // Must check the exact instance_id or competition_id match
-    const { data: existingEntries, error: existingError } = await supabase
-      .from('competition_entries')
-      .select('id, status, instance_id, competition_id')
-      .eq('user_id', user.id)
-      .or(`competition_id.eq.${competitionId},instance_id.eq.${competitionId}`);
-
-    if (existingError) {
-      console.error('[Entries] Error checking for existing entry:', existingError);
-    }
-
-    // Check if ANY of the entries match THIS specific instance/competition
-    const duplicateEntry = existingEntries?.find(entry => 
-      entry.instance_id === competitionId || entry.competition_id === competitionId
-    );
-
-    if (duplicateEntry) {
-      console.log('[Entries] ❌ DUPLICATE BLOCKED:', {
-        existingEntryId: duplicateEntry.id,
-        forInstance: duplicateEntry.instance_id,
-        forCompetition: duplicateEntry.competition_id,
-        attemptingToEnter: competitionId
-      });
-      return NextResponse.json(
-        { error: 'You have already entered this competition' },
-        { status: 400 }
-      );
-    }
-    
-    if (existingEntries && existingEntries.length > 0) {
-      console.log('[Entries] ✅ User has other entries but not for THIS instance:', {
-        totalEntries: existingEntries.length,
-        checkingInstance: competitionId
-      });
-    }
+    console.log('[Entries] 📝 Creating new entry for user:', user.id, 'competition:', competitionId);
 
     // Validate required fields
     if (total_salary === undefined || total_salary === null) {
@@ -80,8 +43,9 @@ export async function POST(
 
     // Get competition details for entry fee and validation (supports both tournament_competitions AND competition_instances)
     let competition: any = null;
+    let isInstance = false;
     
-    // Try tournament_competitions first
+    // Try tournament_competitions first (Regular Fantasy Golf - unlimited entries per user)
     const { data: compData, error: compError } = await supabase
       .from('tournament_competitions')
       .select(`
@@ -96,8 +60,12 @@ export async function POST(
 
     if (compData) {
       competition = compData;
+      isInstance = false;
+      console.log('[Entries] 🎯 Regular Competition - Multiple entries allowed');
     } else {
-      // Try competition_instances (ONE 2 ONE)
+      // Try competition_instances (ONE 2 ONE - limit 1 entry per user)
+      isInstance = true;
+      
       const { data: instanceData, error: instanceError } = await supabase
         .from('competition_instances')
         .select(`
@@ -117,11 +85,28 @@ export async function POST(
         .maybeSingle();
 
       if (instanceData) {
-        console.log('🔍 Instance status check:', { 
+        console.log('🔍 ONE 2 ONE Instance status check:', { 
           instanceId: competitionId,
           currentStatus: instanceData.status,
           submissionStatus: status 
         });
+
+        // ⚠️ ONE 2 ONE PROTECTION: Check if user already has an entry for THIS instance
+        // ONE 2 ONE allows max 1 entry per user per instance
+        const { data: existingEntry, error: existingError } = await supabase
+          .from('competition_entries')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('instance_id', competitionId)
+          .maybeSingle();
+
+        if (existingEntry) {
+          console.log('[Entries] ❌ ONE 2 ONE DUPLICATE BLOCKED - User already has entry for this instance');
+          return NextResponse.json(
+            { error: 'You have already entered this ONE 2 ONE competition' },
+            { status: 400 }
+          );
+        }
 
         const template: any = instanceData.competition_templates;
         const tournament: any = instanceData.tournaments;
@@ -156,66 +141,36 @@ export async function POST(
     // If status is submitted, deduct from wallet FIRST before creating entry
     if (status === 'submitted') {
       console.log('💰 Processing payment for submitted entry...');
+      console.log('💳 Entry fee:', competition.entry_fee_pennies);
       
-      // Get user's wallet
-      const { data: wallet, error: walletError } = await supabase
-        .from('wallets')
-        .select('balance_cents')
-        .eq('user_id', user.id)
-        .single();
+      // CRITICAL FIX: Use atomic SQL to prevent race conditions
+      // This single UPDATE both checks balance AND deducts in one atomic operation
+      // Using RPC function for PostgreSQL function that handles this atomically
+      const { data: walletResult, error: deductError } = await supabase.rpc('deduct_from_wallet', {
+        p_user_id: user.id,
+        p_amount_cents: competition.entry_fee_pennies,
+        p_reason: `Entry fee for ${entry_name || 'competition'}`
+      });
 
-      if (walletError || !wallet) {
-        console.error('❌ Wallet not found:', walletError);
-        throw new Error('Wallet not found');
+      if (deductError) {
+        console.error('❌ Wallet deduction failed:', deductError);
+        if (deductError.message?.includes('Insufficient funds')) {
+          throw new Error('Insufficient funds');
+        }
+        throw new Error('Failed to process payment: ' + deductError.message);
       }
 
-      console.log('Current balance:', wallet.balance_cents, 'Entry fee:', competition.entry_fee_pennies);
-
-      // Check sufficient balance
-      if (wallet.balance_cents < competition.entry_fee_pennies) {
-        console.error('❌ Insufficient funds');
+      if (!walletResult || walletResult.success === false) {
+        console.error('❌ Wallet deduction returned false');
         throw new Error('Insufficient funds');
       }
 
-      // Deduct from wallet
-      const newBalance = wallet.balance_cents - competition.entry_fee_pennies;
-      console.log('💳 Deducting', competition.entry_fee_pennies, 'New balance will be:', newBalance);
-      
-      const { error: updateError } = await supabase
-        .from('wallets')
-        .update({ balance_cents: newBalance })
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        console.error('❌ Failed to update wallet:', updateError);
-        throw updateError;
-      }
-
-      console.log('✅ Wallet updated successfully');
-
-      // Create transaction record
-      const { error: txError } = await supabase
-        .from('wallet_transactions')
-        .insert({
-          user_id: user.id,
-          change_cents: -competition.entry_fee_pennies,
-          reason: `Entry fee for ${entry_name || 'competition'}`,
-          balance_after_cents: newBalance,
-        });
-
-      if (txError) {
-        console.error('⚠️ Transaction record failed (but payment succeeded):', txError);
-        // Don't throw - payment already happened
-      } else {
-        console.log('✅ Transaction record created');
-      }
+      console.log('✅ Wallet updated successfully. New balance:', walletResult.new_balance);
     }
 
     // NOW create the entry (only after payment succeeds)
     console.log('📝 Creating competition entry...');
     
-    // Determine if this is a ONE 2 ONE instance (instance_id should be set)
-    const isInstance = !compData; // If we didn't find it in tournament_competitions, it's an instance
     console.log('[Entries] Competition type:', isInstance ? 'ONE 2 ONE Instance' : 'Regular Competition');
     console.log('[Entries] Competition ID:', competitionId);
     

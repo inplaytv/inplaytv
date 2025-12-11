@@ -21,12 +21,10 @@ export default function RequireAdmin({ children }: { children: React.ReactNode }
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !user) {
-        console.log('No user found, redirecting to login');
         router.push('/login');
         return;
       }
 
-      console.log('User authenticated:', user.email);
       setIsAuthenticated(true);
     } catch (error) {
       console.error('Auth check error:', error);

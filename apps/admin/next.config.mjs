@@ -1,4 +1,4 @@
-/** @type {import('next').NextConfig} */
+﻿/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
@@ -6,12 +6,19 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  
-  // Automatically remove console.log in production (keep error/warn for monitoring)
+  turbopack: {},
+  webpack: (config, { dev, isServer }) => {
+    if (dev && !isServer) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+        ignored: ['**/node_modules', '**/.next', '**/.git'],
+      };
+    }
+    return config;
+  },
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production' 
-      ? { exclude: ['error', 'warn'] }
-      : false,
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
 };
 

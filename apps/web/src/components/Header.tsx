@@ -164,23 +164,12 @@ export default function Header() {
             </>
           ) : (
             <>
-              <span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>
+              <Link href="/login" style={styles.link}>
                 Login
-              </span>
-              <span style={{...styles.buttonPrimary, opacity: 0.5, cursor: 'not-allowed', position: 'relative'}}>
+              </Link>
+              <Link href="/signup" style={styles.buttonPrimary}>
                 Sign up
-                <span style={{
-                  position: 'absolute',
-                  top: '-8px',
-                  right: '-8px',
-                  background: '#fbbf24',
-                  color: '#000',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  fontSize: '9px',
-                  fontWeight: 600
-                }}>SOON</span>
-              </span>
+              </Link>
             </>
           )}
         </nav>
@@ -205,23 +194,12 @@ export default function Header() {
               </>
             ) : (
               <>
-                <span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>
+                <Link href="/login" style={styles.link} onClick={() => setIsMenuOpen(false)}>
                   Login
-                </span>
-                <span style={{...styles.buttonPrimary, opacity: 0.5, cursor: 'not-allowed', position: 'relative'}}>
+                </Link>
+                <Link href="/signup" style={styles.buttonPrimary} onClick={() => setIsMenuOpen(false)}>
                   Sign up
-                  <span style={{
-                    position: 'absolute',
-                    top: '-8px',
-                    right: '-8px',
-                    background: '#fbbf24',
-                    color: '#000',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontSize: '9px',
-                    fontWeight: 600
-                  }}>SOON</span>
-                </span>
+                </Link>
               </>
             )}
           </nav>

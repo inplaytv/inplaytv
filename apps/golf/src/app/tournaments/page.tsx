@@ -115,12 +115,20 @@ function UpcomingTournamentCard({
   
   const tour = extractTour(tournament.description, tournament.name);
   
-  // Get display text for tournament status
+  // Get display text based on competition registration status, not tournament status
   const getStatusDisplay = () => {
+    // Check if registration is closed based on countdown
+    if (isClosed) {
+      return 'TOURNAMENT IN PROGRESS';
+    }
+    
+    // If registration is still open (countdown is active), show registration open
+    if (regCloseAt && !isClosed) {
+      return 'REGISTRATION OPEN';
+    }
+    
+    // Fallback to tournament status
     switch (tournament.status) {
-      case 'registration_open': return 'REGISTRATION OPEN';
-      case 'registration_closed': return 'REGISTRATION CLOSED';
-      case 'live': return 'LIVE NOW';
       case 'completed': return 'COMPLETED';
       case 'upcoming': return 'UPCOMING TOURNAMENT';
       default: return 'UPCOMING TOURNAMENT';
@@ -711,7 +719,8 @@ export default function TournamentsPage() {
                                 }
                                 const isLive = tournamentStart && tournamentEndOfDay && now >= tournamentStart && now <= tournamentEndOfDay;
                                 
-                                if (!isRegOpen || isLive) {
+                                // ONLY check if registration is closed - don't disable if tournament is live but reg is still open
+                                if (!isRegOpen) {
                                   return (
                                     <button
                                       className={styles.btnGlass}

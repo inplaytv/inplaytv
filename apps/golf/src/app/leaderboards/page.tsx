@@ -554,7 +554,7 @@ export default function LeaderboardsPage() {
       }
     } catch (error) {
       console.error('❌ Error loading entry picks:', error);
-      alert('Failed to load entry picks. Please try again.');
+      alert('You cannot view opponents scorecards until start of play');
     }
   };
 

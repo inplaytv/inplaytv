@@ -50,14 +50,16 @@ export default function LobbyPage() {
         if (user?.email) {
           setEmail(user.email);
           
-          // Get username
+          // Get username and display name
           const { data: profile } = await supabase
             .from('profiles')
-            .select('username')
+            .select('username, display_name, first_name, last_name')
             .eq('id', user.id)
             .single();
           
-          if (profile) setUsername(profile.username);
+          if (profile) {
+            setUsername(profile.display_name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.username);
+          }
         }
 
         // Get balance
@@ -155,7 +157,7 @@ export default function LobbyPage() {
               <h1 className={styles.welcomeTitle}>
                 Welcome back, <span className={styles.username}>{username || 'Player'}</span>
               </h1>
-              <p className={styles.welcomeSubtitle}>Ready to dominate the greens?</p>
+              <p className={styles.welcomeSubtitle}>Are you ready to dominate the greens?</p>
             </div>
             
             {/* Cards container on the right */}

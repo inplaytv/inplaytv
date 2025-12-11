@@ -11,11 +11,15 @@ async function searchUsers(query?: string) {
   const { data: { users } } = await adminClient.auth.admin.listUsers();
   
   // Get profiles for username, phone and personal info
-  const { data: profiles } = await adminClient
+  const { data: profiles, error: profilesError } = await adminClient
     .from('profiles')
-    .select('user_id, username, phone, first_name, last_name, date_of_birth, address_line1, address_line2, city, postcode, country');
+    .select('id, username, phone, first_name, last_name, display_name, date_of_birth, address_line1, address_line2, city, postcode, country');
   
-  const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+  if (profilesError) {
+    console.error('❌ Profiles query error:', profilesError);
+  }
+  
+  const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
   
   // Get wallet balances
   const { data: wallets } = await adminClient
@@ -55,6 +59,7 @@ async function searchUsers(query?: string) {
       phone: profile?.phone || null,
       first_name: profile?.first_name || null,
       last_name: profile?.last_name || null,
+      display_name: profile?.display_name || null,
       date_of_birth: profile?.date_of_birth || null,
       address_line1: profile?.address_line1 || null,
       address_line2: profile?.address_line2 || null,

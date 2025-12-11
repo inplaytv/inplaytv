@@ -178,7 +178,7 @@ export async function POST(
     const top3 = entriesWithScores.slice(0, 3).map((entry, idx) => ({
       userId: entry.user_id,
       entryId: entry.id,
-      username: `User ${entry.user_id.substring(0, 8)}`,
+      username: `User ${entry.user_id.substring(0, 8)}`, // TODO: Fetch actual username from profiles
       entryName: entry.entry_name,
       points: entry.totalPoints,
       position: idx + 1,
@@ -201,7 +201,7 @@ export async function POST(
         distributed_prize_pennies: distributedPrize,
         winner_user_id: winner.user_id,
         winner_entry_id: winner.id,
-        winner_username: `User ${winner.user_id.substring(0, 8)}`,
+        winner_username: `User ${winner.user_id.substring(0, 8)}`, // TODO: Fetch from profiles
         winner_entry_name: winner.entry_name,
         winning_points: winner.totalPoints,
         top_3_entries: top3,

@@ -10,6 +10,7 @@ interface User {
   phone: string | null;
   first_name: string | null;
   last_name: string | null;
+  display_name: string | null;
   date_of_birth: string | null;
   address_line1: string | null;
   address_line2: string | null;
@@ -245,6 +246,10 @@ export default function UsersList({ users: initialUsers, searchQuery }: { users:
   };
 
   const formatFullName = (user: User) => {
+    // Use display_name first, then construct from first/last names
+    if (user.display_name) {
+      return user.display_name;
+    }
     if (user.first_name || user.last_name) {
       return `${user.first_name || ''} ${user.last_name || ''}`.trim();
     }
@@ -327,11 +332,9 @@ export default function UsersList({ users: initialUsers, searchQuery }: { users:
                       </span>
                       {getStatusBadge(user)}
                     </div>
-                    {formatFullName(user) && (
-                      <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
-                        {user.email}
-                      </span>
-                    )}
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
+                      {user.email}
+                    </span>
                   </div>
                 </td>
                 <td style={{ padding: '1rem' }}>
@@ -419,10 +422,12 @@ export default function UsersList({ users: initialUsers, searchQuery }: { users:
                   Personal Information
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {(selectedUser.first_name || selectedUser.last_name) && (
+                  {(selectedUser.first_name || selectedUser.last_name || selectedUser.username) && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Full Name</span>
-                      <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 500 }}>{formatFullName(selectedUser)}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Display Name</span>
+                      <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 500 }}>
+                        {formatFullName(selectedUser) || selectedUser.username || `User ${selectedUser.id.substring(0, 8)}`}
+                      </span>
                     </div>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>

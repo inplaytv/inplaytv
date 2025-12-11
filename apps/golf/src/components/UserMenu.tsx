@@ -89,7 +89,7 @@ export default function UserMenu() {
       >
         <UserAvatar
           avatarUrl={profile?.avatar_url}
-          name={profile?.name}
+          name={profile?.display_name || profile?.name}
           email={user?.email}
           size={40}
         />
@@ -134,7 +134,7 @@ export default function UserMenu() {
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                 }}>
-                  {profile?.name || 'User'}
+                  {profile?.display_name || profile?.name || profile?.username || 'User'}
                 </div>
                 <div style={{ 
                   color: 'rgba(255, 255, 255, 0.6)', 

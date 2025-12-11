@@ -76,8 +76,16 @@ interface CompetitionEntrant {
   const [loadingPicks, setLoadingPicks] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [filterType, setFilterType] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check URL for filter parameter
+    const params = new URLSearchParams(window.location.search);
+    const filter = params.get('filter');
+    if (filter === 'one-2-one' || filter === 'inplay') {
+      setFilterType(filter);
+    }
+    
     fetchCurrentUser();
     fetchEntries();
     
@@ -246,8 +254,22 @@ interface CompetitionEntrant {
 
   const allTournaments = Object.values(groupedEntries);
   
+  // Apply competition type filter if set
+  let filteredTournaments = allTournaments;
+  if (filterType === 'one-2-one') {
+    filteredTournaments = allTournaments.map(tournament => ({
+      ...tournament,
+      entries: tournament.entries.filter(e => e.tournament_competitions?.is_one_2_one === true)
+    })).filter(t => t.entries.length > 0);
+  } else if (filterType === 'inplay') {
+    filteredTournaments = allTournaments.map(tournament => ({
+      ...tournament,
+      entries: tournament.entries.filter(e => !e.tournament_competitions?.is_one_2_one)
+    })).filter(t => t.entries.length > 0);
+  }
+  
   // Filter based on history view
-  const tournaments = allTournaments.filter(tournament => {
+  const tournaments = filteredTournaments.filter(tournament => {
     const sampleEntry = tournament.entries[0];
     const status = getStatus(sampleEntry);
     const isRecent = isRecentlyCompleted(sampleEntry);
@@ -318,7 +340,11 @@ interface CompetitionEntrant {
                   </h2>
                   <div style={{ display: 'flex', gap: '6px' }}>
                     <button
-                      onClick={() => setShowHistory(false)}
+                      onClick={() => {
+                        setShowHistory(false);
+                        setFilterType(null);
+                        router.push('/entries');
+                      }}
                       style={{
                         padding: '4px 12px',
                         background: !showHistory ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
@@ -333,7 +359,10 @@ interface CompetitionEntrant {
                       Active
                     </button>
                     <button
-                      onClick={() => setShowHistory(true)}
+                      onClick={() => {
+                        setShowHistory(true);
+                        setFilterType(null);
+                      }}
                       style={{
                         padding: '4px 12px',
                         background: showHistory ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
@@ -474,16 +503,82 @@ interface CompetitionEntrant {
                     <div style={{ marginBottom: '16px' }}>
                       {selectedTournament ? (
                         <>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                             <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#fbbf24', margin: 0 }}>
                               {selectedTournament.tournamentName}
                             </h2>
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                             <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Your Entries</span>
                             <span style={{ fontSize: '13px', color: '#10b981', fontWeight: 600 }}>
                               {selectedTournament.entries.length} {selectedTournament.entries.length === 1 ? 'Entry' : 'Entries'}
                             </span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '6px', marginTop: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <button
+                              onClick={() => {
+                                setFilterType(null);
+                                router.push('/entries');
+                              }}
+                              style={{
+                                padding: '4px 12px',
+                                background: !filterType ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                border: !filterType ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '6px',
+                                color: !filterType ? '#fff' : 'rgba(255, 255, 255, 0.5)',
+                                fontSize: '11px',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              All Types
+                            </button>
+                            <button
+                              onClick={() => {
+                                setFilterType('inplay');
+                                router.push('/entries?filter=inplay');
+                              }}
+                              style={{
+                                padding: '4px 12px',
+                                background: filterType === 'inplay' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                border: filterType === 'inplay' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '6px',
+                                color: filterType === 'inplay' ? '#10b981' : 'rgba(255, 255, 255, 0.5)',
+                                fontSize: '11px',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              InPlay Comps
+                            </button>
+                            <button
+                              onClick={() => {
+                                setFilterType('one-2-one');
+                                router.push('/entries?filter=one-2-one');
+                              }}
+                              style={{
+                                padding: '4px 12px',
+                                background: filterType === 'one-2-one' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                border: filterType === 'one-2-one' ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '6px',
+                                color: filterType === 'one-2-one' ? '#fbbf24' : 'rgba(255, 255, 255, 0.5)',
+                                fontSize: '11px',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              ONE 2 ONE
+                            </button>
+                            {!selectedEntryId && (
+                              <span style={{ 
+                                fontSize: '11px', 
+                                color: '#fff', 
+                                fontStyle: 'italic',
+                                marginLeft: '8px'
+                              }}>
+                                Select Entry To See Line Ups
+                              </span>
+                            )}
                           </div>
                         </>
                       ) : (
@@ -621,14 +716,14 @@ interface CompetitionEntrant {
                                         gap: '4px',
                                         fontSize: '10px',
                                         fontWeight: 600,
-                                        color: '#10b981',
-                                        background: 'rgba(16, 185, 129, 0.15)',
-                                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                                        color: '#fff',
+                                        background: 'rgba(59, 130, 246, 0.15)',
+                                        border: '1px solid rgba(59, 130, 246, 0.3)',
                                         borderRadius: '12px',
                                         padding: '3px 8px',
                                         width: 'fit-content'
                                       }}>
-                                        🟢 Opponent Found
+                                        🔵 Opponent Found
                                       </span>
                                     );
                                   } else {
@@ -652,15 +747,17 @@ interface CompetitionEntrant {
                                   }
                                 })()}
                               </div>
-                              <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                Prize Pool: £{(() => {
-                                  // For ONE 2 ONE, entry_fee_pennies is at root level
-                                  // For regular competitions, it's nested in tournament_competitions
-                                  const entryFee = entry.entry_fee_pennies || entry.tournament_competitions?.entry_fee_pennies || 0;
-                                  const adminFeePercent = entry.admin_fee_percent || 10; // ONE 2 ONE uses template's admin fee
-                                  return ((entryFee * 2 * (100 - adminFeePercent)) / 100 / 100).toFixed(2);
-                                })()}
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                  Prize Pool: £{(() => {
+                                    // For ONE 2 ONE, entry_fee_pennies is at root level
+                                    // For regular competitions, it's nested in tournament_competitions
+                                    const entryFee = entry.entry_fee_pennies || entry.tournament_competitions?.entry_fee_pennies || 0;
+                                    const adminFeePercent = entry.admin_fee_percent || 10; // ONE 2 ONE uses template's admin fee
+                                    return ((entryFee * 2 * (100 - adminFeePercent)) / 100 / 100).toFixed(2);
+                                  })()}
+                                </span>
+                              </div>
                             </div>
                           )}
                           <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
@@ -721,37 +818,81 @@ interface CompetitionEntrant {
                   ×
                 </button>
 
-                <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#fbbf24', marginBottom: '8px' }}>
-                  Entry Details
-                </h2>
-                {(() => {
-                  const selectedEntry = entries.find(e => e.id === selectedEntryId);
-                  return (
-                    <>
-                      <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '4px' }}>
-                        {selectedEntry?.entry_name || 'Team Lineup'}
-                      </p>
-                      {selectedEntry && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div style={{ flex: 1, minWidth: '250px' }}>
+                    <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#fbbf24', marginBottom: '8px' }}>
+                      Entry Details
+                    </h2>
+                    {(() => {
+                      const selectedEntry = entries.find(e => e.id === selectedEntryId);
+                      return (
                         <>
-                          <p style={{ fontSize: '12px', color: '#10b981', fontWeight: 500, marginBottom: '4px' }}>
-                            {selectedEntry.tournament_competitions?.competition_types?.name || 'Competition'}
+                          <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '4px' }}>
+                            {selectedEntry?.entry_name || 'Team Lineup'}
                           </p>
-                          {selectedEntry.tournament_competitions?.is_one_2_one && (
-                            <p style={{ fontSize: '13px', color: '#f59e0b', fontWeight: 700, marginBottom: '24px' }}>
-                              Prize Pool: £{(() => {
-                                // For ONE 2 ONE, entry_fee_pennies is at root level
-                                // For regular competitions, it's nested in tournament_competitions
-                                const entryFee = selectedEntry.entry_fee_pennies || selectedEntry.tournament_competitions?.entry_fee_pennies || 0;
-                                const adminFeePercent = selectedEntry.admin_fee_percent || 10; // ONE 2 ONE uses template's admin fee
-                                return ((entryFee * 2 * (100 - adminFeePercent)) / 100 / 100).toFixed(2);
+                          {selectedEntry && (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                              <div>
+                                <p style={{ fontSize: '12px', color: '#10b981', fontWeight: 500, marginBottom: '4px' }}>
+                                  {selectedEntry.tournament_competitions?.competition_types?.name || 'Competition'}
+                                </p>
+                                {selectedEntry.tournament_competitions?.is_one_2_one && (
+                                  <p style={{ fontSize: '13px', color: '#f59e0b', fontWeight: 700, margin: 0 }}>
+                                    Prize Pool: £{(() => {
+                                      const entryFee = selectedEntry.entry_fee_pennies || selectedEntry.tournament_competitions?.entry_fee_pennies || 0;
+                                      const adminFeePercent = selectedEntry.admin_fee_percent || 10;
+                                      return ((entryFee * 2 * (100 - adminFeePercent)) / 100 / 100).toFixed(2);
+                                    })()}
+                                  </p>
+                                )}
+                              </div>
+                              {selectedEntry.tournament_competitions?.is_one_2_one && (() => {
+                                const currentPlayers = selectedEntry.tournament_competitions.current_players ?? 0;
+                                const maxPlayers = selectedEntry.tournament_competitions.max_players ?? 2;
+                                const isFull = currentPlayers >= maxPlayers;
+                                
+                                if (isFull && selectedEntry.instance_id) {
+                                  return (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(`/one-2-one/challenge/${selectedEntry.instance_id}`);
+                                      }}
+                                      style={{
+                                        fontSize: '12px',
+                                        fontWeight: 600,
+                                        color: '#fff',
+                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        padding: '10px 16px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        transition: 'transform 0.2s, box-shadow 0.2s',
+                                        flexShrink: 0
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'scale(1.05)';
+                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'scale(1)';
+                                        e.currentTarget.style.boxShadow = 'none';
+                                      }}
+                                    >
+                                      🏌️ View Challenge
+                                    </button>
+                                  );
+                                }
+                                return null;
                               })()}
-                            </p>
+                            </div>
                           )}
                         </>
-                      )}
-                    </>
-                  );
-                })()}
+                      );
+                    })()}
+                  </div>
+                </div>
 
                 {loadingPicks ? (
                   <div style={{ padding: '40px 20px', textAlign: 'center' }}>

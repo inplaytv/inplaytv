@@ -1,12 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  
-  // Automatically remove console.log in production (keep error/warn for monitoring)
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production' 
-      ? { exclude: ['error', 'warn'] }
-      : false,
+  turbopack: {},
+  webpack: (config, { dev, isServer }) => {
+    if (dev && !isServer) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+        ignored: ['**/node_modules', '**/.next', '**/.git'],
+      };
+    }
+    return config;
   },
 };
 

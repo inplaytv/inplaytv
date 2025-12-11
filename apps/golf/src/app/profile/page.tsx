@@ -79,8 +79,9 @@ export default function ProfilePage() {
 
       if (error) throw error;
 
-      // Parse name into first and last name
-      const [firstName = '', lastName = ''] = (data?.name || '').split(' ');
+      // Use first_name/last_name if available, fallback to parsing name field
+      const firstName = data?.first_name || (data?.name || '').split(' ')[0] || '';
+      const lastName = data?.last_name || (data?.name || '').split(' ').slice(1).join(' ') || '';
 
       const profileData = {
         ...data,
@@ -203,7 +204,9 @@ export default function ProfilePage() {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          name: `${editFirstName} ${editLastName}`.trim(),
+          first_name: editFirstName.trim(),
+          last_name: editLastName.trim(),
+          name: `${editFirstName} ${editLastName}`.trim(), // For backward compatibility
           username: editUsername || null,
           phone: editPhone,
           date_of_birth: editDOB,

@@ -104,6 +104,7 @@ export default function One2OnePage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
+  const [userHasChallenges, setUserHasChallenges] = useState(false);
 
   // Responsive layout detection
   useEffect(() => {
@@ -124,6 +125,18 @@ export default function One2OnePage() {
         if (response.ok) {
           const data = await response.json();
           setCurrentUserId(data.user?.id || null);
+          
+          // Check if user has any ONE 2 ONE challenges
+          if (data.user?.id) {
+            const entriesResponse = await fetch('/api/user/my-entries');
+            if (entriesResponse.ok) {
+              const entriesData = await entriesResponse.json();
+              const hasOne2One = entriesData.entries?.some((entry: any) => 
+                entry.tournament_competitions?.is_one_2_one === true
+              );
+              setUserHasChallenges(hasOne2One);
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to fetch current user:', err);
@@ -152,26 +165,19 @@ export default function One2OnePage() {
       return;
     }
     
-    console.log('🚀 Starting challenge - setting joiningTemplate to:', templateOrInstanceId);
     setJoiningTemplate(templateOrInstanceId);
-    console.log('🚀 joiningTemplate set, button should now show "Submitting Challenge..."');
     
     try {
       // Call API to find or create an instance
-      // Can accept either a template ID (create new) or instance ID (join existing)
-      console.log('🔍 Calling join API with:', { id: templateOrInstanceId, tournamentId, entryFee });
-      
       const response = await fetch('/api/one-2-one/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          templateId: templateOrInstanceId, // Works for both template and instance IDs
+          templateId: templateOrInstanceId,
           tournamentId: tournamentId,
           entryFeePennies: entryFee
         })
       });
-
-      console.log('📡 Response status:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -180,7 +186,6 @@ export default function One2OnePage() {
       }
 
       const data = await response.json();
-      console.log('✅ Join successful:', data);
       
       // Redirect to build-team page with the instance ID
       router.push(`/build-team/${data.instanceId}`);
@@ -237,10 +242,6 @@ export default function One2OnePage() {
           initialFees[template.id] = template.entry_fee_pennies;
         });
         setCustomEntryFees(initialFees);
-        
-        // Don't auto-select any template or tournament - let user choose both
-        console.log('🔍 Page loaded - tournament and selectedTemplate should be NULL');
-        console.log('🔍 Available templates:', data.templates?.length);
         
         // Fetch all open challenges
         fetchOpenChallenges();
@@ -705,23 +706,12 @@ export default function One2OnePage() {
                               onChange={(e) => {
                                 if (!selectedTemplate) return;
                                 const newValue = parseInt(e.target.value);
-                                console.log('🎚️ Slider onChange:', { 
-                                  newValue, 
-                                  templateId: selectedTemplate.id,
-                                  currentFee: currentEntryFee,
-                                  allFees: customEntryFees 
-                                });
-                                setCustomEntryFees(prev => {
-                                  const updated = { ...prev, [selectedTemplate.id]: newValue };
-                                  console.log('✅ State updated:', updated);
-                                  return updated;
-                                });
+                                setCustomEntryFees(prev => ({ ...prev, [selectedTemplate.id]: newValue }));
                                 setIsConfirmed(false);
                               }}
                               onInput={(e) => {
                                 if (!selectedTemplate) return;
                                 const newValue = parseInt((e.target as HTMLInputElement).value);
-                                console.log('🎚️ Slider onInput:', newValue);
                                 setCustomEntryFees(prev => ({ ...prev, [selectedTemplate.id]: newValue }));
                               }}
                               style={{
@@ -1145,8 +1135,8 @@ export default function One2OnePage() {
           position: 'relative',
           zIndex: 1
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-            <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ flex: 1, minWidth: '250px' }}>
               <h2 className={styles.sectionTitle}>
                 <i className="fas fa-th-list" style={{ color: '#fbbf24', marginRight: '0.5rem' }}></i>
                 Challenge Board ({openChallenges.length} total)
@@ -1155,9 +1145,43 @@ export default function One2OnePage() {
                 Browse and accept challenges from all tournaments ({openChallenges.length} available)
               </p>
             </div>
-            {loadingChallenges && (
-              <i className="fas fa-sync fa-spin" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.2rem' }}></i>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              {loadingChallenges && (
+                <i className="fas fa-sync fa-spin" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.2rem' }}></i>
+              )}
+              {userHasChallenges && (
+                <button
+                  onClick={() => router.push('/entries?filter=one-2-one')}
+                  style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    color: '#fff',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '0.75rem 1.25rem',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    marginLeft: 'auto'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <i className="fas fa-trophy" style={{ fontSize: '1rem' }}></i>
+                  View My Challenges
+                </button>
+              )}
+            </div>
           </div>
 
           {(() => {
@@ -1363,75 +1387,66 @@ export default function One2OnePage() {
                   {/* Action Button */}
                   {!isMobile && (
                   <div style={{ textAlign: 'right' }}>
-                    <button
-                      onClick={() => handleJoinCompetition(challenge.instanceId, challenge.entryFeePennies, challenge.tournamentId)}
-                      disabled={joiningTemplate === challenge.instanceId}
-                      style={{
-                        padding: '0.625rem 1.25rem',
-                        background: joiningTemplate === challenge.instanceId 
-                          ? 'rgba(251, 191, 36, 0.3)' 
-                          : 'linear-gradient(135deg, #f59e0b, #fbbf24)',
-                        border: 'none',
-                        borderRadius: '8px',
-                        color: '#000',
-                        fontSize: '0.85rem',
-                        fontWeight: 700,
-                        cursor: joiningTemplate === challenge.instanceId ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        marginLeft: 'auto',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (joiningTemplate !== challenge.instanceId) {
+                    {challenge.status === 'active' || challenge.status === 'completed' ? (
+                      <button
+                        onClick={() => router.push(`/one-2-one/challenge/${challenge.instanceId}`)}
+                        style={{
+                          padding: '0.625rem 1.25rem',
+                          background: 'linear-gradient(135deg, #10b981, #059669)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          color: '#fff',
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          marginLeft: 'auto',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
                           e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(251, 191, 36, 0.4)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'none';
-                      }}
-                    >
-                      {joiningTemplate === challenge.instanceId ? (
-                        <>
-                          <i className="fas fa-spinner fa-spin"></i>
-                          <span>Joining...</span>
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-bolt"></i>
-                          <span>Accept</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  )}
-
-                  {/* Mobile Action Button */}
-                  {isMobile && (
-                    <div style={{ marginTop: '0.75rem' }}>
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        <i className="fas fa-eye"></i>
+                        <span>View</span>
+                      </button>
+                    ) : (
                       <button
                         onClick={() => handleJoinCompetition(challenge.instanceId, challenge.entryFeePennies, challenge.tournamentId)}
                         disabled={joiningTemplate === challenge.instanceId}
                         style={{
-                          width: '100%',
-                          padding: '0.75rem',
+                          padding: '0.625rem 1.25rem',
                           background: joiningTemplate === challenge.instanceId 
                             ? 'rgba(251, 191, 36, 0.3)' 
                             : 'linear-gradient(135deg, #f59e0b, #fbbf24)',
                           border: 'none',
                           borderRadius: '8px',
                           color: '#000',
-                          fontSize: '0.9rem',
+                          fontSize: '0.85rem',
                           fontWeight: 700,
                           cursor: joiningTemplate === challenge.instanceId ? 'not-allowed' : 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
                           gap: '0.5rem',
+                          marginLeft: 'auto',
                           transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (joiningTemplate !== challenge.instanceId) {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(251, 191, 36, 0.4)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = 'none';
                         }}
                       >
                         {joiningTemplate === challenge.instanceId ? (
@@ -1442,10 +1457,76 @@ export default function One2OnePage() {
                         ) : (
                           <>
                             <i className="fas fa-bolt"></i>
-                            <span>Accept Challenge</span>
+                            <span>Accept</span>
                           </>
                         )}
                       </button>
+                    )}
+                  </div>
+                  )}
+
+                  {/* Mobile Action Button */}
+                  {isMobile && (
+                    <div style={{ marginTop: '0.75rem' }}>
+                      {challenge.status === 'active' || challenge.status === 'completed' ? (
+                        <button
+                          onClick={() => router.push(`/one-2-one/challenge/${challenge.instanceId}`)}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            fontSize: '0.9rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          <i className="fas fa-eye"></i>
+                          <span>View Challenge</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleJoinCompetition(challenge.instanceId, challenge.entryFeePennies, challenge.tournamentId)}
+                          disabled={joiningTemplate === challenge.instanceId}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            background: joiningTemplate === challenge.instanceId 
+                              ? 'rgba(251, 191, 36, 0.3)' 
+                              : 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#000',
+                            fontSize: '0.9rem',
+                            fontWeight: 700,
+                            cursor: joiningTemplate === challenge.instanceId ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {joiningTemplate === challenge.instanceId ? (
+                            <>
+                              <i className="fas fa-spinner fa-spin"></i>
+                              <span>Joining...</span>
+                            </>
+                          ) : (
+                            <>
+                              <i className="fas fa-bolt"></i>
+                              <span>Accept Challenge</span>
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
