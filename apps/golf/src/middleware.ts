@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Check if user is admin (simplified check for middleware)
+// Check if user is admin
 async function isAdmin(userId: string): Promise<boolean> {
   try {
     const supabase = createClient(
@@ -37,12 +37,12 @@ async function getMaintenanceMode(): Promise<string> {
       .single();
 
     if (error || !data) {
-      return 'live'; // Default to live if no setting found
+      return 'live';
     }
 
     return data.setting_value || 'live';
   } catch {
-    return 'live'; // Default to live on error
+    return 'live';
   }
 }
 
@@ -54,13 +54,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/images') ||
     pathname.startsWith('/fonts') ||
-    pathname === '/favicon.ico'
+    pathname === '/favicon.ico' ||
+    pathname.startsWith('/api')
   ) {
-    return NextResponse.next();
-  }
-
-  // Always allow maintenance and coming-soon pages
-  if (pathname === '/maintenance' || pathname === '/coming-soon') {
     return NextResponse.next();
   }
 
@@ -72,13 +68,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check if user is logged in
+  // Check if user is logged in and is admin
   const token = request.cookies.get('sb-access-token')?.value;
   let userId: string | null = null;
 
   if (token) {
     try {
-      // Decode JWT to get user ID (basic decode, not verification)
       const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
       userId = payload.sub;
     } catch {
@@ -92,19 +87,15 @@ export async function middleware(request: NextRequest) {
     userIsAdmin = await isAdmin(userId);
   }
 
-  // Admins can always access everything
+  // Admins can always access
   if (userIsAdmin) {
     return NextResponse.next();
   }
 
-  // If coming-soon mode, redirect all non-admin access to coming-soon page
-  if (mode === 'coming-soon') {
-    return NextResponse.redirect(new URL('/coming-soon', request.url));
-  }
-
-  // If maintenance mode, redirect all non-admin access to maintenance page
-  if (mode === 'maintenance') {
-    return NextResponse.redirect(new URL('/maintenance', request.url));
+  // For non-admins in coming-soon or maintenance mode, redirect to main web app
+  // The web app will show the appropriate page
+  if (mode === 'coming-soon' || mode === 'maintenance') {
+    return NextResponse.redirect(new URL(`/${mode}`, 'http://localhost:3000'));
   }
 
   return NextResponse.next();
@@ -112,13 +103,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
-
