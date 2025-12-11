@@ -85,8 +85,11 @@ export async function middleware(request: NextRequest) {
 
   if (token) {
     try {
-      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-      userId = payload.sub;
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+        userId = payload.sub;
+      }
     } catch {
       userId = null;
     }
