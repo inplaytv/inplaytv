@@ -91,7 +91,7 @@ export async function middleware(request: NextRequest) {
     try {
       // Decode JWT to get user ID (basic decode, not verification)
       const parts = token.split('.');
-      if (parts.length === 3) {
+      if (parts.length === 3 && parts[1]) {
         const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
         userId = payload.sub;
       }
