@@ -10,11 +10,16 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { searchParams } = new URL(request.url);
-    const statusParam = searchParams.get('status') || 'upcoming,live';
+    const statusParam = searchParams.get('status') || 'upcoming,live,registration_open,registration_closed';
 
     console.log('🔍 Tournaments API - Requested status:', statusParam);
 
     // Handle multiple statuses separated by comma
+    // NOTE: Status values match auto_update_tournament_statuses() function:
+    // 'upcoming' → Before registration opens
+    // 'registration_open' → Registration is open (was 'reg_open')
+    // 'registration_closed' → Registration closed, waiting for tournament start
+    // 'live' → Tournament is currently being played
     const statuses = statusParam.split(',').map(s => s.trim());
 
     // Fetch tournaments with their competitions

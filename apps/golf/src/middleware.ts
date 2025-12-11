@@ -61,7 +61,12 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Skip middleware entirely in development (localhost)
-  if (process.env.NODE_ENV === 'development') {
+  const isDevelopment = process.env.NODE_ENV === 'development' || 
+                        request.nextUrl.hostname === 'localhost' ||
+                        request.nextUrl.hostname === '127.0.0.1';
+  
+  if (isDevelopment) {
+    console.log('[Middleware] Development mode detected, skipping maintenance check');
     return NextResponse.next();
   }
   
