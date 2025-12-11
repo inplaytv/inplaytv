@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Cache for maintenance mode (reduces database queries)
 let maintenanceModeCache: { mode: string; timestamp: number } | null = null;
-const CACHE_TTL = 30000; // 30 seconds
+const CACHE_TTL = 30000; // 30 seconds cache
 
 // Check if user is admin (simplified check for middleware)
 async function isAdmin(userId: string): Promise<boolean> {
