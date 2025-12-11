@@ -35,7 +35,7 @@ export default function ComingSoonPage() {
           marginBottom: '2rem',
           lineHeight: '1.6',
         }}>
-          We're working hard to bring you something amazing. 
+          We&apos;re working hard to bring you something amazing. 
           Our platform is launching soon!
         </p>
         <div style={{

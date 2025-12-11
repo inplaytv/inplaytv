@@ -34,7 +34,7 @@ export default function MaintenancePage() {
           marginBottom: '2rem',
           lineHeight: '1.6',
         }}>
-          We're currently performing scheduled maintenance to improve your experience.
+          We&apos;re currently performing scheduled maintenance to improve your experience.
         </p>
         <div style={{
           padding: '1.5rem',
@@ -55,7 +55,7 @@ export default function MaintenancePage() {
             fontSize: '0.875rem',
             color: '#94a3b8',
           }}>
-            We'll be back online shortly. Thank you for your patience.
+            We&apos;ll be back online shortly. Thank you for your patience.
           </p>
         </div>
         <p style={{
