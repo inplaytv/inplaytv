@@ -35,10 +35,15 @@ async function getMaintenanceMode(): Promise<string> {
   }
 
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !serviceKey) {
+      console.error('[Middleware] Missing Supabase environment variables');
+      return 'live'; // Fallback to live if env vars missing
+    }
+
+    const supabase = createClient(supabaseUrl, serviceKey);
 
     const { data, error } = await supabase
       .from('site_settings')
@@ -46,13 +51,20 @@ async function getMaintenanceMode(): Promise<string> {
       .eq('setting_key', 'maintenance_mode')
       .single();
 
+    if (error) {
+      console.error('[Middleware] Database error:', error);
+    }
+
     const mode = (error || !data) ? 'live' : (data.setting_value || 'live');
+    
+    console.log('[Middleware] Current mode from database:', mode);
     
     // Update cache
     maintenanceModeCache = { mode, timestamp: now };
     
     return mode;
-  } catch {
+  } catch (err) {
+    console.error('[Middleware] Error getting maintenance mode:', err);
     return 'live'; // Default to live on error
   }
 }
