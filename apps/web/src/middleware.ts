@@ -111,14 +111,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // If coming-soon mode, redirect all non-admin access to coming-soon page
+  // If coming-soon mode, show coming-soon page for all routes (URL stays the same)
   if (mode === 'coming-soon') {
-    return NextResponse.redirect(new URL('/coming-soon', request.url));
+    return NextResponse.rewrite(new URL('/coming-soon', request.url));
   }
 
-  // If maintenance mode, redirect all non-admin access to maintenance page
+  // If maintenance mode, show maintenance page for all routes (URL stays the same)
   if (mode === 'maintenance') {
-    return NextResponse.redirect(new URL('/maintenance', request.url));
+    return NextResponse.rewrite(new URL('/maintenance', request.url));
   }
 
   return NextResponse.next();
