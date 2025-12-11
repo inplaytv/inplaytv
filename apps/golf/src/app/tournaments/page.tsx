@@ -446,17 +446,17 @@ export default function TournamentsPage() {
                   tournamentEndOfDay.setHours(23, 59, 59, 999);
                 }
                 
-                // Show if tournament has open registration by EITHER status OR future date
+                // Show if tournament has open registration OR is live
                 const hasOpenRegistration = tournament.competitions.some(comp => {
                   const regCloseAt = comp.reg_close_at ? new Date(comp.reg_close_at) : null;
-                  // Show if status is reg_open OR registration close date is in the future
-                  return comp.status === 'reg_open' || (regCloseAt && now < regCloseAt);
+                  // Show if status is reg_open, live, or registration close date is in the future
+                  return comp.status === 'reg_open' || comp.status === 'live' || (regCloseAt && now < regCloseAt);
                 });
                 
                 // Hide only if tournament is fully completed (past end date)
                 const isCompleted = tournamentEndOfDay && now > tournamentEndOfDay;
                 
-                // Show tournaments that are either upcoming OR live with open registration
+                // Show tournaments that are either upcoming, live, or have open registration
                 return !isCompleted && hasOpenRegistration;
               });
               
