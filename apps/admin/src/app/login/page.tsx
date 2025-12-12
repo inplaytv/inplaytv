@@ -180,57 +180,6 @@ function LoginForm() {
           </button>
         </form>
         
-        {/* Development Bypass Button */}
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{
-            marginTop: '1.5rem',
-            padding: '1rem',
-            background: 'rgba(245, 158, 11, 0.1)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
-            borderRadius: '8px',
-          }}>
-            <p style={{
-              margin: '0 0 0.75rem 0',
-              fontSize: '0.875rem',
-              color: '#fbbf24',
-              fontWeight: 600,
-            }}>
-              🔓 Development Mode
-            </p>
-            <p style={{
-              margin: '0 0 0.75rem 0',
-              fontSize: '0.75rem',
-              color: 'rgba(255,255,255,0.7)',
-            }}>
-              Stuck with rate limiting? Use the dev bypass:
-            </p>
-            <a
-              href="/api/auth/dev-bypass?email=dev@admin.local"
-              style={{
-                display: 'block',
-                padding: '0.5rem 1rem',
-                background: 'rgba(245, 158, 11, 0.2)',
-                border: '1px solid rgba(245, 158, 11, 0.4)',
-                borderRadius: '6px',
-                color: '#fbbf24',
-                textDecoration: 'none',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                textAlign: 'center',
-                transition: 'all 0.2s',
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.background = 'rgba(245, 158, 11, 0.3)';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.background = 'rgba(245, 158, 11, 0.2)';
-              }}
-            >
-              Skip Auth (Dev Only)
-            </a>
-          </div>
-        )}
-        
         <p style={{ 
           marginTop: '1.5rem', 
           fontSize: '0.75rem', 
