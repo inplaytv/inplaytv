@@ -184,6 +184,22 @@ export async function POST(
         console.log('✅ Updated tournament tee times');
         teeTimesUpdated = true;
         
+        // Trigger notification for tee times available
+        console.log('🔔 Sending tee times available notifications...');
+        try {
+          const { data: notifyData, error: notifyError } = await supabase
+            .rpc('notify_tee_times_available', {
+              p_tournament_id: tournamentId,
+              p_tournament_name: tournament.name
+            });
+          
+          if (!notifyError && notifyData) {
+            console.log(`✅ Sent notifications to ${notifyData} users`);
+          }
+        } catch (notifyError) {
+          console.warn('⚠️ Error sending notifications:', notifyError);
+        }
+        
         // Auto-trigger Calculate Times to update competition registration close times
         console.log('🔄 Auto-calculating competition times...');
         try {

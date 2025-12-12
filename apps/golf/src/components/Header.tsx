@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import UserMenu from './UserMenu';
 import NavigationMenu from './NavigationMenu';
+import NotificationBell from './NotificationBell';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Header() {
@@ -69,8 +70,14 @@ export default function Header() {
         {/* Navigation Menu */}
         <NavigationMenu />
 
-        {/* User Menu */}
-        <UserMenu />
+        {/* Right Section */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {/* Notification Bell */}
+          <NotificationBell />
+          
+          {/* User Menu */}
+          <UserMenu />
+        </div>
       </nav>
     </header>
   );

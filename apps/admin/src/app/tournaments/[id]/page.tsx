@@ -1904,14 +1904,14 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                             style={{
                               display: 'inline-block',
                               padding: '0.625rem 1.25rem',
-                              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.9), rgba(245, 158, 11, 0.9))',
-                              border: '1px solid rgba(251, 191, 36, 0.6)',
+                              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                              border: '1px solid #f59e0b',
                               borderRadius: '6px',
                               color: '#fff',
                               fontWeight: 600,
                               fontSize: '0.875rem',
                               textDecoration: 'none',
-                              boxShadow: '0 4px 12px rgba(251, 191, 36, 0.3)',
+                              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
                               transition: 'all 0.2s',
                             }}
                           >
