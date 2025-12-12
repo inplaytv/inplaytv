@@ -258,7 +258,7 @@ export default function LeaderboardsPage() {
         // Show the data with appropriate source
         setTournamentLeaderboard({
           ...data,
-          source: isUpcoming ? 'upcoming-field' : 'database'
+          source: tournamentIsUpcoming ? 'upcoming-field' : 'database'
         });
       }
     } catch (error) {
