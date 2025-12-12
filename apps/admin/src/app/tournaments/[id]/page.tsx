@@ -29,6 +29,7 @@ interface CompetitionType {
   default_entrants_cap: number | null;
   default_admin_fee_percent: number | null;
   default_reg_open_days_before: number | null;
+  round_start: number | null;
 }
 
 interface TournamentCompetition {
@@ -1807,10 +1808,10 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                         )}
                       </div>
                       <div>
-                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>Rounds:</span>{' '}
-                        {comp.competition_types.rounds_applicable 
-                          ? `R${comp.competition_types.rounds_applicable.join(', R')}`
-                          : 'All'}
+                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>Starting Round:</span>{' '}
+                        {comp.competition_types.round_start 
+                          ? `R${comp.competition_types.round_start}`
+                          : 'R1'}
                       </div>
                       <div>
                         <span style={{ color: 'rgba(255,255,255,0.5)' }}>Max Prize Pool:</span>{' '}

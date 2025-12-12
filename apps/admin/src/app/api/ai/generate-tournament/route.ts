@@ -13,7 +13,7 @@ interface CompetitionType {
   default_entrants_cap: number | null;
   default_admin_fee_percent: number | null;
   default_reg_open_days_before: number | null;
-  rounds_applicable: number[] | null;
+  round_start: number | null;
 }
 
 interface CompetitionSuggestion {
@@ -115,13 +115,12 @@ async function generateCompetitions(
   const roundCloseTimes = [round1Close, round2Close, round3Close, round4Close];
 
   for (const compType of competitionTypes) {
-    // Determine registration close time based on rounds_applicable
+    // Determine registration close time based on round_start
     let regCloseAt: Date;
     
-    if (compType.rounds_applicable && compType.rounds_applicable.length > 0) {
-      // Close before the first applicable round
-      const firstRound = Math.min(...compType.rounds_applicable);
-      regCloseAt = roundCloseTimes[firstRound - 1]; // Array is 0-indexed
+    if (compType.round_start && compType.round_start >= 1 && compType.round_start <= 4) {
+      // Close before the starting round
+      regCloseAt = roundCloseTimes[compType.round_start - 1]; // Array is 0-indexed
     } else {
       // Default to closing before Round 1
       regCloseAt = round1Close;

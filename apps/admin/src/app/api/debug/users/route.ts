@@ -56,7 +56,7 @@ export async function GET() {
         created_at: user.created_at,
         last_sign_in_at: user.last_sign_in_at,
         email_confirmed_at: user.email_confirmed_at,
-        banned: user.banned_until ? true : false,
+        banned: (user as any).banned_until ? true : false,
       })),
       profiles: profiles || [],
       deleted_profiles: deletedProfiles || [],
