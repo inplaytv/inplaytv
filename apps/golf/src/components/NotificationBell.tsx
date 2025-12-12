@@ -27,7 +27,7 @@ export default function NotificationBell() {
     if (user) {
       loadNotifications();
       
-      // Set up real-time subscription for new notifications
+      // Set up real-time subscription for new notifications (only if table exists)
       const channel = supabase
         .channel('notifications')
         .on(
@@ -44,7 +44,11 @@ export default function NotificationBell() {
             setUnreadCount(prev => prev + 1);
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'SUBSCRIPTION_ERROR') {
+            console.log('Notification subscription not available (table may not exist yet)');
+          }
+        });
 
       return () => {
         supabase.removeChannel(channel);
@@ -64,12 +68,23 @@ export default function NotificationBell() {
         .order('created_at', { ascending: false })
         .limit(20);
 
+      // Silently handle missing table (migrations not run yet)
+      if (error && (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist'))) {
+        console.log('Notifications table not yet created. Run NOTIFICATION-SYSTEM-MIGRATION.sql');
+        setNotifications([]);
+        setUnreadCount(0);
+        setLoading(false);
+        return;
+      }
+
       if (error) throw error;
 
       setNotifications(data || []);
       setUnreadCount(data?.filter(n => !n.read).length || 0);
     } catch (error) {
-      console.error('Error loading notifications:', error);
+      console.warn('Notifications not available:', error);
+      setNotifications([]);
+      setUnreadCount(0);
     } finally {
       setLoading(false);
     }
