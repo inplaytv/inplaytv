@@ -2,18 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabaseClient';
 
 export default function RequireAuth({ children }: { children: React.ReactNode }) {
-  const [loading, setLoading] = useState(true);
+  const [checking, setChecking] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClient();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    const checkOnboarding = async () => {
+      if (authLoading) return;
       
       if (!user) {
         router.push('/login');
@@ -22,6 +23,7 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
 
       // Check onboarding completion (skip check if on onboarding page)
       if (pathname !== '/onboarding') {
+        const supabase = createClient();
         const { data: profile } = await supabase
           .from('profiles')
           .select('onboarding_complete')
@@ -35,13 +37,13 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
       }
       
       setAuthenticated(true);
-      setLoading(false);
+      setChecking(false);
     };
 
-    checkAuth();
-  }, [supabase, router, pathname]);
+    checkOnboarding();
+  }, [user, authLoading, router, pathname]);
 
-  if (loading) {
+  if (authLoading || checking) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <p>Loading...</p>

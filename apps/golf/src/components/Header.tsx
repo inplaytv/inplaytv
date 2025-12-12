@@ -5,24 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import UserMenu from './UserMenu';
 import NavigationMenu from './NavigationMenu';
-import { createClient } from '@/lib/supabaseClient';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Header() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, loading } = useAuth();
   const pathname = usePathname();
   
-  useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-    };
-    
-    checkAuth();
-  }, [pathname]);
-
   // Don't show navigation menu if not authenticated
-  if (!isAuthenticated) {
+  if (loading || !user) {
     return (
       <header style={{
         background: 'linear-gradient(135deg, #0a0f1a 0%, #1a1f2e 100%)',

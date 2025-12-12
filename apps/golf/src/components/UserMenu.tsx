@@ -3,26 +3,27 @@
 import { createClient } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import UserAvatar from './UserAvatar';
 import { formatPounds } from '@/lib/money';
 import Link from 'next/link';
 
 export default function UserMenu() {
+  const { user, signOut: authSignOut } = useAuth();
   const supabase = createClient();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [balance, setBalance] = useState<number>(0);
 
   useEffect(() => {
-    loadUserData();
-  }, []);
+    if (user) {
+      loadUserData();
+    }
+  }, [user]);
 
   async function loadUserData() {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    setUser(user);
 
     // Load profile
     const { data: profileData } = await supabase
@@ -44,7 +45,7 @@ export default function UserMenu() {
   }
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
+    await authSignOut();
     // Redirect to website after logout
     const websiteUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
       ? 'http://localhost:3000'
