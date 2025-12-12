@@ -15,9 +15,27 @@ export async function POST(request: Request) {
       password,
     });
 
-    if (signInError || !authData.user) {
+    if (signInError) {
+      // Handle rate limit errors specifically
+      if (signInError.message?.includes('rate limit') || signInError.message?.includes('too many requests')) {
+        return NextResponse.json(
+          { 
+            error: 'Too many login attempts. Please wait a few minutes before trying again.',
+            rateLimited: true
+          },
+          { status: 429 }
+        );
+      }
+
       return NextResponse.json(
         { error: signInError?.message || 'Authentication failed' },
+        { status: 401 }
+      );
+    }
+
+    if (!authData.user) {
+      return NextResponse.json(
+        { error: 'Authentication failed' },
         { status: 401 }
       );
     }

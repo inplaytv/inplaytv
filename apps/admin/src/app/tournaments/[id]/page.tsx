@@ -86,6 +86,43 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
   // Custom entrants calculator states
   const [customEntrantsForm, setCustomEntrantsForm] = useState('0');
   const [customEntrantsExamples, setCustomEntrantsExamples] = useState<{ [key: string]: string }>({});
+  const [countdowns, setCountdowns] = useState<{ [key: string]: string }>({});
+
+  // Countdown timer for registration close
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      const newCountdowns: { [key: string]: string } = {};
+      
+      competitions.forEach((comp) => {
+        if (comp.reg_close_at) {
+          const closeTime = new Date(comp.reg_close_at);
+          const diff = closeTime.getTime() - now.getTime();
+          
+          if (diff > 0) {
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            if (days > 0) {
+              newCountdowns[comp.id] = `${days}d ${hours}h ${minutes}m`;
+            } else if (hours > 0) {
+              newCountdowns[comp.id] = `${hours}h ${minutes}m ${seconds}s`;
+            } else {
+              newCountdowns[comp.id] = `${minutes}m ${seconds}s`;
+            }
+          } else {
+            newCountdowns[comp.id] = 'Closed';
+          }
+        }
+      });
+      
+      setCountdowns(newCountdowns);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [competitions]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -147,7 +184,6 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
         fetch('/api/golfer-groups'),
         fetch(`/api/tournaments/${params.id}/golfers`),
       ]);
-
       if (tournamentRes.ok) {
         const tournamentData = await tournamentRes.json();
         setTournament(tournamentData);
@@ -978,35 +1014,77 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Competitions</h2>
-          {!showAddCompetition && availableTypes.length > 0 && (
-            <button
-              onClick={() => {
-                setShowAddCompetition(true);
-                setManualRegClose(false);
-                setShowRegCloseWarning(false);
-                // Pre-populate competition dates from tournament
-                if (tournament) {
-                  setCompetitionFormData(prev => ({
-                    ...prev,
-                    start_at: tournament.start_date.slice(0, 16),
-                    end_at: tournament.end_date.slice(0, 16),
-                  }));
-                }
-              }}
-              style={{
-                padding: '0.5rem 1rem',
-                background: 'rgba(16, 185, 129, 0.2)',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
-                borderRadius: '4px',
-                color: '#10b981',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-              }}
-            >
-              Add Competition
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            {competitions.length > 0 && (
+              <button
+                onClick={async () => {
+                  if (!confirm('This will auto-calculate registration close times based on round tee times. Continue?')) return;
+                  setSaving(true);
+                  try {
+                    const res = await fetch(`/api/tournaments/${params.id}/competitions/calculate-times`, {
+                      method: 'POST',
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      setSuccess(`✅ Updated ${data.updated} competitions`);
+                      setTimeout(() => setSuccess(''), 3000);
+                      // Reload data
+                      fetchData();
+                    } else {
+                      const data = await res.json();
+                      setError(data.error || 'Failed to calculate times');
+                    }
+                  } catch (err) {
+                    setError('Network error');
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: saving ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  borderRadius: '4px',
+                  color: '#60a5fa',
+                  fontWeight: 600,
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                }}
+              >
+                {saving ? 'Calculating...' : '🔄 Calculate Times'}
+              </button>
+            )}
+            {!showAddCompetition && availableTypes.length > 0 && (
+              <button
+                onClick={() => {
+                  setShowAddCompetition(true);
+                  setManualRegClose(false);
+                  setShowRegCloseWarning(false);
+                  // Pre-populate competition dates from tournament
+                  if (tournament) {
+                    setCompetitionFormData(prev => ({
+                      ...prev,
+                      start_at: tournament.start_date.slice(0, 16),
+                      end_at: tournament.end_date.slice(0, 16),
+                    }));
+                  }
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  borderRadius: '4px',
+                  color: '#10b981',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                }}
+              >
+                Add Competition
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Show message if no competition types available */}
@@ -1652,6 +1730,40 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                         {isExpanded ? '▼' : '▶'}
                       </span>
                       {comp.competition_types.name}
+                      {(() => {
+                        // Calculate status badge
+                        const now = new Date();
+                        const regCloseAt = comp.reg_close_at ? new Date(comp.reg_close_at) : null;
+                        
+                        let statusBadge = { text: comp.status.toUpperCase(), bg: 'rgba(107, 114, 128, 0.2)', border: 'rgba(107, 114, 128, 0.4)', color: '#9ca3af' };
+                        
+                        if (regCloseAt) {
+                          if (now < regCloseAt) {
+                            // Registration open
+                            statusBadge = { text: '🟢 OPEN', bg: 'rgba(16, 185, 129, 0.2)', border: 'rgba(16, 185, 129, 0.4)', color: '#10b981' };
+                          } else {
+                            // Registration closed - competition live
+                            statusBadge = { text: '🔴 LIVE', bg: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.4)', color: '#f87171' };
+                          }
+                        } else {
+                          // No reg_close_at set
+                          statusBadge = { text: '⚠️ NO TIMES', bg: 'rgba(251, 191, 36, 0.2)', border: 'rgba(251, 191, 36, 0.4)', color: '#fbbf24' };
+                        }
+                        
+                        return (
+                          <span style={{
+                            fontSize: '0.75rem',
+                            padding: '0.25rem 0.5rem',
+                            background: statusBadge.bg,
+                            border: `1px solid ${statusBadge.border}`,
+                            borderRadius: '4px',
+                            color: statusBadge.color,
+                            fontWeight: 600,
+                          }}>
+                            {statusBadge.text}
+                          </span>
+                        );
+                      })()}
                       {tournamentGolferCount === 0 && (
                         <span style={{
                           fontSize: '0.75rem',
@@ -1662,7 +1774,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                           color: '#f87171',
                           fontWeight: 600,
                         }}>
-                          ⚠ Tournament has no golfers
+                          ⚠ No golfers
                         </span>
                       )}
                     </h4>
@@ -1695,8 +1807,10 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                         )}
                       </div>
                       <div>
-                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>Status:</span>{' '}
-                        {comp.status.replace('_', ' ')}
+                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>Rounds:</span>{' '}
+                        {comp.competition_types.rounds_applicable 
+                          ? `R${comp.competition_types.rounds_applicable.join(', R')}`
+                          : 'All'}
                       </div>
                       <div>
                         <span style={{ color: 'rgba(255,255,255,0.5)' }}>Max Prize Pool:</span>{' '}
@@ -1712,7 +1826,14 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                       </div>
                     </div>
                     {(comp.reg_open_at || comp.reg_close_at) && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', fontSize: '0.8125rem', color: 'rgba(255,255,255,0.6)' }}>
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(2, 1fr)', 
+                        gap: '1rem', 
+                        fontSize: '0.8125rem', 
+                        color: 'rgba(255,255,255,0.6)',
+                        marginBottom: '0.75rem'
+                      }}>
                         <div>
                           <span style={{ color: 'rgba(255,255,255,0.4)' }}>Reg Opens:</span>{' '}
                           {comp.reg_open_at ? new Date(comp.reg_open_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
@@ -1723,6 +1844,82 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                         </div>
                       </div>
                     )}
+                    {/* Action Button - Build Your Team or View Leaderboard */}
+                    {(() => {
+                      const now = new Date();
+                      const regCloseAt = comp.reg_close_at ? new Date(comp.reg_close_at) : null;
+                      const isRegistrationOpen = regCloseAt && now < regCloseAt;
+                      
+                      if (isRegistrationOpen) {
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {/* Countdown Timer */}
+                            {countdowns[comp.id] && countdowns[comp.id] !== 'Closed' && (
+                              <div style={{
+                                padding: '0.75rem 1rem',
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                border: '1px solid rgba(16, 185, 129, 0.3)',
+                                borderRadius: '6px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                              }}>
+                                <span style={{ fontSize: '1.25rem' }}>⏱️</span>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: '0.75rem', color: 'rgba(16, 185, 129, 0.8)', fontWeight: 500 }}>
+                                    Registration Closes In
+                                  </div>
+                                  <div style={{ fontSize: '1.125rem', color: '#10b981', fontWeight: 700, fontFamily: 'monospace' }}>
+                                    {countdowns[comp.id]}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            <Link
+                              href={`/tournaments/${tournament?.slug || params.id}/build-team?competition=${comp.id}`}
+                              style={{
+                                display: 'inline-block',
+                                padding: '0.625rem 1.25rem',
+                                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9))',
+                                border: '1px solid rgba(16, 185, 129, 0.6)',
+                                borderRadius: '6px',
+                                color: '#fff',
+                                fontWeight: 600,
+                                fontSize: '0.875rem',
+                                textDecoration: 'none',
+                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                                transition: 'all 0.2s',
+                                textAlign: 'center',
+                              }}
+                            >
+                              🎯 Build Your Team
+                            </Link>
+                          </div>
+                        );
+                      } else if (regCloseAt && now >= regCloseAt) {
+                        return (
+                          <Link
+                            href={`/tournaments/${tournament?.slug || params.id}/leaderboard?competition=${comp.id}`}
+                            style={{
+                              display: 'inline-block',
+                              padding: '0.625rem 1.25rem',
+                              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.9), rgba(245, 158, 11, 0.9))',
+                              border: '1px solid rgba(251, 191, 36, 0.6)',
+                              borderRadius: '6px',
+                              color: '#fff',
+                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              textDecoration: 'none',
+                              boxShadow: '0 4px 12px rgba(251, 191, 36, 0.3)',
+                              transition: 'all 0.2s',
+                            }}
+                          >
+                            📊 View Live Leaderboard
+                          </Link>
+                        );
+                      }
+                      return null;
+                    })()}
                     </>
                     )}
                   </div>

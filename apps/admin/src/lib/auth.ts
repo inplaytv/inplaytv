@@ -64,6 +64,20 @@ export async function isAdmin(userId: string): Promise<boolean> {
  * Use this in protected admin pages
  */
 export async function assertAdminOrRedirect() {
+  // DEVELOPMENT BYPASS: Skip auth checks entirely in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔓 Development mode - skipping admin auth check');
+    return {
+      id: 'dev-user-id',
+      email: 'dev@admin.local',
+      created_at: new Date().toISOString(),
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      role: 'authenticated'
+    };
+  }
+
   const user = await getCurrentUser();
   
   if (!user) {

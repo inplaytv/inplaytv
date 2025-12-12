@@ -7,8 +7,36 @@ export const dynamic = 'force-dynamic';
 async function searchUsers(query?: string) {
   const adminClient = createAdminClient();
   
-  // Get auth users
-  const { data: { users } } = await adminClient.auth.admin.listUsers();
+  // Get ALL auth users with pagination
+  let allUsers: any[] = [];
+  let page = 1;
+  const perPage = 1000;
+  
+  while (true) {
+    const { data, error } = await adminClient.auth.admin.listUsers({
+      page,
+      perPage,
+    });
+    
+    if (error) {
+      console.error('Error fetching users:', error);
+      break;
+    }
+    
+    if (!data.users || data.users.length === 0) {
+      break;
+    }
+    
+    allUsers = allUsers.concat(data.users);
+    
+    if (data.users.length < perPage) {
+      break; // Last page
+    }
+    
+    page++;
+  }
+  
+  const users = allUsers;
   
   // Get profiles for username, phone and personal info
   const { data: profiles, error: profilesError } = await adminClient

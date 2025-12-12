@@ -68,11 +68,22 @@ export async function GET() {
           console.error(`[Lifecycle API] Error fetching entry count for ${tournament.name}:`, entryError);
         }
 
+        // Normalize status values to match Lifecycle Manager expectations
+        let normalizedStatus = tournament.status || 'upcoming';
+        if (normalizedStatus === 'live') {
+          normalizedStatus = 'in_progress';
+        }
+
         return {
           ...tournament,
           golfer_count: golferCount || 0,
           competition_count: competitionCount,
           entry_count: entryCount || 0,
+          // Ensure required fields have defaults and normalized values
+          status: normalizedStatus,
+          timezone: tournament.timezone || 'UTC',
+          registration_opens_at: tournament.registration_opens_at || null,
+          registration_closes_at: tournament.registration_closes_at || null,
         };
       })
     );

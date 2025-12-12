@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import RequireAuth from '@/components/RequireAuth';
 import styles from './entries.module.css';
@@ -77,6 +77,9 @@ interface CompetitionEntrant {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [filterType, setFilterType] = useState<string | null>(null);
+  
+  // Track if we've done the initial auto-selection
+  const hasAutoSelectedRef = useRef(false);
 
   useEffect(() => {
     // Check URL for filter parameter
@@ -132,10 +135,14 @@ interface CompetitionEntrant {
       if (!res.ok) throw new Error('Failed to fetch entries');
       const data = await res.json();
       const fetchedEntries = data.entries || [];
+      
       setEntries(fetchedEntries);
-      // Auto-select first tournament if entries exist
-      if (fetchedEntries.length > 0 && !selectedTournamentId && fetchedEntries[0].tournament_competitions?.tournaments?.name) {
+      
+      // Only auto-select first tournament on the very first load
+      // Never change selection during polling updates
+      if (fetchedEntries.length > 0 && !hasAutoSelectedRef.current && fetchedEntries[0].tournament_competitions?.tournaments?.name) {
         setSelectedTournamentId(fetchedEntries[0].tournament_competitions.tournaments.name);
+        hasAutoSelectedRef.current = true;
       }
     } catch (error) {
       console.error('❌ Error fetching entries:', error);

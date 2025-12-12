@@ -13,7 +13,14 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { registration_opens_at, registration_closes_at } = await request.json();
+    const { 
+      registration_opens_at, 
+      registration_closes_at,
+      round1_tee_time,
+      round2_tee_time,
+      round3_tee_time,
+      round4_tee_time
+    } = await request.json();
 
     // Validate required fields
     if (!registration_opens_at || !registration_closes_at) {
@@ -64,14 +71,35 @@ export async function POST(
       );
     }
 
-    // Update tournament with registration windows
+    // Build updates object with registration times and round tee times
+    interface TournamentUpdates {
+      registration_opens_at: string;
+      registration_closes_at: string;
+      updated_at: string;
+      round1_tee_time?: string;
+      round2_tee_time?: string;
+      round3_tee_time?: string;
+      round4_tee_time?: string;
+    }
+
+    const updates: TournamentUpdates = {
+      registration_opens_at,
+      registration_closes_at,
+      updated_at: new Date().toISOString()
+    };
+
+    // Add round tee times if provided
+    if (round1_tee_time) updates.round1_tee_time = round1_tee_time;
+    if (round2_tee_time) updates.round2_tee_time = round2_tee_time;
+    if (round3_tee_time) updates.round3_tee_time = round3_tee_time;
+    if (round4_tee_time) updates.round4_tee_time = round4_tee_time;
+
+    console.log('[Registration] Updating tournament with:', updates);
+
+    // Update tournament with registration windows and round tee times
     const { data: updatedTournament, error: updateError } = await supabase
       .from('tournaments')
-      .update({ 
-        registration_opens_at,
-        registration_closes_at,
-        updated_at: new Date().toISOString()
-      })
+      .update(updates)
       .eq('id', params.id)
       .select()
       .single();
@@ -82,6 +110,28 @@ export async function POST(
         { error: 'Failed to update registration windows' },
         { status: 500 }
       );
+    }
+
+    // Auto-calculate competition registration times based on round tee times
+    console.log('[Registration] Auto-calculating competition times...');
+    try {
+      const calculateUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL?.replace('/rest/v1', '')}/api/tournaments/${params.id}/competitions/calculate-times`;
+      const calculateRes = await fetch(calculateUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (calculateRes.ok) {
+        const calcData = await calculateRes.json();
+        console.log(`[Registration] ✅ Auto-calculated times for ${calcData.updated} competitions`);
+      } else {
+        console.warn('[Registration] ⚠️ Could not auto-calculate competition times');
+      }
+    } catch (calcError) {
+      console.warn('[Registration] ⚠️ Competition time calculation failed:', calcError);
+      // Don't fail the whole request if this fails
     }
 
     return NextResponse.json({ 

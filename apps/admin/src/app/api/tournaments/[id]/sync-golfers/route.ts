@@ -165,6 +165,7 @@ export async function POST(
     console.log('⏰ Round tee times:', roundTeeTimes);
 
     // Update tournament with tee times if we have them
+    let teeTimesUpdated = false;
     if (roundTeeTimes.round1 || roundTeeTimes.round2 || roundTeeTimes.round3 || roundTeeTimes.round4) {
       const teeTimeUpdate: any = {};
       if (roundTeeTimes.round1) teeTimeUpdate.round1_tee_time = roundTeeTimes.round1;
@@ -181,6 +182,27 @@ export async function POST(
         console.error('⚠️ Error updating tee times:', teeTimeError);
       } else {
         console.log('✅ Updated tournament tee times');
+        teeTimesUpdated = true;
+        
+        // Auto-trigger Calculate Times to update competition registration close times
+        console.log('🔄 Auto-calculating competition times...');
+        try {
+          const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace('/rest/v1', '') || 'http://localhost:3002';
+          const calculateUrl = `${baseUrl}/api/tournaments/${tournamentId}/competitions/calculate-times`;
+          const calculateRes = await fetch(calculateUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          
+          if (calculateRes.ok) {
+            const calcData = await calculateRes.json();
+            console.log(`✅ Auto-calculated times for ${calcData.updated} competitions`);
+          } else {
+            console.warn('⚠️ Could not auto-calculate competition times');
+          }
+        } catch (calcError) {
+          console.warn('⚠️ Error auto-calculating competition times:', calcError);
+        }
       }
     }
 

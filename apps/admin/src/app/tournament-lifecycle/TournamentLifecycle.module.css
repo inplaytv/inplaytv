@@ -441,3 +441,78 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .legend {
+    gap: 1rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .tournamentName {
+    font-size: 1rem;
+  }
+
+  .stats {
+    gap: 0.5rem;
+  }
+
+  .statValue {
+    font-size: 1.25rem;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .actionButton {
+    width: 100%;
+  }
+
+  .modal {
+    padding: 1rem;
+  }
+
+  .modalContent {
+    max-width: 100%;
+  }
+
+  .modalFooter {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .legendItem {
+    font-size: 0.75rem;
+  }
+
+  .dateLabel, .dateValue {
+    font-size: 0.75rem;
+  }
+}

@@ -4,6 +4,20 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import RequireAuth from '@/components/RequireAuth';
 import styles from './leaderboards.module.css';
+import { 
+  isLive, 
+  isUpcoming, 
+  isCompleted, 
+  normalizeStatus, 
+  getStatusLabel,
+  // New type-safe utilities (added but not breaking existing code)
+  COMPETITION_STATUS,
+  LEADERBOARD_RULES,
+  shouldShowInPlayLeaderboard,
+  type Competition,
+  type InPlayCompetition,
+  type Tournament as TournamentType
+} from '@/lib';
 import {
   calculateHolePoints,
   calculateGolferScore,
@@ -81,6 +95,51 @@ export default function LeaderboardsPage() {
   const [showTeeTimes, setShowTeeTimes] = useState(false);
   const [teeTimes, setTeeTimes] = useState<any>(null);
   const [teeTimesLoading, setTeeTimesLoading] = useState(false);
+  const [countdown, setCountdown] = useState<string>('');
+
+  // Countdown timer for tee times
+  useEffect(() => {
+    if (!showTeeTimes || !teeTimes?.field) return;
+    
+    const updateCountdown = () => {
+      // Find first tee time
+      const firstTeeTime = teeTimes.field
+        .filter((p: any) => p.tee_time)
+        .sort((a: any, b: any) => new Date(a.tee_time).getTime() - new Date(b.tee_time).getTime())[0];
+      
+      if (!firstTeeTime?.tee_time) {
+        setCountdown('');
+        return;
+      }
+      
+      const now = new Date().getTime();
+      const teeTime = new Date(firstTeeTime.tee_time).getTime();
+      const diff = teeTime - now;
+      
+      if (diff <= 0) {
+        setCountdown('Tournament Started');
+        return;
+      }
+      
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      if (days > 0) {
+        setCountdown(`${days}d ${hours}h ${minutes}m`);
+      } else if (hours > 0) {
+        setCountdown(`${hours}h ${minutes}m ${seconds}s`);
+      } else {
+        setCountdown(`${minutes}m ${seconds}s`);
+      }
+    };
+    
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    
+    return () => clearInterval(interval);
+  }, [showTeeTimes, teeTimes]);
 
   // Load competitions on mount
   useEffect(() => {
@@ -156,10 +215,10 @@ export default function LeaderboardsPage() {
       
       // Check tournament status
       const tournamentStatus = tournament.status;
-      const isUpcoming = tournamentStatus === 'upcoming' || tournamentStatus === 'registration_open' || tournamentStatus === 'registration_closed';
+      const tournamentIsUpcoming = isUpcoming(tournamentStatus);
       
       // For live/completed tournaments, try to get live scores from DataGolf
-      if (!isUpcoming) {
+      if (!tournamentIsUpcoming) {
         const liveResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/live-scores`);
         
         if (liveResponse.ok) {
@@ -188,7 +247,7 @@ export default function LeaderboardsPage() {
       const data = await response.json();
       
       // If tournament is upcoming and no golfers assigned yet, show message
-      if (isUpcoming && (!data.leaderboard || data.leaderboard.length === 0)) {
+      if (tournamentIsUpcoming && (!data.leaderboard || data.leaderboard.length === 0)) {
         setTournamentLeaderboard({
           tournament: data.tournament,
           leaderboard: [],
@@ -301,7 +360,7 @@ export default function LeaderboardsPage() {
       const tournamentId = data.competition?.tournament?.id;
       const tournamentSlug = data.competition?.tournament?.slug;
       const tournamentStatus = data.competition?.tournament?.status;
-      const tournamentStarted = tournamentStatus === 'live' || tournamentStatus === 'completed';
+      const tournamentStarted = isLive(tournamentStatus) || isCompleted(tournamentStatus);
       
       if (tournamentId && tournamentStarted) {
         const tournamentResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentId)}/leaderboard`);
@@ -540,7 +599,7 @@ export default function LeaderboardsPage() {
       
       // Only load tournament leaderboard if tournament has started (live or completed)
       const tournament = leaderboardData?.competition?.tournament;
-      const tournamentStarted = tournament?.status === 'live' || tournament?.status === 'completed';
+      const tournamentStarted = tournament?.status ? (isLive(tournament.status) || isCompleted(tournament.status)) : false;
       
       if (tournamentId && tournamentStarted && (!tournamentLeaderboard || tournamentLeaderboard.tournament?.id !== tournamentId)) {
         const tournamentResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentId)}/leaderboard`);
@@ -629,8 +688,8 @@ export default function LeaderboardsPage() {
   };
 
   const getStatusEmoji = (status: string) => {
-    if (status === 'in-play') return '🔴 Live';
-    if (status === 'completed') return '✅ Completed';
+    if (isLive(status)) return '🔴 Live';
+    if (isCompleted(status)) return '✅ Completed';
     return '📅 Upcoming';
   };
 
@@ -837,20 +896,20 @@ export default function LeaderboardsPage() {
                         background: 'rgba(102, 126, 234, 0.1)',
                         border: '1px solid rgba(102, 126, 234, 0.3)',
                         borderRadius: '6px',
-                        padding: '12px 16px',
-                        marginBottom: '16px',
+                        padding: '8px 12px',
+                        marginBottom: '12px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between'
                       }}>
-                        <div style={{ fontSize: '14px', color: '#e5e7eb', fontWeight: 600 }}>
+                        <div style={{ fontSize: '13px', color: '#e5e7eb', fontWeight: 600 }}>
                           {competitions.find(c => c.id === selectedCompetition)?.tournamentName} - {competitions.find(c => c.id === selectedCompetition)?.competition_types?.name}
                         </div>
                         <div style={{
                           background: 'rgba(102, 126, 234, 0.2)',
-                          padding: '6px 12px',
+                          padding: '4px 10px',
                           borderRadius: '4px',
-                          fontSize: '13px',
+                          fontSize: '12px',
                           fontWeight: 600,
                           color: '#a5b4fc'
                         }}>
@@ -863,11 +922,11 @@ export default function LeaderboardsPage() {
                         display: 'grid',
                         gridTemplateColumns: '40px 1fr minmax(100px, 120px)',
                         gap: '12px',
-                        padding: '12px 16px',
+                        padding: '8px 12px',
                         background: 'rgba(255,255,255,0.05)',
-                        borderRadius: '8px',
-                        marginBottom: '12px',
-                        fontSize: '12px',
+                        borderRadius: '6px',
+                        marginBottom: '8px',
+                        fontSize: '11px',
                         fontWeight: 600,
                         color: '#9ca3af',
                         textTransform: 'uppercase'
@@ -878,7 +937,7 @@ export default function LeaderboardsPage() {
                       </div>
 
                       {/* Fantasy Entries - Real Data */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {[...leaderboardData.entries]
                           .sort((a, b) => calculateEntryFantasyPoints(b) - calculateEntryFantasyPoints(a))
                           .map((entry: any, index: number) => {
@@ -895,8 +954,8 @@ export default function LeaderboardsPage() {
                                 gap: '12px',
                                 background: isTop3 ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255,255,255,0.03)',
                                 border: `1px solid ${isTop3 ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255,255,255,0.08)'}`,
-                                borderRadius: '8px',
-                                padding: '16px',
+                                borderRadius: '6px',
+                                padding: '10px 12px',
                                 transition: 'all 0.2s',
                                 cursor: 'pointer',
                                 alignItems: 'center'
@@ -910,14 +969,14 @@ export default function LeaderboardsPage() {
                             >
                               {/* Position Badge */}
                               <div style={{
-                                width: '32px',
-                                height: '32px',
+                                width: '28px',
+                                height: '28px',
                                 background: isTop3 ? '#667eea' : '#374151',
                                 borderRadius: '50%',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '14px',
+                                fontSize: '13px',
                                 fontWeight: 700,
                                 color: 'white'
                               }}>
@@ -926,10 +985,10 @@ export default function LeaderboardsPage() {
 
                               {/* User Info */}
                               <div>
-                                <div style={{ fontSize: '16px', fontWeight: 600, color: '#e5e7eb', marginBottom: '4px' }}>
+                                <div style={{ fontSize: '14px', fontWeight: 600, color: '#e5e7eb', marginBottom: '2px' }}>
                                   {entry.username}
                                 </div>
-                                <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#9ca3af' }}>
+                                <div style={{ display: 'flex', gap: '10px', fontSize: '11px', color: '#9ca3af' }}>
                                   <span>Entry: {entry.entryName || 'Unnamed'}</span>
                                   <span>{entry.picks?.length || 0} Golfers</span>
                                   <span>💰 £{(entry.totalSalary / 100).toFixed(0)}</span>
@@ -943,11 +1002,11 @@ export default function LeaderboardsPage() {
                                   const hasData = tournamentLeaderboard?.leaderboard && entry.picks?.length > 0;
                                   return (
                                     <>
-                                      <div style={{ fontSize: '18px', fontWeight: 700, color: hasData ? '#e5e7eb' : '#9ca3af' }}>
+                                      <div style={{ fontSize: '16px', fontWeight: 700, color: hasData ? '#e5e7eb' : '#9ca3af' }}>
                                         {points}
                                       </div>
                                       <div style={{ fontSize: '10px', color: '#9ca3af' }}>
-                                        {hasData ? 'Fantasy Pts' : 'Calculating...'}
+                                        {hasData ? 'Pts' : 'Calc...'}
                                       </div>
                                     </>
                                   );
@@ -1066,40 +1125,33 @@ export default function LeaderboardsPage() {
             isolation: 'isolate',
             minHeight: '400px'
           }}>
-            {/* Header */}
-            <div style={{
-              marginBottom: '24px',
-              paddingBottom: '16px',
-              borderBottom: '1px solid rgba(255,255,255,0.1)'
-            }}>
+            {/* Header & Tournament Selector - Condensed */}
+            <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <h2 style={{ 
-                fontSize: '20px', 
+                fontSize: '18px', 
                 fontWeight: 700, 
                 color: '#fbbf24',
-                marginBottom: '8px'
+                margin: 0,
+                whiteSpace: 'nowrap'
               }}>
-                🏆 Tournament Leaderboard
+                🏆 Tournament
               </h2>
-            </div>
-
-            {/* Tournament Selector */}
-            <div style={{ marginBottom: '20px' }}>
               <select
                 value={selectedTournament}
                 onChange={(e) => setSelectedTournament(e.target.value)}
                 style={{
-                  width: '100%',
-                  padding: '12px 16px',
+                  flex: 1,
+                  padding: '8px 12px',
                   background: 'rgba(255,255,255,0.05)',
                   border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   color: '#e5e7eb',
-                  fontSize: '14px',
+                  fontSize: '13px',
                   fontWeight: 500,
                   cursor: 'pointer'
                 }}
               >
-                <option value="" style={{ background: '#1f2937', color: '#e5e7eb' }}>Select a tournament...</option>
+                <option value="" style={{ background: '#1f2937', color: '#e5e7eb' }}>Select tournament...</option>
                 {tournaments.map((tournament) => (
                   <option key={tournament.id} value={tournament.id} style={{ background: '#1f2937', color: '#e5e7eb' }}>
                     {tournament.name}
@@ -1108,33 +1160,27 @@ export default function LeaderboardsPage() {
               </select>
             </div>
 
-            {/* Tournament Status Display */}
+            {/* Tournament Status Display - Condensed */}
             {selectedTournament && tournamentLeaderboard?.tournament && (
               <div style={{
                 background: 'rgba(255,255,255,0.03)',
                 border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                marginBottom: '20px',
+                borderRadius: '6px',
+                padding: '8px 12px',
+                marginBottom: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px'
+                gap: '8px',
+                fontSize: '12px'
               }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ fontSize: '15px', fontWeight: 600, color: '#e5e7eb' }}>
-                    {tournamentLeaderboard.tournament.name}
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#9ca3af' }}>
                   {tournamentLeaderboard.tournament.startDate && tournamentLeaderboard.tournament.endDate && (
-                    <div style={{ fontSize: '12px', color: '#9ca3af' }}>
-                      {new Date(tournamentLeaderboard.tournament.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(tournamentLeaderboard.tournament.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </div>
+                    <span>
+                      {new Date(tournamentLeaderboard.tournament.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(tournamentLeaderboard.tournament.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
                   )}
-                  <div style={{ fontSize: '12px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span>🏌️</span>
-                    <span>{tournamentLeaderboard.leaderboard?.length || 0} golfers</span>
-                  </div>
+                  <span>🏌️ {tournamentLeaderboard.leaderboard?.length || 0}</span>
                 </div>
                 <div style={{
                   background: (() => {
@@ -1145,9 +1191,9 @@ export default function LeaderboardsPage() {
                     const statusInfo = getTournamentStatus(tournamentLeaderboard.tournament);
                     return `${statusInfo.color}60`;
                   })()}`,
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '13px',
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
                   fontWeight: 600,
                   color: (() => {
                     const statusInfo = getTournamentStatus(tournamentLeaderboard.tournament);
@@ -1159,7 +1205,7 @@ export default function LeaderboardsPage() {
               </div>
             )}
 
-            {/* Live Data Status - Show last update time and refresh button */}
+            {/* Data Status & Actions - Condensed */}
             {selectedTournament && tournamentLeaderboard && (
               <div style={{
                 background: tournamentLeaderboard.source === 'datagolf-live' 
@@ -1168,32 +1214,32 @@ export default function LeaderboardsPage() {
                 border: `1px solid ${tournamentLeaderboard.source === 'datagolf-live' 
                   ? 'rgba(34, 197, 94, 0.3)' 
                   : 'rgba(59, 130, 246, 0.3)'}`,
-                borderRadius: '8px',
-                padding: '12px 16px',
-                marginBottom: '20px',
+                borderRadius: '6px',
+                padding: '8px 12px',
+                marginBottom: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '12px'
+                gap: '8px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
                   <span style={{ 
-                    width: '8px', 
-                    height: '8px', 
+                    width: '6px', 
+                    height: '6px', 
                     borderRadius: '50%', 
                     background: tournamentLeaderboard.source === 'datagolf-live' ? '#22c55e' : '#3b82f6',
                     animation: tournamentLeaderboard.source === 'datagolf-live' ? 'pulse 2s infinite' : 'none'
                   }}></span>
                   <span style={{ color: '#e5e7eb', fontWeight: 500 }}>
-                    {tournamentLeaderboard.source === 'datagolf-live' ? '🔴 LIVE' : '📊 Database'} Data
+                    {tournamentLeaderboard.source === 'datagolf-live' ? 'LIVE' : 'DB'}
                   </span>
                   {tournamentLeaderboard.lastUpdated && (
-                    <span style={{ color: '#9ca3af', fontSize: '12px' }}>
-                      • Updated {new Date(tournamentLeaderboard.lastUpdated).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    <span style={{ color: '#9ca3af', fontSize: '11px' }}>
+                      • {new Date(tournamentLeaderboard.lastUpdated).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                     </span>
                   )}
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   <button
                     onClick={() => {
                       const tournament = tournaments.find((t: any) => t.id === selectedTournament);
@@ -1205,19 +1251,16 @@ export default function LeaderboardsPage() {
                     style={{
                       background: 'rgba(102, 126, 234, 0.2)',
                       border: '1px solid rgba(102, 126, 234, 0.4)',
-                      borderRadius: '6px',
-                      padding: '6px 12px',
+                      borderRadius: '4px',
+                      padding: '4px 10px',
                       color: '#a5b4fc',
-                      fontSize: '12px',
+                      fontSize: '11px',
                       fontWeight: 600,
                       cursor: teeTimesLoading ? 'not-allowed' : 'pointer',
-                      opacity: teeTimesLoading ? 0.5 : 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
+                      opacity: teeTimesLoading ? 0.5 : 1
                     }}
                   >
-                    ⏰ {teeTimesLoading ? 'Loading...' : 'TEE TIMES'}
+                    ⏰ {teeTimesLoading ? '...' : 'TIMES'}
                   </button>
                   <button
                     onClick={() => loadTournamentLeaderboard(selectedTournament)}
@@ -1225,20 +1268,16 @@ export default function LeaderboardsPage() {
                     style={{
                       background: 'rgba(255,255,255,0.1)',
                       border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: '6px',
-                      padding: '6px 12px',
+                      borderRadius: '4px',
+                      padding: '4px 10px',
                       color: '#e5e7eb',
-                      fontSize: '12px',
+                      fontSize: '11px',
                       fontWeight: 500,
                       cursor: tournamentLoading ? 'not-allowed' : 'pointer',
-                      opacity: tournamentLoading ? 0.5 : 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
+                      opacity: tournamentLoading ? 0.5 : 1
                     }}
                   >
-                    <span style={{ transform: tournamentLoading ? 'rotate(360deg)' : 'none', transition: 'transform 1s linear', display: 'inline-block' }}>🔄</span>
-                    {tournamentLoading ? 'Refreshing...' : 'Refresh'}
+                    🔄 {tournamentLoading ? '...' : 'Refresh'}
                   </button>
                 </div>
               </div>
@@ -1487,8 +1526,10 @@ export default function LeaderboardsPage() {
                   <div style={{ fontSize: '18px', fontWeight: 600, color: '#fff' }}>
                     {popupScorecard.tournamentName}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-                    Submitted: {new Date(popupScorecard.submittedAt).toLocaleDateString()}
+                  <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px', display: 'flex', gap: '12px' }}>
+                    <span>Submitted: {new Date(popupScorecard.submittedAt).toLocaleDateString()}</span>
+                    <span>•</span>
+                    <span>Ref: #{popupScorecard.id.slice(0, 8).toUpperCase()}</span>
                   </div>
                 </div>
                 <button
@@ -2635,37 +2676,94 @@ export default function LeaderboardsPage() {
               {/* Header */}
               <div style={{
                 padding: '24px',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
+                borderBottom: '1px solid rgba(255,255,255,0.1)'
               }}>
-                <div>
-                  <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
-                    ⏰ Tee Times
-                  </h2>
-                  <p style={{ fontSize: '14px', color: '#9ca3af' }}>
-                    {teeTimes.tournament?.name}
-                  </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                  <div>
+                    <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
+                      ⏰ Tee Times
+                    </h2>
+                    <p style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '2px' }}>
+                      {teeTimes.tournament?.name}
+                    </p>
+                    {teeTimes.tournament?.startDate && teeTimes.tournament?.endDate && (
+                      <p style={{ fontSize: '13px', color: '#6b7280' }}>
+                        {new Date(teeTimes.tournament.startDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} - {new Date(teeTimes.tournament.endDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowTeeTimes(false)}
+                    style={{
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '8px',
+                      width: '36px',
+                      height: '36px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#e5e7eb',
+                      fontSize: '20px',
+                      cursor: 'pointer',
+                      flexShrink: 0
+                    }}
+                  >
+                    ×
+                  </button>
                 </div>
-                <button
-                  onClick={() => setShowTeeTimes(false)}
-                  style={{
-                    background: 'rgba(255,255,255,0.1)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '8px',
-                    width: '36px',
-                    height: '36px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#e5e7eb',
-                    fontSize: '20px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  ×
-                </button>
+                
+                {/* Countdown & Time Zones */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: countdown ? '1fr auto 1fr' : '1fr 1fr',
+                  gap: '12px',
+                  background: 'rgba(102, 126, 234, 0.1)',
+                  border: '1px solid rgba(102, 126, 234, 0.3)',
+                  borderRadius: '8px',
+                  padding: '12px'
+                }}>
+                  {/* Local Time */}
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 600 }}>Your Time</div>
+                    <div style={{ fontSize: '18px', fontWeight: 700, color: '#e5e7eb' }}>
+                      {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
+                      {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                    </div>
+                  </div>
+                  
+                  {/* Countdown */}
+                  {countdown && (
+                    <div style={{ 
+                      textAlign: 'center',
+                      background: countdown === 'Tournament Started' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 191, 36, 0.2)',
+                      border: countdown === 'Tournament Started' ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(251, 191, 36, 0.4)',
+                      borderRadius: '6px',
+                      padding: '8px 16px',
+                      minWidth: '160px'
+                    }}>
+                      <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 600 }}>First Tee</div>
+                      <div style={{ 
+                        fontSize: '20px', 
+                        fontWeight: 700, 
+                        color: countdown === 'Tournament Started' ? '#22c55e' : '#fbbf24'
+                      }}>
+                        {countdown === 'Tournament Started' ? '🏌️ LIVE' : countdown}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Tournament Time (EST for US tournaments, adjust as needed) */}
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 600 }}>Tournament Time</div>
+                    <div style={{ fontSize: '18px', fontWeight: 700, color: '#e5e7eb' }}>
+                      {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'America/New_York' })}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>EST (US)</div>
+                  </div>
+                </div>
               </div>
 
               {/* Content */}
