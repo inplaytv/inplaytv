@@ -17,7 +17,7 @@ export default function SiteSettingsPage() {
   const [comingSoon, setComingSoon] = useState<ComingSoonSettings>({
     headline: 'COMING SOON',
     description: '',
-    backgroundImage: '/backgrounds/golf-03.jpg',
+    backgroundImage: '',
     logoText: 'InPlayTV',
     tagline: 'A new way to follow what matters.'
   });
@@ -106,6 +106,35 @@ export default function SiteSettingsPage() {
       setMessage({ type: 'success', text: 'Coming soon page updated successfully!' });
     } catch (err: any) {
       console.error('[Site Settings] Error updating coming soon:', err);
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClearBackgroundImage = async () => {
+    try {
+      setSaving(true);
+      setMessage(null);
+
+      const updatedSettings = { ...comingSoon, backgroundImage: '' };
+      setComingSoon(updatedSettings);
+
+      const response = await fetch('/api/settings/coming-soon', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedSettings),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to clear background image');
+      }
+
+      setMessage({ type: 'success', text: 'Background image cleared successfully!' });
+    } catch (err: any) {
+      console.error('[Site Settings] Error clearing background image:', err);
       setMessage({ type: 'error', text: err.message });
     } finally {
       setSaving(false);
@@ -408,7 +437,7 @@ export default function SiteSettingsPage() {
                   color: '#fff',
                   fontSize: '0.875rem',
                 }}
-                placeholder="/backgrounds/golf-03.jpg"
+                placeholder="/backgrounds/golf-03.jpg (leave blank for no image)"
               />
               <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.25rem' }}>
                 Available: /backgrounds/golf-02.jpg, golf-03.jpg, golf-course-blue.jpg, golf-course-green.jpg, golf-course-teal.jpg
@@ -460,25 +489,44 @@ export default function SiteSettingsPage() {
               </div>
             </div>
 
-            {/* Save Button */}
-            <button
-              onClick={handleSaveComingSoon}
-              disabled={saving}
-              style={{
-                padding: '0.875rem 1.5rem',
-                background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.9), rgba(6, 182, 212, 0.9))',
-                border: 'none',
-                borderRadius: '6px',
-                color: '#fff',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                cursor: saving ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-                marginTop: '0.5rem',
-              }}
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+              <button
+                onClick={handleSaveComingSoon}
+                disabled={saving}
+                style={{
+                  padding: '0.875rem 1.5rem',
+                  background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.9), rgba(6, 182, 212, 0.9))',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+              
+              <button
+                onClick={handleClearBackgroundImage}
+                disabled={saving}
+                style={{
+                  padding: '0.875rem 1.5rem',
+                  background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9))',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {saving ? 'Clearing...' : 'Clear Background'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

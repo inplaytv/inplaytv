@@ -2,9 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Cache for maintenance mode (reduces database queries)
-let maintenanceModeCache: { mode: string; timestamp: number } | null = null;
-const CACHE_TTL = 30000; // 30 seconds cache
+// Caching removed for instant updates
 
 // Check if user is admin (simplified check for middleware)
 async function isAdmin(userId: string): Promise<boolean> {
@@ -26,14 +24,8 @@ async function isAdmin(userId: string): Promise<boolean> {
   }
 }
 
-// Get current maintenance mode from database (with caching)
+// Get current maintenance mode from database (no caching)
 async function getMaintenanceMode(): Promise<string> {
-  // Check cache first
-  const now = Date.now();
-  if (maintenanceModeCache && (now - maintenanceModeCache.timestamp) < CACHE_TTL) {
-    return maintenanceModeCache.mode;
-  }
-
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -60,10 +52,6 @@ async function getMaintenanceMode(): Promise<string> {
     }
 
     const mode = (error || !data) ? 'live' : (data.setting_value || 'live');
-    
-    // Update cache
-    maintenanceModeCache = { mode, timestamp: now };
-    
     return mode;
   } catch (err) {
     console.error('[Middleware] Error getting maintenance mode:', err);
@@ -91,9 +79,11 @@ export async function middleware(request: NextRequest) {
   if (isDevelopment && previewMode) {
     console.log('[Middleware] Preview mode active:', previewMode);
     if (previewMode === 'coming-soon' && pathname !== '/coming-soon') {
+      // Always rewrite to /coming-soon for any route except /coming-soon
       return NextResponse.rewrite(new URL('/coming-soon', request.url));
     }
     if (previewMode === 'maintenance' && pathname !== '/maintenance') {
+      // Always rewrite to /maintenance for any route except /maintenance
       return NextResponse.rewrite(new URL('/maintenance', request.url));
     }
     return NextResponse.next();

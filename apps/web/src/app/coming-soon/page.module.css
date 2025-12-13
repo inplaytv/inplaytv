@@ -40,20 +40,16 @@
   background-repeat: no-repeat;
 }
 
+
+
 .background::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(5, 10, 31, 0.3) 0%, rgba(10, 22, 40, 0.25) 50%, rgba(6, 78, 89, 0.2) 100%);
+  display: none;
 }
 
+
+
 .background::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: 
-    radial-gradient(ellipse 100% 100% at 50% 50%, transparent 0%, rgba(5, 10, 31, 0.2) 100%);
-  opacity: 0.3;
+  display: none;
 }
 
 .noise {

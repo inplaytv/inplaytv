@@ -18,7 +18,7 @@ export default function ComingSoonPage() {
   const [settings, setSettings] = useState<ComingSoonSettings>({
     headline: 'COMING SOON',
     description: 'Precision meets passion in a live, immersive format. Competition will never emerge the same.',
-    backgroundImage: '/backgrounds/golf-03.jpg',
+    backgroundImage: '',
     logoText: 'InPlayTV',
     tagline: 'A new way to follow what matters.'
   });
@@ -75,10 +75,12 @@ export default function ComingSoonPage() {
 
   return (
     <div className={styles.container}>
-      <div 
-        className={styles.background} 
-        style={{ backgroundImage: `url('${settings.backgroundImage}')` }}
-      />
+      {settings.backgroundImage && (
+        <div 
+          className={styles.background} 
+          style={{ backgroundImage: `url('${settings.backgroundImage}')` }}
+        />
+      )}
       <div className={styles.noise} />
       
       <div className={styles.content}>

@@ -11,6 +11,11 @@ export const dynamic = 'force-dynamic';
  * Fetch coming soon page customization settings
  */
 export async function GET() {
+  const headers = {
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  };
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -31,23 +36,23 @@ export async function GET() {
     const settings = {
       headline: data?.find(s => s.setting_key === 'coming_soon_headline')?.setting_value || 'COMING SOON',
       description: data?.find(s => s.setting_key === 'coming_soon_description')?.setting_value || 'Precision meets passion in a live, immersive format. Competition will never emerge the same.',
-      backgroundImage: data?.find(s => s.setting_key === 'coming_soon_background_image')?.setting_value || '/backgrounds/golf-03.jpg',
+      backgroundImage: data?.find(s => s.setting_key === 'coming_soon_background_image')?.setting_value || '',
       logoText: data?.find(s => s.setting_key === 'coming_soon_logo_text')?.setting_value || 'InPlayTV',
       tagline: data?.find(s => s.setting_key === 'coming_soon_tagline')?.setting_value || 'A new way to follow what matters.'
     };
 
-    return NextResponse.json(settings);
+    return NextResponse.json(settings, { headers });
   } catch (error: any) {
     console.error('Error fetching coming soon settings:', error);
     return NextResponse.json(
       { 
         headline: 'COMING SOON',
         description: 'Precision meets passion in a live, immersive format. Competition will never emerge the same.',
-        backgroundImage: '/backgrounds/golf-03.jpg',
+        backgroundImage: '',
         logoText: 'InPlayTV',
         tagline: 'A new way to follow what matters.'
       },
-      { status: 200 } // Return defaults instead of error
+      { status: 200, headers } // Return defaults instead of error
     );
   }
 }
