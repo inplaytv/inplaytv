@@ -404,7 +404,7 @@ export default function SiteSettingsPage() {
               <textarea
                 value={comingSoon.description}
                 onChange={(e) => setComingSoon({ ...comingSoon, description: e.target.value })}
-                rows={3}
+                rows={4}
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -414,8 +414,15 @@ export default function SiteSettingsPage() {
                   color: '#fff',
                   fontSize: '0.875rem',
                   resize: 'vertical',
+                  whiteSpace: 'pre-wrap',
+                  lineHeight: '1.5',
                 }}
                 placeholder="Precision meets passion..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.stopPropagation();
+                  }
+                }}
               />
             </div>
 

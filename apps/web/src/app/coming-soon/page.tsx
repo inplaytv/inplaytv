@@ -149,9 +149,9 @@ export default function ComingSoonPage() {
 
         <div className={styles.main}>
           <h1 className={styles.headline}>{settings.headline}</h1>
-          <p className={styles.description}>
+          <div className={styles.description} style={{ whiteSpace: 'pre-line' }}>
             {settings.description}
-          </p>
+          </div>
         </div>
 
         <div className={styles.panel}>
