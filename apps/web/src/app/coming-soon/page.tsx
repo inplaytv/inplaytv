@@ -155,7 +155,7 @@ export default function ComingSoonPage() {
         </div>
 
         <div className={styles.panel}>
-          <div className={styles.panelTitle}>Be the first to know</div>
+          <div className={styles.panelTitle}>Be the first to Strike</div>
           
           <form onSubmit={handleSubmit} className={styles.form}>
             <input
