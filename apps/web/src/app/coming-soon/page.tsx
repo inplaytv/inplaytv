@@ -95,15 +95,18 @@ export default function ComingSoonPage() {
 
   return (
     <div className={styles.container}>
-      {console.log('[Coming Soon Render] Current settings state:', settings)}
-      {console.log('[Coming Soon Render] Background Image value:', settings.backgroundImage)}
-      
-      {/* Show background image from state, with fallback for testing */}
+      {/* FORCE DISPLAY BACKGROUND IMAGE */}
       <div 
-        className={styles.background} 
         style={{ 
-          backgroundImage: `url('${settings.backgroundImage || '/backgrounds/golf-course-teal.jpg'}')`,
-          opacity: 1,
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundImage: 'url("/backgrounds/golf-course-teal.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
           zIndex: 0
         }}
       />
