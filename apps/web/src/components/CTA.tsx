@@ -7,6 +7,7 @@ export default function CTA() {
           <p style={styles.description}>
             Join thousands of players competing for over £100,000 in weekly prizes
           </p>
+          {/* Temporarily disabled during development
           <div style={styles.buttons}>
             <a href="/login" style={{...styles.btn, ...styles.btnPrimary}}>
               <span>👤</span>
@@ -17,6 +18,7 @@ export default function CTA() {
               <span>Learn How</span>
             </a>
           </div>
+          */}
         </div>
         <div style={styles.visual}>
           <div style={styles.prizeDisplay}>
