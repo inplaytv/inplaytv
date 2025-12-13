@@ -27,8 +27,9 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  /* No default background - only shows if image is provided */
+  /* Override any body background */
   background: transparent;
+  z-index: 1;
 }
 
 .background {
