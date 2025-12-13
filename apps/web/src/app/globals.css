@@ -28,8 +28,8 @@ body {
   overflow-x: hidden;
   min-height: 100vh;
   position: relative;
-  /* Default dark background - pages can override */
-  background: #1a2332;
+  /* Transparent background - pages control their own backgrounds */
+  background: transparent;
 }
 
 /* Background image handling removed - controlled by individual page components */
