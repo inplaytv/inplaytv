@@ -64,7 +64,7 @@ export async function PUT(request: Request) {
     const updates = [
       { key: 'coming_soon_headline', value: body.headline },
       { key: 'coming_soon_description', value: body.description },
-      { key: 'coming_soon_background_image', value: body.backgroundImage },
+      { key: 'coming_soon_background_image', value: body.backgroundImage?.trim() || '' },
       { key: 'coming_soon_logo_text', value: body.logoText },
       { key: 'coming_soon_tagline', value: body.tagline }
     ];
