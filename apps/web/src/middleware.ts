@@ -40,6 +40,8 @@ async function getMaintenanceMode(): Promise<string> {
     
     if (!supabaseUrl || !serviceKey) {
       console.error('[Middleware] Missing Supabase environment variables');
+      console.error('[Middleware] URL exists:', !!supabaseUrl);
+      console.error('[Middleware] Key exists:', !!serviceKey);
       return 'live'; // Fallback to live if env vars missing
     }
 
@@ -53,6 +55,8 @@ async function getMaintenanceMode(): Promise<string> {
 
     if (error) {
       console.error('[Middleware] Database error:', error);
+    } else {
+      console.log('[Middleware] Successfully fetched mode:', data?.setting_value);
     }
 
     const mode = (error || !data) ? 'live' : (data.setting_value || 'live');
@@ -133,11 +137,13 @@ export async function middleware(request: NextRequest) {
 
   // If coming-soon mode, show coming-soon page for all routes (URL stays the same)
   if (mode === 'coming-soon') {
+    console.log('[Middleware] Rewriting to /coming-soon for path:', pathname);
     return NextResponse.rewrite(new URL('/coming-soon', request.url));
   }
 
   // If maintenance mode, show maintenance page for all routes (URL stays the same)
   if (mode === 'maintenance') {
+    console.log('[Middleware] Rewriting to /maintenance for path:', pathname);
     return NextResponse.rewrite(new URL('/maintenance', request.url));
   }
 
