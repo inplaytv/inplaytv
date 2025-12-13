@@ -12,11 +12,6 @@ export default function Header() {
   const pathname = usePathname();
   const supabase = createClient();
 
-  // Hide header on coming soon and maintenance pages
-  if (pathname === '/coming-soon' || pathname === '/maintenance') {
-    return null;
-  }
-
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -30,6 +25,11 @@ export default function Header() {
 
     return () => subscription.unsubscribe();
   }, [supabase.auth]);
+
+  // Hide header on coming soon and maintenance pages
+  if (pathname === '/coming-soon' || pathname === '/maintenance') {
+    return null;
+  }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
