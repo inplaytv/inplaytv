@@ -27,7 +27,8 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #050a1f;
+  /* No default background - only shows if image is provided */
+  background: transparent;
 }
 
 .background {

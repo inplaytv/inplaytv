@@ -25,12 +25,19 @@ export default function ComingSoonPage() {
 
   useEffect(() => {
     // Fetch customizable settings from database
+    console.log('[Coming Soon] Fetching settings from API...');
     fetch('/api/settings/coming-soon')
       .then(res => res.json())
       .then(data => {
-        if (data.headline) setSettings(data);
+        console.log('[Coming Soon] API Response:', data);
+        console.log('[Coming Soon] Background Image:', data.backgroundImage);
+        if (data.headline) {
+          setSettings(data);
+          console.log('[Coming Soon] Settings updated:', data);
+        }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('[Coming Soon] API Error:', error);
         // Use default settings on error
       });
   }, []);
