@@ -8,21 +8,10 @@ export default function BackgroundDebug() {
   const [computedStyles, setComputedStyles] = useState<any>(null);
 
   useEffect(() => {
-    const img = new Image();
-    const url = '/images/golf-background.jpg';
-    setImageUrl(url);
-    
-    img.onload = () => {
-      console.log('✅ Background image loaded successfully');
-      setImageStatus('loaded');
-    };
-    
-    img.onerror = () => {
-      console.error('❌ Failed to load background image:', url);
-      setImageStatus('error');
-    };
-    
-    img.src = url;
+    // No hardcoded background image testing
+    setImageUrl('');
+    setImageStatus('none');
+  }, []);
 
     // Check computed styles
     const checkStyles = () => {
@@ -56,11 +45,7 @@ export default function BackgroundDebug() {
           width: '100%',
           height: '100%',
           zIndex: 0,
-          backgroundImage: 'url(/images/golf-background.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed',
+          background: 'linear-gradient(135deg, #0a0f1c 0%, #1a2332 25%, #2d4a4a 50%, #1a2332 75%, #0a0f1c 100%)',
           filter: 'blur(2px) brightness(0.4) contrast(1.1)',
           opacity: 0.7,
           pointerEvents: 'none',
