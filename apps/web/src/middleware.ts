@@ -72,15 +72,30 @@ async function getMaintenanceMode(): Promise<string> {
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
   
-  // Skip middleware entirely in development (localhost)
+  // Check for preview mode in development
   const isDevelopment = process.env.NODE_ENV === 'development' || 
                         request.nextUrl.hostname === 'localhost' ||
                         request.nextUrl.hostname === '127.0.0.1';
   
-  if (isDevelopment) {
-    console.log('[Middleware] Development mode detected, skipping maintenance check');
+  const previewMode = searchParams.get('preview'); // ?preview=coming-soon or ?preview=maintenance
+  
+  // In development, only apply middleware if preview mode is enabled
+  if (isDevelopment && !previewMode) {
+    console.log('[Middleware] Development mode detected, skipping maintenance check (use ?preview=coming-soon to test)');
+    return NextResponse.next();
+  }
+  
+  // If preview mode is active, use that instead of database
+  if (isDevelopment && previewMode) {
+    console.log('[Middleware] Preview mode active:', previewMode);
+    if (previewMode === 'coming-soon' && pathname !== '/coming-soon') {
+      return NextResponse.rewrite(new URL('/coming-soon', request.url));
+    }
+    if (previewMode === 'maintenance' && pathname !== '/maintenance') {
+      return NextResponse.rewrite(new URL('/maintenance', request.url));
+    }
     return NextResponse.next();
   }
   

@@ -248,13 +248,83 @@ export default function SiteSettingsPage() {
             background: 'rgba(59, 130, 246, 0.1)',
             border: '1px solid rgba(59, 130, 246, 0.3)',
             borderRadius: '6px',
+            fontSize: '0.875rem',
+            color: '#888',
           }}>
-            <div style={{ fontSize: '0.875rem', color: '#60a5fa', marginBottom: '0.5rem', fontWeight: 600 }}>
-              ℹ️ Note
+            <div style={{ fontWeight: 600, color: '#3b82f6', marginBottom: '0.5rem' }}>ℹ️ Preview Mode</div>
+            <div style={{ marginBottom: '0.75rem' }}>
+              To preview the coming soon or maintenance pages on localhost (http://localhost:3000), add <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px' }}>?preview=coming-soon</code> or <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px' }}>?preview=maintenance</code> to the URL.
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#888' }}>
-              Admins can always access the admin panel regardless of the site mode.
-              Changes take effect immediately across all pages.
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <a 
+                href="http://localhost:3000?preview=coming-soon" 
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  background: 'rgba(59, 130, 246, 0.2)',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  borderRadius: '6px',
+                  color: '#3b82f6',
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)'}
+              >
+                👁️ Preview Coming Soon
+              </a>
+              <a 
+                href="http://localhost:3000?preview=maintenance" 
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  borderRadius: '6px',
+                  color: '#ef4444',
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+              >
+                🔧 Preview Maintenance
+              </a>
+              <a 
+                href="http://localhost:3000" 
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  borderRadius: '6px',
+                  color: '#10b981',
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.3)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.2)'}
+              >
+                🌐 Normal Website
+              </a>
             </div>
           </div>
         </div>
