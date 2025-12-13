@@ -23,28 +23,29 @@ export default function ComingSoonPage() {
     tagline: 'A new way to follow what matters.'
   });
 
-  useEffect(() => {
-    // Prevent any URL manipulation
-    if (typeof window !== 'undefined') {
-      const originalPushState = window.history.pushState;
-      const originalReplaceState = window.history.replaceState;
+  // Temporarily disable history protection for testing
+  // useEffect(() => {
+  //   // Prevent any URL manipulation
+  //   if (typeof window !== 'undefined') {
+  //     const originalPushState = window.history.pushState;
+  //     const originalReplaceState = window.history.replaceState;
       
-      window.history.pushState = function(...args) {
-        console.log('[Coming Soon] Preventing history.pushState:', args);
-        return;
-      };
+  //     window.history.pushState = function(...args) {
+  //       console.log('[Coming Soon] Preventing history.pushState:', args);
+  //       return;
+  //     };
       
-      window.history.replaceState = function(...args) {
-        console.log('[Coming Soon] Preventing history.replaceState:', args);
-        return;
-      };
+  //     window.history.replaceState = function(...args) {
+  //       console.log('[Coming Soon] Preventing history.replaceState:', args);
+  //       return;
+  //     };
       
-      return () => {
-        window.history.pushState = originalPushState;
-        window.history.replaceState = originalReplaceState;
-      };
-    }
-  }, []);
+  //     return () => {
+  //       window.history.pushState = originalPushState;
+  //       window.history.replaceState = originalReplaceState;
+  //     };
+  //   }
+  // }, []);
 
   useEffect(() => {
     const fetchSettings = async () => {

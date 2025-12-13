@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>URL Test</title>
+</head>
+<body>
+    <h1>URL Change Test</h1>
+    <p>Current URL: <span id="url"></span></p>
+    <p>Background Image: golf-course-green.jpg</p>
+    
+    <script>
+        document.getElementById('url').textContent = window.location.href;
+        
+        // Monitor URL changes
+        let originalPushState = history.pushState;
+        let originalReplaceState = history.replaceState;
+        
+        history.pushState = function(...args) {
+            console.log('PUSHSTATE CALLED:', args);
+            return originalPushState.apply(this, args);
+        };
+        
+        history.replaceState = function(...args) {
+            console.log('REPLACESTATE CALLED:', args);
+            return originalReplaceState.apply(this, args);
+        };
+        
+        // Monitor popstate
+        window.addEventListener('popstate', function(e) {
+            console.log('POPSTATE:', e);
+        });
+        
+        // Monitor hashchange
+        window.addEventListener('hashchange', function(e) {
+            console.log('HASHCHANGE:', e);
+        });
+        
+        // Check for URL changes periodically
+        setInterval(function() {
+            const currentUrl = window.location.href;
+            if (document.getElementById('url').textContent !== currentUrl) {
+                console.log('URL CHANGED FROM:', document.getElementById('url').textContent, 'TO:', currentUrl);
+                document.getElementById('url').textContent = currentUrl;
+            }
+        }, 100);
+    </script>
+</body>
+</html>
