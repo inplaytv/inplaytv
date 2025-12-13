@@ -3,13 +3,19 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function Header() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
+
+  // Hide header on coming soon and maintenance pages
+  if (pathname === '/coming-soon' || pathname === '/maintenance') {
+    return null;
+  }
 
   useEffect(() => {
     const checkUser = async () => {
