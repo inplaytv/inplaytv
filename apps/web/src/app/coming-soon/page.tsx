@@ -130,6 +130,7 @@ export default function ComingSoonPage() {
           width: '100vw',
           height: '100vh',
           backgroundImage: settings.backgroundImage ? `url("${settings.backgroundImage.trim()}")` : 'none',
+          backgroundColor: settings.backgroundImage ? 'transparent' : '#1a2332',
           backgroundSize: 'cover',
           backgroundPosition: 'center top',
           backgroundRepeat: 'no-repeat',

@@ -10,9 +10,10 @@ export default function BackgroundDebug() {
   useEffect(() => {
     // No hardcoded background image testing
     setImageUrl('');
-    setImageStatus('none');
+    setImageStatus('loading');
   }, []);
 
+  useEffect(() => {
     // Check computed styles
     const checkStyles = () => {
       const body = document.querySelector('body');
