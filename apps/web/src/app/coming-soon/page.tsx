@@ -50,7 +50,6 @@ export default function ComingSoonPage() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        console.log('[Coming Soon] Fetching settings from API...');
         const response = await fetch('/api/settings/coming-soon', {
           cache: 'no-store',
           headers: {
@@ -64,23 +63,18 @@ export default function ComingSoonPage() {
         }
         
         const data = await response.json();
-        console.log('[Coming Soon] API Response:', data);
-        console.log('[Coming Soon] Background Image from API:', data.backgroundImage);
         
         // Update settings, using fallbacks if API values are empty
         setSettings(prevSettings => ({
           headline: data.headline || prevSettings.headline,
           description: data.description || prevSettings.description,
-          backgroundImage: data.backgroundImage || prevSettings.backgroundImage,
+          backgroundImage: (data.backgroundImage || prevSettings.backgroundImage).trim(),
           logoText: data.logoText || prevSettings.logoText,
           tagline: data.tagline || prevSettings.tagline
         }));
         
-        console.log('[Coming Soon] Settings state updated successfully');
-        
       } catch (error) {
         console.error('[Coming Soon] API Error:', error);
-        console.log('[Coming Soon] Using default settings due to error');
       }
     };
     
@@ -127,9 +121,6 @@ export default function ComingSoonPage() {
 
   return (
     <div className={styles.container}>
-      {console.log('[Coming Soon Render] Current settings state:', settings)}
-      {console.log('[Coming Soon Render] Background Image value:', settings.backgroundImage)}
-      
       {/* Background image from admin panel or fallback */}
       <div 
         style={{ 
@@ -138,7 +129,7 @@ export default function ComingSoonPage() {
           left: 0,
           width: '100%',
           height: '100%',
-          backgroundImage: settings.backgroundImage ? `url("${settings.backgroundImage}")` : 'none',
+          backgroundImage: settings.backgroundImage ? `url("${settings.backgroundImage.trim()}")` : 'none',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
