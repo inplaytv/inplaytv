@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 
 export default function Header() {
+  // Header temporarily disabled during development
+  return null;
+  
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
@@ -25,11 +28,6 @@ export default function Header() {
 
     return () => subscription.unsubscribe();
   }, [supabase.auth]);
-
-  // Hide header on coming soon and maintenance pages
-  if (pathname === '/coming-soon' || pathname === '/maintenance') {
-    return null;
-  }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
