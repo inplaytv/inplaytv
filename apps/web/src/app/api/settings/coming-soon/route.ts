@@ -32,6 +32,8 @@ export async function GET() {
 
     if (error) throw error;
 
+    console.log('[API Debug] Raw database data:', data);
+
     // Transform array to object
     const settings = {
       headline: data?.find(s => s.setting_key === 'coming_soon_headline')?.setting_value || 'COMING SOON',
@@ -40,6 +42,9 @@ export async function GET() {
       logoText: data?.find(s => s.setting_key === 'coming_soon_logo_text')?.setting_value || 'InPlayTV',
       tagline: data?.find(s => s.setting_key === 'coming_soon_tagline')?.setting_value || 'A new way to follow what matters.'
     };
+
+    console.log('[API Debug] Transformed settings:', settings);
+    console.log('[API Debug] Background image value:', `'${settings.backgroundImage}'`);
 
     return NextResponse.json(settings, { headers });
   } catch (error: any) {

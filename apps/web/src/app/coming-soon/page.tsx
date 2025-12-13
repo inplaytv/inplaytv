@@ -24,22 +24,35 @@ export default function ComingSoonPage() {
   });
 
   useEffect(() => {
-    // Fetch customizable settings from database
-    console.log('[Coming Soon] Fetching settings from API...');
-    fetch('/api/settings/coming-soon')
-      .then(res => res.json())
-      .then(data => {
-        console.log('[Coming Soon] API Response:', data);
-        console.log('[Coming Soon] Background Image:', data.backgroundImage);
-        if (data.headline) {
-          setSettings(data);
-          console.log('[Coming Soon] Settings updated:', data);
-        }
-      })
-      .catch((error) => {
+    console.log('[Coming Soon] Component mounted, fetching settings...');
+    
+    const fetchSettings = async () => {
+      try {
+        console.log('[Coming Soon] Fetching settings from API...');
+        const response = await fetch('/api/settings/coming-soon');
+        console.log('[Coming Soon] API Response received, status:', response.status);
+        
+        const data = await response.json();
+        console.log('[Coming Soon] API Response data:', data);
+        console.log('[Coming Soon] Background Image from API:', data.backgroundImage);
+        
+        // Force update the settings
+        console.log('[Coming Soon] Updating settings state...');
+        setSettings({
+          headline: data.headline || 'COMING SOON',
+          description: data.description || 'Precision meets passion in a live, immersive format. Competition will never emerge the same.',
+          backgroundImage: data.backgroundImage || '',
+          logoText: data.logoText || 'InPlayTV',
+          tagline: data.tagline || 'A new way to follow what matters.'
+        });
+        console.log('[Coming Soon] Settings state updated successfully');
+        
+      } catch (error) {
         console.error('[Coming Soon] API Error:', error);
-        // Use default settings on error
-      });
+      }
+    };
+    
+    fetchSettings();
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -82,12 +95,19 @@ export default function ComingSoonPage() {
 
   return (
     <div className={styles.container}>
-      {settings.backgroundImage && (
-        <div 
-          className={styles.background} 
-          style={{ backgroundImage: `url('${settings.backgroundImage}')` }}
-        />
-      )}
+      {console.log('[Coming Soon Render] Current settings state:', settings)}
+      {console.log('[Coming Soon Render] Background Image value:', settings.backgroundImage)}
+      
+      {/* Show background image from state, with fallback for testing */}
+      <div 
+        className={styles.background} 
+        style={{ 
+          backgroundImage: `url('${settings.backgroundImage || '/backgrounds/golf-course-teal.jpg'}')`,
+          opacity: 1,
+          zIndex: 0
+        }}
+      />
+      
       <div className={styles.noise} />
       
       <div className={styles.content}>
