@@ -78,14 +78,22 @@ export async function middleware(request: NextRequest) {
   // If preview mode is active, use that instead of database
   if (isDevelopment && previewMode) {
     console.log('[Middleware] Preview mode active:', previewMode);
-    if (previewMode === 'coming-soon' && pathname !== '/coming-soon') {
-      // Always rewrite to /coming-soon for any route except /coming-soon
-      return NextResponse.rewrite(new URL('/coming-soon', request.url));
+    
+    // Only rewrite root path or specific paths, not all paths
+    if (previewMode === 'coming-soon') {
+      if (pathname === '/' || pathname === '/home' || pathname === '/index') {
+        console.log('[Middleware] Rewriting', pathname, 'to /coming-soon');
+        return NextResponse.rewrite(new URL('/coming-soon', request.url));
+      }
     }
-    if (previewMode === 'maintenance' && pathname !== '/maintenance') {
-      // Always rewrite to /maintenance for any route except /maintenance
-      return NextResponse.rewrite(new URL('/maintenance', request.url));
+    
+    if (previewMode === 'maintenance') {
+      if (pathname === '/' || pathname === '/home' || pathname === '/index') {
+        console.log('[Middleware] Rewriting', pathname, 'to /maintenance');
+        return NextResponse.rewrite(new URL('/maintenance', request.url));
+      }
     }
+    
     return NextResponse.next();
   }
   

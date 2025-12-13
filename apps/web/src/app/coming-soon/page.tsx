@@ -18,37 +18,68 @@ export default function ComingSoonPage() {
   const [settings, setSettings] = useState<ComingSoonSettings>({
     headline: 'COMING SOON',
     description: 'Precision meets passion in a live, immersive format. Competition will never emerge the same.',
-    backgroundImage: '',
+    backgroundImage: '/backgrounds/golf-course-teal.jpg', // Default fallback
     logoText: 'InPlayTV',
     tagline: 'A new way to follow what matters.'
   });
 
   useEffect(() => {
-    console.log('[Coming Soon] Component mounted, fetching settings...');
-    
+    // Prevent any URL manipulation
+    if (typeof window !== 'undefined') {
+      const originalPushState = window.history.pushState;
+      const originalReplaceState = window.history.replaceState;
+      
+      window.history.pushState = function(...args) {
+        console.log('[Coming Soon] Preventing history.pushState:', args);
+        return;
+      };
+      
+      window.history.replaceState = function(...args) {
+        console.log('[Coming Soon] Preventing history.replaceState:', args);
+        return;
+      };
+      
+      return () => {
+        window.history.pushState = originalPushState;
+        window.history.replaceState = originalReplaceState;
+      };
+    }
+  }, []);
+
+  useEffect(() => {
     const fetchSettings = async () => {
       try {
         console.log('[Coming Soon] Fetching settings from API...');
-        const response = await fetch('/api/settings/coming-soon');
-        console.log('[Coming Soon] API Response received, status:', response.status);
+        const response = await fetch('/api/settings/coming-soon', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        if (!response.ok) {
+          console.error('[Coming Soon] API Error: Status', response.status);
+          return;
+        }
         
         const data = await response.json();
-        console.log('[Coming Soon] API Response data:', data);
+        console.log('[Coming Soon] API Response:', data);
         console.log('[Coming Soon] Background Image from API:', data.backgroundImage);
         
-        // Force update the settings
-        console.log('[Coming Soon] Updating settings state...');
-        setSettings({
-          headline: data.headline || 'COMING SOON',
-          description: data.description || 'Precision meets passion in a live, immersive format. Competition will never emerge the same.',
-          backgroundImage: data.backgroundImage || '',
-          logoText: data.logoText || 'InPlayTV',
-          tagline: data.tagline || 'A new way to follow what matters.'
-        });
+        // Update settings, using fallbacks if API values are empty
+        setSettings(prevSettings => ({
+          headline: data.headline || prevSettings.headline,
+          description: data.description || prevSettings.description,
+          backgroundImage: data.backgroundImage || prevSettings.backgroundImage,
+          logoText: data.logoText || prevSettings.logoText,
+          tagline: data.tagline || prevSettings.tagline
+        }));
+        
         console.log('[Coming Soon] Settings state updated successfully');
         
       } catch (error) {
         console.error('[Coming Soon] API Error:', error);
+        console.log('[Coming Soon] Using default settings due to error');
       }
     };
     
@@ -95,7 +126,10 @@ export default function ComingSoonPage() {
 
   return (
     <div className={styles.container}>
-      {/* FORCE DISPLAY BACKGROUND IMAGE */}
+      {console.log('[Coming Soon Render] Current settings state:', settings)}
+      {console.log('[Coming Soon Render] Background Image value:', settings.backgroundImage)}
+      
+      {/* Background image from admin panel or fallback */}
       <div 
         style={{ 
           position: 'absolute',
@@ -103,7 +137,7 @@ export default function ComingSoonPage() {
           left: 0,
           width: '100%',
           height: '100%',
-          backgroundImage: 'url("/backgrounds/golf-course-teal.jpg")',
+          backgroundImage: settings.backgroundImage ? `url("${settings.backgroundImage}")` : 'none',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
