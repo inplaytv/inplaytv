@@ -149,14 +149,23 @@ function CompetitionCard({
       <div className={styles.cardContent}>
         {/* Competition Type Header */}
         <div className={styles.cardHeader}>
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <h3>{competition.competition_types.name}</h3>
-            {competition.competition_types.rounds_count && (
-              <p className={styles.competitionSubtitle}>
-                🏌️ {competition.competition_types.rounds_count} Round{competition.competition_types.rounds_count !== 1 ? 's' : ''} ⛳
-              </p>
+            {tour && (
+              <div className={`${styles.tourBadge} ${
+                tour === 'PGA' ? styles.tourBadgePGA :
+                tour === 'LPGA' ? styles.tourBadgeLPGA :
+                styles.tourBadgeEuropean
+              }`} style={{ position: 'static', margin: 0, fontSize: '0.5rem', padding: '0.2rem 0.5rem' }}>
+                {tour} TOUR
+              </div>
             )}
           </div>
+          {competition.competition_types.rounds_count && (
+            <p className={styles.competitionSubtitle}>
+              🏌️ {competition.competition_types.rounds_count} Round{competition.competition_types.rounds_count !== 1 ? 's' : ''} ⛳
+            </p>
+          )}
         </div>
 
         {/* Stats Grid - All Boxes */}
@@ -245,7 +254,7 @@ function CompetitionCard({
             <Link 
               href={`/leaderboards`}
               className={styles.btnPlay}
-              style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
             >
               <span className={styles.btnContent}>
                 <i className="fas fa-chart-line"></i>
@@ -583,24 +592,33 @@ export default function TournamentDetailPage() {
       return statusConfig.cancelled;
     }
     
-    // PRIORITY 3: Check THIS COMPETITION's registration deadline (most important!)
-    // Each competition has its own reg_close_at time
-    if (regCloseAt && now >= regCloseAt) {
-      // If tournament is still ongoing, show as Live, otherwise show as closed
+    // PRIORITY 3: Check if registration is currently open by dates (MOST IMPORTANT!)
+    // This must come BEFORE checking database status
+    if (regOpenAt && regCloseAt) {
+      if (now >= regOpenAt && now < regCloseAt) {
+        // Registration is open - regardless of database status field
+        return statusConfig.reg_open;
+      } else if (now >= regCloseAt) {
+        // Registration has closed - show as Live if tournament ongoing, otherwise closed
+        if (tournamentEndOfDay && now <= tournamentEndOfDay) {
+          return statusConfig.live;
+        }
+        return statusConfig.reg_closed;
+      }
+    }
+    
+    // PRIORITY 4: Check database status only if no clear date-based answer
+    // This handles cases where dates aren't set or we need to fall back
+    if (competition.status === 'reg_open' && (!regCloseAt || now < regCloseAt)) {
+      return statusConfig.reg_open;
+    }
+    
+    if (competition.status === 'inplay' || competition.status === 'live') {
+      // If explicitly marked as live, but dates say reg is still open, trust the dates (handled above)
+      // If we get here, show as live
       if (tournamentEndOfDay && now <= tournamentEndOfDay) {
         return statusConfig.live;
       }
-      return statusConfig.reg_closed;
-    }
-    
-    // PRIORITY 4: Check if registration is currently open by dates
-    if (regOpenAt && now >= regOpenAt && regCloseAt && now < regCloseAt) {
-      return statusConfig.reg_open;
-    }
-    
-    // PRIORITY 5: Check database status - use reg_open only if reg_close_at hasn't passed
-    if (competition.status === 'reg_open' && (!regCloseAt || now < regCloseAt)) {
-      return statusConfig.reg_open;
     }
     
     // Fall back to database status or draft

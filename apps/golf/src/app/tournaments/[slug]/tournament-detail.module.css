@@ -1152,3 +1152,35 @@
   }
 }
 
+/* Tour Badge Styles */
+.tourBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tourBadgePGA {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: #ffffff;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+}
+
+.tourBadgeEuropean {
+  background: linear-gradient(135deg, #065f46 0%, #10b981 100%);
+  color: #ffffff;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+}
+
+.tourBadgeLPGA {
+  background: linear-gradient(135deg, #7c2d12 0%, #f97316 100%);
+  color: #ffffff;
+  border: 1px solid rgba(249, 115, 22, 0.5);
+}

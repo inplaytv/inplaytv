@@ -102,7 +102,6 @@ export default function TournamentsPage() {
       if (Array.isArray(data)) {
         setTournaments(data);
       } else {
-        console.error('❌ Invalid tournaments data:', data);
         setError('Invalid data format received from server');
         setTournaments([]);
       }

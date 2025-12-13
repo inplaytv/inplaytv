@@ -61,7 +61,14 @@ async function getChallengeData(instanceId: string) {
   console.log('📝 Entries found:', { 
     instanceId, 
     entriesFound: entries?.length,
-    entries: entries?.map(e => ({ id: e.id, userId: e.user_id, createdAt: e.created_at }))
+    entries: entries?.map(e => ({ 
+      id: e.id, 
+      userId: e.user_id, 
+      golferId: e.golfer_id,
+      captainGolferId: e.captain_golfer_id,
+      allFields: Object.keys(e),
+      createdAt: e.created_at 
+    }))
   });
 
   if (!entries || entries.length < 1) {
@@ -89,36 +96,101 @@ async function getChallengeData(instanceId: string) {
     .select('id, username')
     .in('id', userIds);
 
-  // Get golfers for both entries
-  const golferIds = entries.map(e => e.golfer_id);
+  // Get golfers for both entries (captain golfers)
+  const golferIds = entries.map(e => e.captain_golfer_id).filter(Boolean);
   const { data: golfers } = await supabase
     .from('golfers')
     .select('id, name, country')
     .in('id', golferIds);
     
-  // Get current scores for both golfers from tournament_golfer_scores
+  // Get current scores for both captain golfers from tournament_golfers
   const { data: scores } = await supabase
-    .from('tournament_golfer_scores')
-    .select('golfer_id, total_score, thru, status, position')
+    .from('tournament_golfers')
+    .select('golfer_id, total_score, status, position, to_par, r1_score, r2_score, r3_score, r4_score, r1_holes, r2_holes, r3_holes, r4_holes')
     .eq('tournament_id', tournament.id)
     .in('golfer_id', golferIds);
+
+  // Get team picks for both entries (6 golfers each)
+  const { data: picks } = await supabase
+    .from('entry_picks')
+    .select(`
+      *,
+      golfers:golfer_id (
+        id,
+        name,
+        country
+      )
+    `)
+    .in('entry_id', entries.map(e => e.id))
+    .order('slot_position', { ascending: true });
+
+  // Get scores for all picked golfers (including round scores and hole-by-hole data)
+  const allPickedGolferIds = picks?.map(p => p.golfer_id).filter(Boolean) || [];
+  const { data: allPickScores } = await supabase
+    .from('tournament_golfers')
+    .select('golfer_id, total_score, status, position, to_par, r1_score, r2_score, r3_score, r4_score, r1_holes, r2_holes, r3_holes, r4_holes')
+    .eq('tournament_id', tournament.id)
+    .in('golfer_id', allPickedGolferIds);
+
+  console.log('📊 All Pick Scores from database:', JSON.stringify(allPickScores?.slice(0, 3), null, 2));
 
   // Map data together
   const enrichedEntries = entries.map(entry => {
     const profile = profiles?.find(p => p.id === entry.user_id);
-    const golfer = golfers?.find(g => g.id === entry.golfer_id);
-    const score = scores?.find(s => s.golfer_id === entry.golfer_id) || {
+    const golfer = golfers?.find(g => g.id === entry.captain_golfer_id);
+    const score = scores?.find(s => s.golfer_id === entry.captain_golfer_id) || {
       total_score: null,
       thru: null,
       status: null,
       position: null
     };
 
+    // Get picks for this entry (6 golfers per user)
+    const entryPicks = picks?.filter(p => p.entry_id === entry.id) || [];
+    console.log(`📊 Entry ${entry.id}: Captain captain_golfer_id = ${entry.captain_golfer_id}, Picks count = ${entryPicks.length}`);
+    const enrichedPicks = entryPicks.map(pick => {
+      const pickScore = allPickScores?.find(s => s.golfer_id === pick.golfer_id) || {
+        total_score: null,
+        status: null,
+        position: null,
+        to_par: null,
+        r1_score: null,
+        r2_score: null,
+        r3_score: null,
+        r4_score: null,
+        r1_holes: null,
+        r2_holes: null,
+        r3_holes: null,
+        r4_holes: null
+      };
+      // Map database column names to UI-friendly names
+      const scoreWithRounds = {
+        ...pickScore,
+        r1: pickScore.r1_score,
+        r2: pickScore.r2_score,
+        r3: pickScore.r3_score,
+        r4: pickScore.r4_score,
+        r1_holes: pickScore.r1_holes,
+        r2_holes: pickScore.r2_holes,
+        r3_holes: pickScore.r3_holes,
+        r4_holes: pickScore.r4_holes
+      };
+      // Determine if this golfer is the captain (using captain_golfer_id field)
+      const isCaptain = pick.golfer_id === entry.captain_golfer_id;
+      console.log(`  🏌️ Pick ${pick.golfer_id} - Is Captain: ${isCaptain} (${pick.golfer_id} === ${entry.captain_golfer_id})`);
+      return {
+        ...pick,
+        score: scoreWithRounds,
+        is_captain: isCaptain
+      };
+    });
+
     return {
       ...entry,
       profiles: profile,
       golfers: golfer,
-      score
+      score,
+      picks: enrichedPicks
     };
   });
 

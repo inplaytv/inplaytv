@@ -12,8 +12,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const statusParam = searchParams.get('status') || 'upcoming,live,registration_open,registration_closed';
 
-    console.log('🔍 Tournaments API - Requested status:', statusParam);
-
     // Handle multiple statuses separated by comma
     // NOTE: Status values match auto_update_tournament_statuses() function:
     // 'upcoming' → Before registration opens

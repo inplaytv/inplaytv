@@ -45,7 +45,7 @@ export default function NotificationBell() {
           }
         )
         .subscribe((status) => {
-          if (status === 'SUBSCRIPTION_ERROR') {
+          if (status !== 'SUBSCRIBED') {
             console.log('Notification subscription not available (table may not exist yet)');
           }
         });

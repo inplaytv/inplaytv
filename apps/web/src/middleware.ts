@@ -57,8 +57,6 @@ async function getMaintenanceMode(): Promise<string> {
 
     const mode = (error || !data) ? 'live' : (data.setting_value || 'live');
     
-    console.log('[Middleware] Current mode from database:', mode);
-    
     // Update cache
     maintenanceModeCache = { mode, timestamp: now };
     

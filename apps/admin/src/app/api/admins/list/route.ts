@@ -22,10 +22,10 @@ export async function GET(request: NextRequest) {
     // Get profiles for display names
     const { data: profiles } = await adminClient
       .from('profiles')
-      .select('user_id, display_name, username, first_name, last_name');
+      .select('id, display_name, username, first_name, last_name');
 
     const userMap = new Map(users?.map((u: any) => [u.id, u]) || []);
-    const profileMap = new Map(profiles?.map((p: any) => [p.user_id, p]) || []);
+    const profileMap = new Map(profiles?.map((p: any) => [p.id, p]) || []);
 
     const admins = adminData?.map((admin: any) => {
       const user = userMap.get(admin.user_id);

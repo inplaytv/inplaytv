@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coming Soon - InPlay.TV</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #050a1f;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .background {
+            position: absolute;
+            inset: 0;
+            background-image: url('/backgrounds/golf-03.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        
+        .background::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(5, 10, 31, 0.85) 0%, rgba(10, 22, 40, 0.75) 50%, rgba(6, 78, 89, 0.65) 100%);
+        }
+        
+        .container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            padding: 2rem;
+            max-width: 640px;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #f8fafc;
+            margin-bottom: 0.75rem;
+        }
+        
+        .tagline {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-bottom: 4rem;
+        }
+        
+        .headline {
+            font-size: clamp(3rem, 8vw, 5rem);
+            font-weight: 700;
+            color: #f1f5f9;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.5rem;
+        }
+        
+        .description {
+            font-size: 1.125rem;
+            line-height: 1.7;
+            color: #cbd5e1;
+            margin-bottom: 3rem;
+        }
+        
+        .panel {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 16px;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .panel-title {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #f8fafc;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        input {
+            flex: 1;
+            padding: 0.875rem 1.25rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 10px;
+            color: #f8fafc;
+            font-size: 0.9375rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        
+        input::placeholder {
+            color: #64748b;
+        }
+        
+        input:focus {
+            border-color: rgba(14, 165, 233, 0.4);
+            background: rgba(15, 23, 42, 0.8);
+        }
+        
+        button {
+            padding: 0.875rem 2rem;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.9) 0%, rgba(6, 182, 212, 0.9) 100%);
+            border: none;
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 1) 0%, rgba(6, 182, 212, 1) 100%);
+            transform: translateY(-1px);
+        }
+        
+        .disclaimer {
+            font-size: 0.8125rem;
+            color: #64748b;
+        }
+        
+        @media (max-width: 640px) {
+            .headline { font-size: 2.5rem; }
+            .form { flex-direction: column; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="background"></div>
+    
+    <div class="container">
+        <div class="logo">InPlayTV</div>
+        <div class="tagline">A new way to follow what matters.</div>
+        
+        <h1 class="headline">COMING SOON</h1>
+        <p class="description">
+            Precision meets passion in a live, immersive format. Competition will never emerge the same.
+        </p>
+        
+        <div class="panel">
+            <div class="panel-title">Be the first to know</div>
+            
+            <form class="form" onsubmit="handleSubmit(event)">
+                <input type="email" placeholder="Enter your email" id="email" required>
+                <button type="submit">Notify me</button>
+            </form>
+            
+            <div class="disclaimer">No spam. Only the launch.</div>
+        </div>
+    </div>
+    
+    <script>
+        function handleSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            alert("Thanks! We'll notify you at " + email);
+            document.getElementById('email').value = '';
+        }
+    </script>
+</body>
+</html>

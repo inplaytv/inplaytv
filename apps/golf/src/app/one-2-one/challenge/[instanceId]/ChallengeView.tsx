@@ -1,8 +1,10 @@
 ﻿'use client';
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function ChallengeView({ data }: any) {
   const { entries, currentUserId, tournament, instance } = data;
+  const [selectedGolferId, setSelectedGolferId] = useState<string | null>(null);
   
   if (!entries || entries.length !== 2) {
     return <div style={{padding:'20px',color:'#fff',background:'#0f172a',minHeight:'100vh'}}>Invalid challenge</div>;
@@ -11,12 +13,23 @@ export default function ChallengeView({ data }: any) {
   const [p1, p2] = entries;
   const me = p1.user_id === currentUserId ? p1 : p2;
   const opp = p1.user_id === currentUserId ? p2 : p1;
-  const myScore = me.score?.total_score;
-  const oppScore = opp.score?.total_score;
+  
+  // Find selected golfers from each team (default to captain if none selected)
+  const mySelectedPick = selectedGolferId && me.picks?.find((p: any) => p.golfer_id === selectedGolferId)
+    ? me.picks.find((p: any) => p.golfer_id === selectedGolferId)
+    : me.picks?.find((p: any) => p.is_captain);
+    
+  const oppSelectedPick = selectedGolferId && opp.picks?.find((p: any) => p.golfer_id === selectedGolferId)
+    ? opp.picks.find((p: any) => p.golfer_id === selectedGolferId)
+    : opp.picks?.find((p: any) => p.is_captain);
+  
+  // Calculate fantasy team totals (sum of all 6 picks)
+  const myScore = me.picks?.reduce((sum: number, p: any) => sum + (p.score?.total_score || 0), 0) || 0;
+  const oppScore = opp.picks?.reduce((sum: number, p: any) => sum + (p.score?.total_score || 0), 0) || 0;
   let status = 'tied', diff = 0;
-  if (myScore != null && oppScore != null) {
-    if (myScore < oppScore) { status = 'winning'; diff = oppScore - myScore; }
-    else if (myScore > oppScore) { status = 'losing'; diff = myScore - oppScore; }
+  if (myScore !== 0 || oppScore !== 0) {
+    if (myScore < oppScore) { status = 'winning'; diff = Math.abs(oppScore - myScore); }
+    else if (myScore > oppScore) { status = 'losing'; diff = Math.abs(myScore - oppScore); }
   }
   const isLive = (tournament?.status || instance?.status) === 'in-play';
   const tStatus = tournament?.status;
@@ -132,18 +145,28 @@ export default function ChallengeView({ data }: any) {
               </div>
               <div style={{display:'flex',gap:'0.5rem'}}>
                 <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'6px',padding:'0.4rem 0.6rem',textAlign:'center',minWidth:'110px'}}>
-                  <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.2rem'}}>Score</div>
+                  <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.2rem'}}>Total</div>
                   <div style={{fontSize:'1.1rem',fontWeight:'bold',color:status === 'winning' ? '#10b981' : '#fff'}}>
-                    {myScore != null ? (myScore > 0 ? `+${myScore}` : myScore === 0 ? 'E' : myScore) : '-'}
+                    {(() => {
+                      const total = me.picks?.reduce((sum: number, p: any) => sum + (p.score?.total_score || 0), 0) || 0;
+                      return total > 0 ? `+${total}` : total === 0 ? 'E' : total;
+                    })()}
                   </div>
                 </div>
                 <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'6px',padding:'0.4rem 0.6rem',textAlign:'center',minWidth:'110px'}}>
-                  <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.2rem'}}>Thru</div>
-                  <div style={{fontSize:'1.1rem',fontWeight:'bold'}}>{me.score?.thru ?? '-'}</div>
+                  <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.2rem'}}>Picks</div>
+                  <div style={{fontSize:'1.1rem',fontWeight:'bold'}}>{me.picks?.length || 0}</div>
                 </div>
                 <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'6px',padding:'0.4rem 0.6rem',textAlign:'center',minWidth:'110px'}}>
-                  <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.2rem'}}>Pos</div>
-                  <div style={{fontSize:'1.1rem',fontWeight:'bold'}}>{me.score?.position ? `#${me.score.position}` : '-'}</div>
+                  <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.2rem'}}>Fantasy Points</div>
+                  <div style={{fontSize:'1.1rem',fontWeight:'bold'}}>
+                    {(() => {
+                      const total = me.picks?.reduce((sum: number, p: any) => sum + (p.score?.total_score || 0), 0) || 0;
+                      const count = me.picks?.filter((p: any) => p.score?.total_score != null).length || 1;
+                      const avg = Math.round(total / count);
+                      return avg > 0 ? `+${avg}` : avg === 0 ? 'E' : avg;
+                    })()}
+                  </div>
                 </div>
               </div>
             </div>
@@ -161,18 +184,28 @@ export default function ChallengeView({ data }: any) {
               </div>
               <div style={{display:'flex',gap:'0.5rem'}}>
                 <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'6px',padding:'0.4rem 0.6rem',textAlign:'center',minWidth:'110px'}}>
-                  <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.2rem'}}>Score</div>
+                  <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.2rem'}}>Total</div>
                   <div style={{fontSize:'1.1rem',fontWeight:'bold',color:status === 'losing' ? '#ef4444' : '#fff'}}>
-                    {oppScore != null ? (oppScore > 0 ? `+${oppScore}` : oppScore === 0 ? 'E' : oppScore) : '-'}
+                    {(() => {
+                      const total = opp.picks?.reduce((sum: number, p: any) => sum + (p.score?.total_score || 0), 0) || 0;
+                      return total > 0 ? `+${total}` : total === 0 ? 'E' : total;
+                    })()}
                   </div>
                 </div>
                 <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'6px',padding:'0.4rem 0.6rem',textAlign:'center',minWidth:'110px'}}>
-                  <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.2rem'}}>Thru</div>
-                  <div style={{fontSize:'1.1rem',fontWeight:'bold'}}>{opp.score?.thru ?? '-'}</div>
+                  <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.2rem'}}>Picks</div>
+                  <div style={{fontSize:'1.1rem',fontWeight:'bold'}}>{opp.picks?.length || 0}</div>
                 </div>
                 <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'6px',padding:'0.4rem 0.6rem',textAlign:'center',minWidth:'110px'}}>
-                  <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.2rem'}}>Pos</div>
-                  <div style={{fontSize:'1.1rem',fontWeight:'bold'}}>{opp.score?.position ? `#${opp.score.position}` : '-'}</div>
+                  <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.2rem'}}>Fantasy Points</div>
+                  <div style={{fontSize:'1.1rem',fontWeight:'bold'}}>
+                    {(() => {
+                      const total = opp.picks?.reduce((sum: number, p: any) => sum + (p.score?.total_score || 0), 0) || 0;
+                      const count = opp.picks?.filter((p: any) => p.score?.total_score != null).length || 1;
+                      const avg = Math.round(total / count);
+                      return avg > 0 ? `+${avg}` : avg === 0 ? 'E' : avg;
+                    })()}
+                  </div>
                 </div>
               </div>
             </div>
@@ -207,36 +240,43 @@ export default function ChallengeView({ data }: any) {
               {me.profiles?.username || 'You'}'s Team
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:'0.5rem'}}>
-              {[
-                {name: 'Rory McIlroy', score: 'E', isCaptain: true},
-                {name: 'Jon Rahm', score: '-1'},
-                {name: 'Scottie Scheffler', score: '+2'},
-                {name: 'Viktor Hovland', score: 'E'},
-                {name: 'Collin Morikawa', score: '-2'},
-                {name: 'Xander Schauffele', score: '+1'}
-              ].map((player, idx) => {
+              {me.picks && me.picks.length > 0 ? me.picks.map((pick: any, idx: number) => {
+                const score = pick.score?.total_score;
+                const scoreDisplay = score != null ? (score > 0 ? `+${score}` : score === 0 ? 'E' : score) : '-';
+                const nameParts = pick.golfers?.name?.split(' ') || [];
+                const firstName = nameParts[0] || '';
+                const lastName = nameParts.slice(1).join(' ') || 'Unknown';
+                const initials = firstName.charAt(0).toUpperCase();
+                const isSelected = selectedGolferId === pick.golfer_id;
                 return (
-                  <div key={`my-pick-${idx}`} style={{
-                    background: player.isCaptain ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.15))' : 'rgba(16, 185, 129, 0.08)',
-                    border: player.isCaptain ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(16, 185, 129, 0.25)',
-                    borderRadius:'6px',
-                    padding:'0.5rem',
-                    display:'flex',
-                    flexDirection:'column',
-                    alignItems:'center',
-                    gap:'0.35rem',
-                    position:'relative'
-                  }}>
-                    {player.isCaptain && (
+                  <div 
+                    key={`my-pick-${idx}`} 
+                    onClick={() => setSelectedGolferId(pick.golfer_id)}
+                    style={{
+                      background: pick.is_captain ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.15))' : 'rgba(16, 185, 129, 0.08)',
+                      border: pick.is_captain ? '2px solid #fbbf24' : isSelected ? '2px solid #667eea' : '1px solid rgba(16, 185, 129, 0.25)',
+                      borderRadius:'6px',
+                      padding:'0.5rem',
+                      display:'flex',
+                      flexDirection:'column',
+                      alignItems:'center',
+                      gap:'0.35rem',
+                      position:'relative',
+                      boxShadow: pick.is_captain ? '0 4px 12px rgba(251, 191, 36, 0.3)' : isSelected ? '0 4px 12px rgba(102, 126, 234, 0.4)' : 'none',
+                      cursor: 'pointer',
+                      transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                      transition: 'all 0.2s ease'
+                    }}>
+                    {pick.is_captain && (
                       <div style={{position:'absolute',top:'4px',right:'4px',fontSize:'0.75rem'}}>⭐</div>
                     )}
                     <div style={{fontSize:'0.7rem',fontWeight:'600',color:'#fff',textAlign:'center',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',width:'100%'}}>
-                      {player.name.split(' ').pop()}
+                      {initials}. {lastName}
                     </div>
-                    <div style={{fontSize:'0.65rem',fontWeight:'700',color:'#667eea'}}>{player.score}</div>
+                    <div style={{fontSize:'0.65rem',fontWeight:'700',color:'#667eea'}}>{scoreDisplay}</div>
                   </div>
                 );
-              })}
+              }) : <div style={{gridColumn:'1 / -1',textAlign:'center',color:'#94a3b8',fontSize:'0.75rem',padding:'1rem'}}>No picks yet</div>}
             </div>
           </div>
 
@@ -264,36 +304,43 @@ export default function ChallengeView({ data }: any) {
               {opp.profiles?.username || 'Opponent'}'s Team
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:'0.5rem'}}>
-              {[
-                {name: 'Brooks Koepka', score: '-1', isCaptain: true},
-                {name: 'Patrick Cantlay', score: 'E'},
-                {name: 'Tommy Fleetwood', score: '+1'},
-                {name: 'Max Homa', score: '-2'},
-                {name: 'Matt Fitzpatrick', score: 'E'},
-                {name: 'Justin Thomas', score: '+3'}
-              ].map((player, idx) => {
+              {opp.picks && opp.picks.length > 0 ? opp.picks.map((pick: any, idx: number) => {
+                const score = pick.score?.total_score;
+                const scoreDisplay = score != null ? (score > 0 ? `+${score}` : score === 0 ? 'E' : score) : '-';
+                const nameParts = pick.golfers?.name?.split(' ') || [];
+                const firstName = nameParts[0] || '';
+                const lastName = nameParts.slice(1).join(' ') || 'Unknown';
+                const initials = firstName.charAt(0).toUpperCase();
+                const isSelected = selectedGolferId === pick.golfer_id;
                 return (
-                  <div key={`opp-pick-${idx}`} style={{
-                    background: player.isCaptain ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.15))' : 'rgba(100, 116, 139, 0.08)',
-                    border: player.isCaptain ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(100, 116, 139, 0.25)',
-                    borderRadius:'6px',
-                    padding:'0.5rem',
-                    display:'flex',
-                    flexDirection:'column',
-                    alignItems:'center',
-                    gap:'0.35rem',
-                    position:'relative'
-                  }}>
-                    {player.isCaptain && (
+                  <div 
+                    key={`opp-pick-${idx}`} 
+                    onClick={() => setSelectedGolferId(pick.golfer_id)}
+                    style={{
+                      background: pick.is_captain ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.15))' : 'rgba(100, 116, 139, 0.08)',
+                      border: pick.is_captain ? '2px solid #fbbf24' : isSelected ? '2px solid #667eea' : '1px solid rgba(100, 116, 139, 0.25)',
+                      borderRadius:'6px',
+                      padding:'0.5rem',
+                      display:'flex',
+                      flexDirection:'column',
+                      alignItems:'center',
+                      gap:'0.35rem',
+                      position:'relative',
+                      boxShadow: pick.is_captain ? '0 4px 12px rgba(251, 191, 36, 0.3)' : isSelected ? '0 4px 12px rgba(102, 126, 234, 0.4)' : 'none',
+                      cursor: 'pointer',
+                      transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                      transition: 'all 0.2s ease'
+                    }}>
+                    {pick.is_captain && (
                       <div style={{position:'absolute',top:'4px',right:'4px',fontSize:'0.75rem'}}>⭐</div>
                     )}
                     <div style={{fontSize:'0.7rem',fontWeight:'600',color:'#fff',textAlign:'center',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',width:'100%'}}>
-                      {player.name.split(' ').pop()}
+                      {initials}. {lastName}
                     </div>
-                    <div style={{fontSize:'0.65rem',fontWeight:'700',color:'#667eea'}}>{player.score}</div>
+                    <div style={{fontSize:'0.65rem',fontWeight:'700',color:'#667eea'}}>{scoreDisplay}</div>
                   </div>
                 );
-              })}
+              }) : <div style={{gridColumn:'1 / -1',textAlign:'center',color:'#94a3b8',fontSize:'0.75rem',padding:'1rem'}}>No picks yet</div>}
             </div>
           </div>
         </div>
@@ -318,7 +365,7 @@ export default function ChallengeView({ data }: any) {
           boxShadow:'0 4px 16px rgba(0,0,0,0.2)'
         }}>
           <div style={{fontSize:'0.75rem',fontWeight:'600',color:'#10b981',marginBottom:'0.75rem',textTransform:'uppercase',letterSpacing:'0.05em'}}>
-            YOUR SCORECARD • {me.golfers?.name || 'Unknown'}
+            YOUR TEAM • {mySelectedPick?.golfers?.name || 'No Selection'} {mySelectedPick?.is_captain && '⭐'}
           </div>
           
           <div style={{display:'grid',gridTemplateColumns:'auto repeat(18, 1fr)',gap:'0',marginBottom:'1rem'}}>
@@ -329,45 +376,75 @@ export default function ChallengeView({ data }: any) {
                 <div key={`my-hole-${hole}`} style={{padding:'4px 2px',fontSize:'0.65rem',fontWeight:'600',color:'#e5e7eb',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:hole===10?'1px solid rgba(255,255,255,0.2)':'none'}}>{hole}</div>
               ))}
             </div>
-            {/* Par */}
-            <div style={{display:'contents'}}>
-              <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#94a3b8',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>PAR</div>
-              {[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4].map((par,i) => (
-                <div key={`my-par-${i}`} style={{padding:'4px 2px',fontSize:'0.65rem',color:'#9ca3af',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{par}</div>
-              ))}
-            </div>
-            {/* Score */}
-            <div style={{display:'contents'}}>
-              <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#10b981',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>SCORE</div>
-              {[4,3,4,5,4,4,3,4,4,4,4,4,3,5,4,4,4,4].map((score,i) => {
-                const par = 4;
-                const bgColor = score < par ? 'rgba(16, 185, 129, 0.2)' : score > par ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.05)';
-                const textColor = score < par ? '#10b981' : score > par ? '#ef4444' : '#e5e7eb';
-                return (
-                  <div key={`my-score-${i}`} style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:textColor,textAlign:'center',background:bgColor,borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{score}</div>
-                );
-              })}
-            </div>
-            {/* Fantasy Points */}
-            <div style={{display:'contents'}}>
-              <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#667eea',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>FP</div>
-              {[1,3,1,-1,1,1,3,1,1,1,1,1,3,-1,1,1,1,1].map((fp,i) => {
-                const textColor = fp > 1 ? '#10b981' : fp < 0 ? '#ef4444' : '#9ca3af';
-                return (
-                  <div key={`my-fp-${i}`} style={{padding:'4px 2px',fontSize:'0.65rem',fontWeight:'600',color:textColor,textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{fp > 0 ? `+${fp}` : fp}</div>
-                );
-              })}
-            </div>
+            {/* Round Scores - Show hole-by-hole if available, otherwise show round total */}
+            {mySelectedPick?.score?.r1 && (
+              <div style={{display:'contents'}}>
+                <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#10b981',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>R1</div>
+                {mySelectedPick.score.r1_holes ? (
+                  mySelectedPick.score.r1_holes.map((score: number, i: number) => (
+                    <div key={`r1-hole-${i}`} style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#10b981',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{score}</div>
+                  ))
+                ) : (
+                  <div style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#10b981',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',gridColumn:'span 18'}}>{mySelectedPick.score.r1}</div>
+                )}
+              </div>
+            )}
+            {mySelectedPick?.score?.r2 && (
+              <div style={{display:'contents'}}>
+                <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#10b981',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>R2</div>
+                {mySelectedPick.score.r2_holes ? (
+                  mySelectedPick.score.r2_holes.map((score: number, i: number) => (
+                    <div key={`r2-hole-${i}`} style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#10b981',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{score}</div>
+                  ))
+                ) : (
+                  <div style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#10b981',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',gridColumn:'span 18'}}>{mySelectedPick.score.r2}</div>
+                )}
+              </div>
+            )}
+            {mySelectedPick?.score?.r3 && (
+              <div style={{display:'contents'}}>
+                <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#10b981',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>R3</div>
+                {mySelectedPick.score.r3_holes ? (
+                  mySelectedPick.score.r3_holes.map((score: number, i: number) => (
+                    <div key={`r3-hole-${i}`} style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#10b981',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{score}</div>
+                  ))
+                ) : (
+                  <div style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#10b981',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',gridColumn:'span 18'}}>{mySelectedPick.score.r3}</div>
+                )}
+              </div>
+            )}
+            {mySelectedPick?.score?.r4 && (
+              <div style={{display:'contents'}}>
+                <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#10b981',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>R4</div>
+                {mySelectedPick.score.r4_holes ? (
+                  mySelectedPick.score.r4_holes.map((score: number, i: number) => (
+                    <div key={`r4-hole-${i}`} style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#10b981',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{score}</div>
+                  ))
+                ) : (
+                  <div style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#10b981',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',gridColumn:'span 18'}}>{mySelectedPick.score.r4}</div>
+                )}
+              </div>
+            )}
+            {!mySelectedPick?.score?.r1 && (
+              <div style={{display:'contents'}}>
+                <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#94a3b8',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>SCORE</div>
+                <div style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#94a3b8',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',gridColumn:'span 18'}}>No round data available</div>
+              </div>
+            )}
           </div>
 
           <div style={{display:'flex',gap:'0.5rem',justifyContent:'space-between'}}>
             <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'6px',padding:'0.5rem',textAlign:'center',flex:1}}>
               <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.25rem'}}>Total</div>
-              <div style={{fontSize:'1.25rem',fontWeight:'bold',color:'#10b981'}}>{myScore != null ? (myScore > 0 ? `+${myScore}` : myScore === 0 ? 'E' : myScore) : '-'}</div>
+              <div style={{fontSize:'1.25rem',fontWeight:'bold',color:'#10b981'}}>
+                {mySelectedPick?.score?.total_score != null 
+                  ? (mySelectedPick.score.total_score > 0 ? `+${mySelectedPick.score.total_score}` : mySelectedPick.score.total_score === 0 ? 'E' : mySelectedPick.score.total_score) 
+                  : '-'}
+              </div>
             </div>
             <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'6px',padding:'0.5rem',textAlign:'center',flex:1}}>
               <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.25rem'}}>Position</div>
-              <div style={{fontSize:'1.25rem',fontWeight:'bold',color:'#fbbf24'}}>{me.score?.position ? `#${me.score.position}` : '-'}</div>
+              <div style={{fontSize:'1.25rem',fontWeight:'bold',color:'#fbbf24'}}>{mySelectedPick?.score?.position ? `#${mySelectedPick.score.position}` : '-'}</div>
             </div>
           </div>
         </div>
@@ -383,7 +460,7 @@ export default function ChallengeView({ data }: any) {
           boxShadow:'0 4px 16px rgba(0,0,0,0.2)'
         }}>
           <div style={{fontSize:'0.75rem',fontWeight:'600',color:'#94a3b8',marginBottom:'0.75rem',textTransform:'uppercase',letterSpacing:'0.05em'}}>
-            OPPONENT SCORECARD • {opp.golfers?.name || 'Unknown'}
+            OPPONENT TEAM • {oppSelectedPick?.golfers?.name || 'No Selection'} {oppSelectedPick?.is_captain && '⭐'}
           </div>
           
           <div style={{display:'grid',gridTemplateColumns:'auto repeat(18, 1fr)',gap:'0',marginBottom:'1rem'}}>
@@ -394,49 +471,103 @@ export default function ChallengeView({ data }: any) {
                 <div key={`opp-hole-${hole}`} style={{padding:'4px 2px',fontSize:'0.65rem',fontWeight:'600',color:'#e5e7eb',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:hole===10?'1px solid rgba(255,255,255,0.2)':'none'}}>{hole}</div>
               ))}
             </div>
-            {/* Par */}
-            <div style={{display:'contents'}}>
-              <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#94a3b8',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>PAR</div>
-              {[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4].map((par,i) => (
-                <div key={`opp-par-${i}`} style={{padding:'4px 2px',fontSize:'0.65rem',color:'#9ca3af',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{par}</div>
-              ))}
-            </div>
-            {/* Score */}
-            <div style={{display:'contents'}}>
-              <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#94a3b8',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>SCORE</div>
-              {[4,4,4,4,5,4,4,4,4,4,3,4,4,5,4,4,4,3].map((score,i) => {
-                const par = 4;
-                const bgColor = score < par ? 'rgba(16, 185, 129, 0.2)' : score > par ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.05)';
-                const textColor = score < par ? '#10b981' : score > par ? '#ef4444' : '#e5e7eb';
-                return (
-                  <div key={`opp-score-${i}`} style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:textColor,textAlign:'center',background:bgColor,borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{score}</div>
-                );
-              })}
-            </div>
-            {/* Fantasy Points */}
-            <div style={{display:'contents'}}>
-              <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#667eea',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>FP</div>
-              {[1,1,1,1,-1,1,1,1,1,1,3,1,1,-1,1,1,1,3].map((fp,i) => {
-                const textColor = fp > 1 ? '#10b981' : fp < 0 ? '#ef4444' : '#9ca3af';
-                return (
-                  <div key={`opp-fp-${i}`} style={{padding:'4px 2px',fontSize:'0.65rem',fontWeight:'600',color:textColor,textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{fp > 0 ? `+${fp}` : fp}</div>
-                );
-              })}
-            </div>
+            {/* Round Scores - Show hole-by-hole if available, otherwise show round total */}
+            {oppSelectedPick?.score?.r1 && (
+              <div style={{display:'contents'}}>
+                <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#94a3b8',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>R1</div>
+                {oppSelectedPick.score.r1_holes ? (
+                  oppSelectedPick.score.r1_holes.map((score: number, i: number) => (
+                    <div key={`opp-r1-hole-${i}`} style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#94a3b8',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{score}</div>
+                  ))
+                ) : (
+                  <div style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#94a3b8',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',gridColumn:'span 18'}}>{oppSelectedPick.score.r1}</div>
+                )}
+              </div>
+            )}
+            {oppSelectedPick?.score?.r2 && (
+              <div style={{display:'contents'}}>
+                <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#94a3b8',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>R2</div>
+                {oppSelectedPick.score.r2_holes ? (
+                  oppSelectedPick.score.r2_holes.map((score: number, i: number) => (
+                    <div key={`opp-r2-hole-${i}`} style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#94a3b8',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{score}</div>
+                  ))
+                ) : (
+                  <div style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#94a3b8',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',gridColumn:'span 18'}}>{oppSelectedPick.score.r2}</div>
+                )}
+              </div>
+            )}
+            {oppSelectedPick?.score?.r3 && (
+              <div style={{display:'contents'}}>
+                <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#94a3b8',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>R3</div>
+                {oppSelectedPick.score.r3_holes ? (
+                  oppSelectedPick.score.r3_holes.map((score: number, i: number) => (
+                    <div key={`opp-r3-hole-${i}`} style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#94a3b8',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{score}</div>
+                  ))
+                ) : (
+                  <div style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#94a3b8',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',gridColumn:'span 18'}}>{oppSelectedPick.score.r3}</div>
+                )}
+              </div>
+            )}
+            {oppSelectedPick?.score?.r4 && (
+              <div style={{display:'contents'}}>
+                <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#94a3b8',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>R4</div>
+                {oppSelectedPick.score.r4_holes ? (
+                  oppSelectedPick.score.r4_holes.map((score: number, i: number) => (
+                    <div key={`opp-r4-hole-${i}`} style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#94a3b8',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',borderLeft:i===9?'1px solid rgba(255,255,255,0.2)':'none'}}>{score}</div>
+                  ))
+                ) : (
+                  <div style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#94a3b8',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',gridColumn:'span 18'}}>{oppSelectedPick.score.r4}</div>
+                )}
+              </div>
+            )}
+            {!oppSelectedPick?.score?.r1 && (
+              <div style={{display:'contents'}}>
+                <div style={{padding:'4px 6px',fontSize:'0.65rem',fontWeight:'600',color:'#94a3b8',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>SCORE</div>
+                <div style={{padding:'4px 2px',fontSize:'0.7rem',fontWeight:'700',color:'#94a3b8',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,0.1)',gridColumn:'span 18'}}>No round data available</div>
+              </div>
+            )}
           </div>
 
           <div style={{display:'flex',gap:'0.5rem',justifyContent:'space-between'}}>
             <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'6px',padding:'0.5rem',textAlign:'center',flex:1}}>
               <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.25rem'}}>Total</div>
-              <div style={{fontSize:'1.25rem',fontWeight:'bold',color:'#94a3b8'}}>{oppScore != null ? (oppScore > 0 ? `+${oppScore}` : oppScore === 0 ? 'E' : oppScore) : '-'}</div>
+              <div style={{fontSize:'1.25rem',fontWeight:'bold',color:'#94a3b8'}}>
+                {oppSelectedPick?.score?.total_score != null 
+                  ? (oppSelectedPick.score.total_score > 0 ? `+${oppSelectedPick.score.total_score}` : oppSelectedPick.score.total_score === 0 ? 'E' : oppSelectedPick.score.total_score) 
+                  : '-'}
+              </div>
             </div>
             <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'6px',padding:'0.5rem',textAlign:'center',flex:1}}>
               <div style={{fontSize:'0.6rem',color:'#94a3b8',marginBottom:'0.25rem'}}>Position</div>
-              <div style={{fontSize:'1.25rem',fontWeight:'bold',color:'#fbbf24'}}>{opp.score?.position ? `#${opp.score.position}` : '-'}</div>
+              <div style={{fontSize:'1.25rem',fontWeight:'bold',color:'#fbbf24'}}>{oppSelectedPick?.score?.position ? `#${oppSelectedPick.score.position}` : '-'}</div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Selected Golfer Detail Scorecard (appears below when clicked) */}
+      {selectedGolferId && (
+        <div style={{marginTop:'1rem'}}>
+          <div style={{
+            background:'linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(102, 126, 234, 0.06))',
+            backdropFilter:'blur(20px)',
+            WebkitBackdropFilter:'blur(20px)',
+            border:'2px solid rgba(102, 126, 234, 0.4)',
+            borderRadius:'12px',
+            padding:'1rem',
+            boxShadow:'0 4px 20px rgba(102, 126, 234, 0.3)'
+          }}>
+            <div style={{fontSize:'0.75rem',fontWeight:'600',color:'#667eea',marginBottom:'0.75rem',textTransform:'uppercase',letterSpacing:'0.05em',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span>🎯 Click another golfer to compare • Currently showing in scorecards above</span>
+              <button 
+                onClick={() => setSelectedGolferId(null)}
+                style={{background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',borderRadius:'4px',padding:'4px 8px',color:'#fff',fontSize:'0.65rem',cursor:'pointer'}}>
+                ✕ Show Captains
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

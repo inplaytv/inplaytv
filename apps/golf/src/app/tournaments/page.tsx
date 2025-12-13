@@ -53,7 +53,7 @@ function extractTour(description: string | null, name?: string): 'PGA' | 'LPGA' 
   return null;
 }
 
-// Custom hook for countdown timer
+// Custom hook for countdown timer - v2
 function useCountdown(targetDate: string | null) {
   const [countdown, setCountdown] = useState('Calculating...');
 
@@ -117,6 +117,12 @@ function UpcomingTournamentCard({
   
   // Get display text based on competition registration status, not tournament status
   const getStatusDisplay = () => {
+    // SIMPLE RULE: If ANY competition has status='reg_open', show REGISTRATION OPEN
+    const hasOpenCompetition = tournament.competitions?.some((c: any) => c.status === 'reg_open');
+    if (hasOpenCompetition) {
+      return 'REGISTRATION OPEN';
+    }
+    
     // Check if registration is closed based on countdown
     if (isClosed) {
       return 'TOURNAMENT IN PROGRESS';
@@ -545,7 +551,12 @@ export default function TournamentsPage() {
                   const tournamentInProgress = tournamentStart && tournamentEndOfDay && now >= tournamentStart && now <= tournamentEndOfDay;
                   
                   // Competition registration status (INDEPENDENT of tournament status)
-                  const registrationIsOpen = hasCompetitions && regOpenAt && regCloseAt && now >= regOpenAt && now < regCloseAt;
+                  // SIMPLE RULE: If tournament has competitions and ANY competition has reg_open status, registration is open
+                  const hasAnyOpenCompetition = tournament.competitions?.some((c: any) => c.status === 'reg_open');
+                  const registrationIsOpen = hasCompetitions && (
+                    (regOpenAt && regCloseAt && now >= regOpenAt && now < regCloseAt) ||
+                    hasAnyOpenCompetition
+                  );
                   const isRegistrationOpen = registrationIsOpen;
                   
                   return (
@@ -573,7 +584,7 @@ export default function TournamentsPage() {
                           zIndex: 10
                         }}>
                           <span className={styles.statusBadge} style={{ color: 'white' }}>
-                            Tournament InPlay
+                            TOURNAMENT IN PROGRESS
                           </span>
                         </div>
                       )}

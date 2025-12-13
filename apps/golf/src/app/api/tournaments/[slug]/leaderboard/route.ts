@@ -13,7 +13,6 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
-    console.log('🏌️ Fetching leaderboard for tournament slug:', slug);
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch tournament details by slug or ID
@@ -28,7 +27,7 @@ export async function GET(
       return NextResponse.json({ error: 'Tournament not found' }, { status: 404 });
     }
 
-    // Fetch golfers with scores
+    // Fetch golfers with scores (including hole-by-hole data)
     const { data: golfers, error: golfersError } = await supabase
       .from('tournament_golfers')
       .select(`
@@ -37,6 +36,10 @@ export async function GET(
         r2_score,
         r3_score,
         r4_score,
+        r1_holes,
+        r2_holes,
+        r3_holes,
+        r4_holes,
         total_score,
         position,
         golfers (
@@ -54,8 +57,6 @@ export async function GET(
       console.error('❌ Error fetching golfers:', golfersError);
       return NextResponse.json({ error: 'Failed to fetch golfers' }, { status: 500 });
     }
-
-    console.log('✅ Found', golfers?.length || 0, 'golfers');
 
     // Format the leaderboard data
     const leaderboard = (golfers || []).map((tg: any) => {
@@ -78,11 +79,21 @@ export async function GET(
         today: todayScore || 0,
         thru,
         rounds: [
-          tg.r1_score !== null ? tg.r1_score + 72 : null,
-          tg.r2_score !== null ? tg.r2_score + 72 : null,
-          tg.r3_score !== null ? tg.r3_score + 72 : null,
-          tg.r4_score !== null ? tg.r4_score + 72 : null,
-        ].filter(r => r !== null)
+          tg.r1_score,
+          tg.r2_score,
+          tg.r3_score,
+          tg.r4_score,
+        ].filter(r => r !== null),
+        // Include hole-by-hole data if available
+        r1_holes: tg.r1_holes || null,
+        r2_holes: tg.r2_holes || null,
+        r3_holes: tg.r3_holes || null,
+        r4_holes: tg.r4_holes || null,
+        // Also include raw round scores for compatibility
+        r1: tg.r1_score,
+        r2: tg.r2_score,
+        r3: tg.r3_score,
+        r4: tg.r4_score
       };
     });
 

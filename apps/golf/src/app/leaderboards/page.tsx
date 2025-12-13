@@ -1982,14 +1982,16 @@ export default function LeaderboardsPage() {
                                 </div>
                               </div>
                             
-                            {/* Scorecard Table */}
-                            <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-                              <div style={{ fontSize: '11px', color: '#60a5fa', fontWeight: 600, marginBottom: '4px' }}>ℹ️ Hole-by-Hole Data Not Available</div>
-                              <div style={{ fontSize: '10px', color: '#9ca3af' }}>
-                                DataGolf API only provides round totals for completed tournaments. Individual hole scores are not available.
-                                Fantasy points are estimated based on the round score.
+                            {/* Info banner - only show if no hole-by-hole data available */}
+                            {!realGolferData?.[`r${selectedRound}_holes`] && (
+                              <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                                <div style={{ fontSize: '11px', color: '#60a5fa', fontWeight: 600, marginBottom: '4px' }}>ℹ️ Hole-by-Hole Data Not Available</div>
+                                <div style={{ fontSize: '10px', color: '#9ca3af' }}>
+                                  DataGolf API only provides round totals for completed tournaments. Individual hole scores are not available.
+                                  Fantasy points are estimated based on the round score.
+                                </div>
                               </div>
-                            </div>
+                            )}
                             <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(18, 1fr)', gap: '0' }}>
                               {/* Row Labels */}
                               <div style={{ display: 'contents' }}>
@@ -2053,18 +2055,20 @@ export default function LeaderboardsPage() {
                                   alignItems: 'center'
                                 }}>SCORE</div>
                                 {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18].map(hole => {
-                                  // Show message that hole-by-hole data is not available from DataGolf API
-                                  // We have round totals but not individual hole scores
+                                  // Check if we have hole-by-hole data for the selected round
+                                  const holeScores = realGolferData?.[`r${selectedRound}_holes`];
+                                  const score = holeScores?.[hole - 1];
+                                  
                                   return (
                                     <div key={`score-${hole}`} style={{ 
                                       padding: '6px 4px', 
                                       fontSize: '11px',
                                       fontWeight: 700,
-                                      color: '#9ca3af',
+                                      color: score ? '#10b981' : '#9ca3af',
                                       textAlign: 'center',
                                       borderBottom: '1px solid rgba(255,255,255,0.1)',
                                       borderLeft: hole === 10 ? '1px solid rgba(255,255,255,0.2)' : 'none'
-                                    }}>-</div>
+                                    }}>{score || '-'}</div>
                                   );
                                 })}
                               </div>
@@ -2082,14 +2086,11 @@ export default function LeaderboardsPage() {
                                   alignItems: 'center'
                                 }}>STATUS</div>
                                 {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18].map(hole => {
-                                  // Get live scoring data if available
-                                  const liveRound = realGolferData?.liveScoring?.[selectedRound - 1];
-                                  const holeData = liveRound?.holes?.find((h: any) => h.hole === hole);
-                                  const par = holeData?.par || 4;
-                                  let score = holeData?.score || null;
-                                  
-                                  // Only show data if we have actual hole scores from API
-                                  const toPar = score !== null ? score - par : null;
+                                  // Check if we have hole-by-hole data for the selected round
+                                  const holeScores = realGolferData?.[`r${selectedRound}_holes`];
+                                  const score = holeScores?.[hole - 1];
+                                  const par = 4; // Default par
+                                  const toPar = score ? score - par : null;
                                   
                                   let bgColor = 'rgba(255,255,255,0.05)';
                                   let statusText = '-';
@@ -2140,17 +2141,44 @@ export default function LeaderboardsPage() {
                                   alignItems: 'center'
                                 }}>FANTASY</div>
                                 {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18].map(hole => {
-                                  // Hole-by-hole data not available from DataGolf for completed tournaments
-                                  // Only round totals are provided
+                                  // Check if we have hole-by-hole data for the selected round
+                                  const holeScores = realGolferData?.[`r${selectedRound}_holes`];
+                                  const score = holeScores?.[hole - 1];
+                                  
+                                  if (!score) {
+                                    return (
+                                      <div key={`fantasy-${hole}`} style={{ 
+                                        padding: '6px 4px', 
+                                        fontSize: '10px',
+                                        fontWeight: 700,
+                                        color: '#6b7280',
+                                        textAlign: 'center',
+                                        borderLeft: hole === 10 ? '1px solid rgba(255,255,255,0.2)' : 'none'
+                                      }}>-</div>
+                                    );
+                                  }
+                                  
+                                  const par = 4;
+                                  const toPar = score - par;
+                                  
+                                  // Calculate fantasy points based on score
+                                  let points = 0;
+                                  if (toPar <= -3) points = 5; // Albatross
+                                  else if (toPar === -2) points = 4; // Eagle
+                                  else if (toPar === -1) points = 3; // Birdie
+                                  else if (toPar === 0) points = 1; // Par
+                                  else if (toPar === 1) points = -1; // Bogey
+                                  else if (toPar >= 2) points = -2; // Double bogey or worse
+                                  
                                   return (
                                     <div key={`fantasy-${hole}`} style={{ 
                                       padding: '6px 4px', 
                                       fontSize: '10px',
                                       fontWeight: 700,
-                                      color: '#6b7280',
+                                      color: points > 0 ? '#10b981' : points < 0 ? '#ef4444' : '#9ca3af',
                                       textAlign: 'center',
                                       borderLeft: hole === 10 ? '1px solid rgba(255,255,255,0.2)' : 'none'
-                                    }}>-</div>
+                                    }}>{points > 0 ? `+${points}` : points}</div>
                                   );
                                 })}
                               </div>

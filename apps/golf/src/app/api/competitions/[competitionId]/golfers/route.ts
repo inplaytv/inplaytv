@@ -16,26 +16,26 @@ const AVG_SALARY = TEAM_BUDGET / TEAM_SIZE; // £10,000
 
 function calculateDynamicSalaries(fieldSize: number): { min: number; max: number } {
   // Mathematical principle: 
-  // - Top 6 should cost 105-110% of budget (slightly impossible)
-  // - Bottom 6 should cost 55-60% of budget (need better players)
+  // - Top 6 should cost ~100-105% of budget (just at the limit)
+  // - Bottom 6 should cost 60-65% of budget (need better players)
   // - Average salary should be in middle third of field
   
   // For optimal balance, use this formula:
-  // Max = Average * 1.30 (30% above average)
-  // Min = Average * 0.70 (30% below average)
-  // This creates a 1.86:1 ratio (max:min)
+  // Max = £11,000 (top player costs 18.3% of budget)
+  // Min = £7,000 (bottom player costs 11.7% of budget)
+  // This creates a 1.57:1 ratio (max:min)
   
   // With £10k average:
-  // Max = £13,000 (top player costs 21.7% of budget)
-  // Min = £7,000 (bottom player costs 11.7% of budget)
+  // Max = £11,000 
+  // Min = £7,000
   
-  const maxSalary = Math.round(AVG_SALARY * 1.30 / 100) * 100; // £13,000
-  const minSalary = Math.round(AVG_SALARY * 0.70 / 100) * 100; // £7,000
+  const maxSalary = 11000; // £11,000
+  const minSalary = 7000;  // £7,000
   
   // Verify the math:
-  // Top 6 average: ~£12,100 each = £72,600 total (121% of budget) ✓
-  // Bottom 6 average: ~£7,900 each = £47,400 total (79% of budget) ✓
-  // Middle positions: ~£10,000 (average) ✓
+  // Top 6 average: ~£10,300 each = £61,800 total (103% of budget) ✓
+  // Bottom 6 average: ~£7,700 each = £46,200 total (77% of budget) ✓
+  // Middle positions: ~£9,000 (slightly below average) ✓
   
   return { min: minSalary, max: maxSalary };
 }
@@ -93,11 +93,12 @@ export async function GET(
     // Try tournament_competitions first (regular competitions)
     const { data: competition, error: compError } = await supabase
       .from('tournament_competitions')
-      .select('tournament_id')
+      .select('tournament_id, assigned_golfer_group_id')
       .eq('id', competitionId)
       .maybeSingle();
 
     let tournamentId = competition?.tournament_id;
+    let golferGroupId = competition?.assigned_golfer_group_id;
 
     // If not found, try competition_instances (ONE 2 ONE)
     if (!tournamentId) {
@@ -108,14 +109,16 @@ export async function GET(
         .maybeSingle();
       
       tournamentId = instance?.tournament_id;
+      // ONE 2 ONE instances don't have assigned_golfer_group_id - they use all tournament golfers
+      golferGroupId = null;
     }
 
     if (!tournamentId) {
       return NextResponse.json([]);
     }
 
-    // Get golfers directly from tournament_golfers table
-    const { data, error } = await supabase
+    // Get golfers for tournament
+    let golfersQuery = supabase
       .from('tournament_golfers')
       .select(`
         golfer_id,
@@ -130,14 +133,51 @@ export async function GET(
         )
       `)
       .eq('tournament_id', tournamentId);
+    
+    const { data, error } = await golfersQuery;
 
     if (error) {
       console.error('Error fetching tournament golfers:', error);
       throw error;
     }
 
+    // CRITICAL FIX: Filter by golfer group if competition has one assigned
+    let filteredData = data || [];
+    if (golferGroupId) {
+      console.log(`🎯 Filtering ${filteredData.length} golfers by group: ${golferGroupId}`);
+      
+      // Get golfers in this group
+      const { data: groupMembers, error: gmError } = await supabase
+        .from('golfer_group_members')
+        .select('golfer_id')
+        .eq('group_id', golferGroupId);
+      
+      if (gmError) {
+        console.error('Error fetching group members:', gmError);
+      } else if (groupMembers) {
+        const groupGolferIds = new Set(groupMembers.map(m => m.golfer_id));
+        filteredData = filteredData.filter(g => groupGolferIds.has(g.golfer_id));
+        console.log(`✅ Filtered to ${filteredData.length} golfers in group`);
+      }
+    } else {
+      console.warn(`⚠️ No golfer group assigned to competition ${competitionId}, showing all ${filteredData.length} tournament golfers`);
+    }
+
+    // Deduplicate golfers (safety check in case duplicates exist in database)
+    const seenGolferIds = new Set<string>();
+    const deduplicatedData = filteredData.filter((item: any) => {
+      if (seenGolferIds.has(item.golfer_id)) {
+        console.warn(`⚠️ Duplicate golfer detected for tournament ${tournamentId}: ${item.golfer_id}`);
+        return false;
+      }
+      seenGolferIds.add(item.golfer_id);
+      return true;
+    });
+
+    console.log(`📊 Golfers: ${data?.length || 0} total, ${filteredData.length} in group, ${deduplicatedData.length} unique`);
+
     // Try to get salaries from tournament_golfer_salaries if they exist
-    const golferIds = (data || []).map((m: any) => m.golfer_id).filter(Boolean);
+    const golferIds = deduplicatedData.map((m: any) => m.golfer_id).filter(Boolean);
     
     let salariesMap: { [key: string]: number } = {};
     if (golferIds.length > 0 && tournamentId) {
@@ -155,7 +195,7 @@ export async function GET(
     }
 
     // Flatten and sort by world ranking first to get proper field positions
-    let golfersWithRank = (data || [])
+    let golfersWithRank = deduplicatedData
       .filter((member: any) => member.golfers)
       .map((member: any) => ({
         ...member,

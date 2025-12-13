@@ -112,9 +112,66 @@ export async function POST(
 
     console.log(`✅ Found ${fieldData.field.length} golfers from DataGolf`);
     console.log(`📋 Event: ${fieldData.event_name}`);
+    console.log(`🏆 Tournament: ${tournament.name}`);
     console.log(`🔍 First player sample:`, fieldData.field[0]);
     console.log(`🔍 DataGolf response keys:`, Object.keys(fieldData));
     console.log(`🔍 Field is array:`, Array.isArray(fieldData.field));
+
+    // 🛡️ SAFEGUARD 1: Validate event name matches tournament
+    // This prevents syncing wrong tournament data
+    const eventNameLower = (fieldData.event_name || '').toLowerCase().trim();
+    const tournamentNameLower = tournament.name.toLowerCase().trim();
+    
+    // Check for substantial match (allows for minor differences like "Championship" vs "Champ")
+    const isNameMatch = eventNameLower.includes(tournamentNameLower.slice(0, 15)) || 
+                        tournamentNameLower.includes(eventNameLower.slice(0, 15));
+    
+    if (!isNameMatch && !replace) {
+      console.error('❌ EVENT NAME MISMATCH!');
+      console.error(`   Expected: "${tournament.name}"`);
+      console.error(`   Received: "${fieldData.event_name}"`);
+      return NextResponse.json({
+        success: false,
+        error: 'Event name mismatch - DataGolf returned a different tournament',
+        expected: tournament.name,
+        received: fieldData.event_name,
+        message: 'The DataGolf API returned data for a different tournament. This could add wrong golfers. Sync aborted for safety.',
+        suggestion: 'Check the tour parameter or wait for the correct tournament to be active on DataGolf.',
+      }, { status: 400 });
+    }
+    
+    if (!isNameMatch && replace) {
+      console.warn('⚠️ Event name mismatch but replace=true, proceeding with caution...');
+      console.warn(`   Expected: "${tournament.name}"`);
+      console.warn(`   Received: "${fieldData.event_name}"`);
+    }
+
+    // 🛡️ SAFEGUARD 2: Check if golfers already exist
+    const { count: existingCount } = await supabase
+      .from('tournament_golfers')
+      .select('*', { count: 'exact', head: true })
+      .eq('tournament_id', tournamentId);
+    
+    console.log(`📊 Current golfers: ${existingCount || 0}`);
+    console.log(`📊 New golfers from DataGolf: ${fieldData.field.length}`);
+    
+    if (existingCount && existingCount > 0 && !replace) {
+      console.warn('⚠️ GOLFERS ALREADY EXIST - Adding to existing field');
+      console.warn(`   This will result in ${existingCount + fieldData.field.length} total golfers`);
+      console.warn(`   Use replace=true to completely replace the field instead`);
+      
+      // Alert if the new total seems unusually high
+      if ((existingCount + fieldData.field.length) > 200) {
+        return NextResponse.json({
+          success: false,
+          error: 'Unusual golfer count detected',
+          currentGolfers: existingCount,
+          newGolfers: fieldData.field.length,
+          totalWouldBe: existingCount + fieldData.field.length,
+          message: 'This would create an unusually high golfer count (over 200). Use replace=true to replace existing golfers instead of adding.',
+        }, { status: 400 });
+      }
+    }
 
     // Fetch world rankings from DataGolf to get OWGR data
     console.log('📊 Fetching world rankings for salary calculation...');

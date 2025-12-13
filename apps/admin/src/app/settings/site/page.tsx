@@ -4,8 +4,23 @@ import { useState, useEffect } from 'react';
 
 type MaintenanceMode = 'live' | 'coming-soon' | 'maintenance';
 
+interface ComingSoonSettings {
+  headline: string;
+  description: string;
+  backgroundImage: string;
+  logoText: string;
+  tagline: string;
+}
+
 export default function SiteSettingsPage() {
   const [mode, setMode] = useState<MaintenanceMode>('live');
+  const [comingSoon, setComingSoon] = useState<ComingSoonSettings>({
+    headline: 'COMING SOON',
+    description: '',
+    backgroundImage: '/backgrounds/golf-03.jpg',
+    logoText: 'InPlayTV',
+    tagline: 'A new way to follow what matters.'
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -17,11 +32,20 @@ export default function SiteSettingsPage() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/settings/site');
-      if (!response.ok) throw new Error('Failed to fetch settings');
+      const [modeRes, csRes] = await Promise.all([
+        fetch('/api/settings/site'),
+        fetch('/api/settings/coming-soon')
+      ]);
       
-      const data = await response.json();
-      setMode(data.maintenance_mode || 'live');
+      if (modeRes.ok) {
+        const data = await modeRes.json();
+        setMode(data.maintenance_mode || 'live');
+      }
+      
+      if (csRes.ok) {
+        const data = await csRes.json();
+        setComingSoon(data);
+      }
     } catch (err: any) {
       console.error('Error fetching settings:', err);
       setMessage({ type: 'error', text: err.message });
@@ -56,6 +80,32 @@ export default function SiteSettingsPage() {
       console.log('[Site Settings] Mode updated successfully');
     } catch (err: any) {
       console.error('[Site Settings] Error updating settings:', err);
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveComingSoon = async () => {
+    try {
+      setSaving(true);
+      setMessage(null);
+
+      const response = await fetch('/api/settings/coming-soon', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(comingSoon),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update coming soon settings');
+      }
+
+      setMessage({ type: 'success', text: 'Coming soon page updated successfully!' });
+    } catch (err: any) {
+      console.error('[Site Settings] Error updating coming soon:', err);
       setMessage({ type: 'error', text: err.message });
     } finally {
       setSaving(false);
@@ -206,6 +256,159 @@ export default function SiteSettingsPage() {
               Admins can always access the admin panel regardless of the site mode.
               Changes take effect immediately across all pages.
             </div>
+          </div>
+        </div>
+
+        {/* Coming Soon Page Customization */}
+        <div style={{
+          background: '#1e1e1e',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '8px',
+          padding: '1.5rem',
+          marginTop: '2rem',
+        }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem', color: '#fff' }}>
+            Coming Soon Page Customization
+          </h2>
+          <p style={{ fontSize: '0.875rem', color: '#888', marginBottom: '1.5rem' }}>
+            Customize the content and appearance of the coming soon page
+          </p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Headline */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', color: '#ccc', marginBottom: '0.5rem', fontWeight: 500 }}>
+                Headline
+              </label>
+              <input
+                type="text"
+                value={comingSoon.headline}
+                onChange={(e) => setComingSoon({ ...comingSoon, headline: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: '#2a2a2a',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                }}
+                placeholder="COMING SOON"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', color: '#ccc', marginBottom: '0.5rem', fontWeight: 500 }}>
+                Description
+              </label>
+              <textarea
+                value={comingSoon.description}
+                onChange={(e) => setComingSoon({ ...comingSoon, description: e.target.value })}
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: '#2a2a2a',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                  resize: 'vertical',
+                }}
+                placeholder="Precision meets passion..."
+              />
+            </div>
+
+            {/* Background Image */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', color: '#ccc', marginBottom: '0.5rem', fontWeight: 500 }}>
+                Background Image URL
+              </label>
+              <input
+                type="text"
+                value={comingSoon.backgroundImage}
+                onChange={(e) => setComingSoon({ ...comingSoon, backgroundImage: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: '#2a2a2a',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                }}
+                placeholder="/backgrounds/golf-03.jpg"
+              />
+              <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.25rem' }}>
+                Available: /backgrounds/golf-02.jpg, golf-03.jpg, golf-course-blue.jpg, golf-course-green.jpg, golf-course-teal.jpg
+              </div>
+            </div>
+
+            {/* Logo Text */}
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#ccc', marginBottom: '0.5rem', fontWeight: 500 }}>
+                  Logo Text
+                </label>
+                <input
+                  type="text"
+                  value={comingSoon.logoText}
+                  onChange={(e) => setComingSoon({ ...comingSoon, logoText: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: '#2a2a2a',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    fontSize: '0.875rem',
+                  }}
+                  placeholder="InPlayTV"
+                />
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#ccc', marginBottom: '0.5rem', fontWeight: 500 }}>
+                  Tagline
+                </label>
+                <input
+                  type="text"
+                  value={comingSoon.tagline}
+                  onChange={(e) => setComingSoon({ ...comingSoon, tagline: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: '#2a2a2a',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    fontSize: '0.875rem',
+                  }}
+                  placeholder="A new way to follow what matters."
+                />
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <button
+              onClick={handleSaveComingSoon}
+              disabled={saving}
+              style={{
+                padding: '0.875rem 1.5rem',
+                background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.9), rgba(6, 182, 212, 0.9))',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#fff',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: saving ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                marginTop: '0.5rem',
+              }}
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
         </div>
       </div>

@@ -66,7 +66,6 @@ export async function middleware(request: NextRequest) {
                         request.nextUrl.hostname === '127.0.0.1';
   
   if (isDevelopment) {
-    console.log('[Middleware] Development mode detected, skipping maintenance check');
     return NextResponse.next();
   }
   
