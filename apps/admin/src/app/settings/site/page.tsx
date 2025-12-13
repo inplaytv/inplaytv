@@ -440,7 +440,7 @@ export default function SiteSettingsPage() {
                 placeholder="/backgrounds/golf-03.jpg (leave blank for no image)"
               />
               <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.25rem' }}>
-                Available: /backgrounds/golf-02.jpg, golf-03.jpg, golf-course-blue.jpg, golf-course-green.jpg, golf-course-teal.jpg
+                Available: /backgrounds/golf-02.jpg, golf-03.jpg, golf-course-blue.jpg, golf-course-green.jpg, golf-course-teal.jpg (stored in web app)
               </div>
             </div>
 
