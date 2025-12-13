@@ -27,29 +27,11 @@ body {
   color: #ffffff;
   overflow-x: hidden;
   min-height: 100vh;
-  
-  /* Single background image with gradient overlay - exactly like design */
-  background: linear-gradient(135deg, #0a0f1c 0%, #1a2332 25%, #2d4a4a 50%, #1a2332 75%, #0a0f1c 100%);
   position: relative;
+  /* No hardcoded background - let individual pages control their backgrounds */
 }
 
-/* Background image layer - removed hard-coded image */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  /* No default background image - controlled by page components */
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  filter: blur(1px) brightness(0.6) contrast(1.1);
-  opacity: 0.8;
-  z-index: -2;
-}
+/* Background image handling removed - controlled by individual page components */
 
 /* Optional noise overlay */
 body::after {
