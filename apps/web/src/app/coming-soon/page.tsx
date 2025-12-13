@@ -143,7 +143,7 @@ export default function ComingSoonPage() {
         <div className={styles.branding}>
           <div className={styles.logo}>{settings.logoText}</div>
           <div className={styles.tagline}>{settings.tagline}</div>
-          {/* PREMIUM DESIGN v2.0 - Updated Dec 12, 2025 - Now database-driven */}
+          {/* PREMIUM DESIGN v2.0 - Updated Dec 13, 2025 - Now database-driven with proper deployment */}
         </div>
 
         <div className={styles.main}>
