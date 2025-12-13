@@ -60,6 +60,10 @@ export async function PUT(request: Request) {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const body = await request.json();
+    
+    console.log('[DEBUG] Received PUT request with body:', body);
+    console.log('[DEBUG] Database URL:', supabaseUrl);
+    console.log('[DEBUG] Service key exists:', !!supabaseServiceKey);
 
     const updates = [
       { key: 'coming_soon_headline', value: body.headline },
@@ -69,9 +73,12 @@ export async function PUT(request: Request) {
       { key: 'coming_soon_tagline', value: body.tagline }
     ];
 
+    console.log('[DEBUG] Updates to apply:', updates);
+
     // Update each setting
     for (const update of updates) {
-      const { error } = await supabase
+      console.log('[DEBUG] Updating:', update);
+      const { error, data } = await supabase
         .from('site_settings')
         .upsert({
           setting_key: update.key,
@@ -81,7 +88,11 @@ export async function PUT(request: Request) {
           onConflict: 'setting_key'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[DEBUG] Database error:', error);
+        throw error;
+      }
+      console.log('[DEBUG] Update result:', data);
     }
 
     return NextResponse.json({ success: true, message: 'Settings updated successfully' });

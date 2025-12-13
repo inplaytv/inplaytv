@@ -91,13 +91,17 @@ export default function SiteSettingsPage() {
       setSaving(true);
       setMessage(null);
 
+      console.log('[DEBUG] About to save coming soon settings:', comingSoon);
+
       const response = await fetch('/api/settings/coming-soon', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(comingSoon),
       });
 
+      console.log('[DEBUG] Save response status:', response.status);
       const result = await response.json();
+      console.log('[DEBUG] Save response body:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to update coming soon settings');
