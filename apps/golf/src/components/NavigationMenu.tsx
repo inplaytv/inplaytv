@@ -21,6 +21,11 @@ interface MenuCategory {
   items: MenuItem[];
 }
 
+interface NavigationMenuProps {
+  isMobile?: boolean;
+  onItemClick?: () => void;
+}
+
 const menuCategories: MenuCategory[] = [
   {
     id: 'golf',
@@ -105,11 +110,48 @@ const menuCategories: MenuCategory[] = [
   }
 ];
 
-export default function NavigationMenu() {
+export default function NavigationMenu({ isMobile = false, onItemClick }: NavigationMenuProps = {}) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+
+  // If mobile, render simplified navigation
+  if (isMobile) {
+    const allItems = menuCategories.flatMap(category => 
+      category.items.map(item => ({ ...item, category: category.label }))
+    );
+    
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.5rem'
+      }}>
+        {allItems.slice(0, 8).map((item, index) => (
+          <Link 
+            key={index}
+            href={item.href} 
+            style={{ 
+              color: pathname === item.href ? '#10b981' : '#fff', 
+              textDecoration: 'none', 
+              fontSize: '1.1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.75rem 0',
+              borderLeft: pathname === item.href ? '3px solid #10b981' : 'none',
+              paddingLeft: pathname === item.href ? '1rem' : '0'
+            }} 
+            onClick={onItemClick}
+          >
+            <i className={`fa ${item.icon}`} style={{minWidth: '20px'}}></i>
+            {item.label}
+          </Link>
+        ))}
+      </div>
+    );
+  }
 
   // Close menu when clicking outside
   useEffect(() => {
