@@ -16,6 +16,32 @@ export async function GET() {
     'Pragma': 'no-cache',
     'Expires': '0'
   };
+  
+  // Check environment variables first
+  if (!supabaseUrl) {
+    console.error('[API] Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
+    return NextResponse.json({ 
+      error: 'Missing Supabase URL configuration',
+      headline: 'COMING SOON',
+      description: '',
+      backgroundImage: '',
+      logoText: 'InPlayTV',
+      tagline: 'A new way to follow what matters.'
+    }, { headers });
+  }
+  
+  if (!supabaseServiceKey) {
+    console.error('[API] Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+    return NextResponse.json({ 
+      error: 'Missing Supabase service key configuration',
+      headline: 'COMING SOON',
+      description: '',
+      backgroundImage: '',
+      logoText: 'InPlayTV',
+      tagline: 'A new way to follow what matters.'
+    }, { headers });
+  }
+  
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
