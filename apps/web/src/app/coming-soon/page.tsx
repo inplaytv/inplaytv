@@ -18,7 +18,7 @@ export default function ComingSoonPage() {
   const [settings, setSettings] = useState<ComingSoonSettings>({
     headline: 'COMING SOON',
     description: 'Be the first to Strike',
-    backgroundImage: '/backgrounds/golf-course-teal.jpg', // Direct static image
+    backgroundImage: '', // No default - load from admin
     logoText: 'InPlayTV',
     tagline: 'A new way to follow what matters.'
   });
@@ -48,48 +48,33 @@ export default function ComingSoonPage() {
   // }, []);
 
   useEffect(() => {
-    // Temporarily disable API call to fix production issues
-    // TODO: Fix API route deployment on Vercel
-    console.log('[Coming Soon] Using static settings - API call disabled');
-    return;
-    
     const fetchSettings = async () => {
       try {
-        const apiUrl = '/api/settings/coming-soon';
-        console.log('[Coming Soon] Fetching from:', apiUrl);
-        
-        const response = await fetch(apiUrl, {
+        const response = await fetch('/api/settings/coming-soon', {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache'
           }
         });
         
-        console.log('[Coming Soon] Response status:', response.status);
-        console.log('[Coming Soon] Response headers:', response.headers);
-        
         if (!response.ok) {
-          const text = await response.text();
-          console.error('[Coming Soon] API Error: Status', response.status, 'Response:', text);
+          console.error('[Coming Soon] API Error: Status', response.status);
           return;
         }
         
         const data = await response.json();
-        console.log('[Coming Soon] API Response data:', data);
         
         // Update settings, using fallbacks if API values are empty
         setSettings(prevSettings => ({
           headline: data.headline || prevSettings.headline,
           description: data.description || prevSettings.description,
-          backgroundImage: (data.backgroundImage || prevSettings.backgroundImage).trim(),
+          backgroundImage: (data.backgroundImage || '').trim(),
           logoText: data.logoText || prevSettings.logoText,
           tagline: data.tagline || prevSettings.tagline
         }));
         
       } catch (error) {
         console.error('[Coming Soon] API Error:', error);
-        // Don't fail silently - use default settings if API fails
-        console.log('[Coming Soon] Using fallback settings due to API error');
       }
     };
     
