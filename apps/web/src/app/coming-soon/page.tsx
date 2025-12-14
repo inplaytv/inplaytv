@@ -17,8 +17,8 @@ export default function ComingSoonPage() {
   const [message, setMessage] = useState('');
   const [settings, setSettings] = useState<ComingSoonSettings>({
     headline: 'COMING SOON',
-    description: 'Precision meets passion in a live, immersive format. Competition will never emerge the same.',
-    backgroundImage: '', // No default background image
+    description: 'Be the first to Strike',
+    backgroundImage: '/images/golf-bg2.jpg', // Default fallback image
     logoText: 'InPlayTV',
     tagline: 'A new way to follow what matters.'
   });
@@ -50,19 +50,27 @@ export default function ComingSoonPage() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch('/api/settings/coming-soon', {
+        const apiUrl = '/api/settings/coming-soon';
+        console.log('[Coming Soon] Fetching from:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache'
           }
         });
         
+        console.log('[Coming Soon] Response status:', response.status);
+        console.log('[Coming Soon] Response headers:', response.headers);
+        
         if (!response.ok) {
-          console.error('[Coming Soon] API Error: Status', response.status);
+          const text = await response.text();
+          console.error('[Coming Soon] API Error: Status', response.status, 'Response:', text);
           return;
         }
         
         const data = await response.json();
+        console.log('[Coming Soon] API Response data:', data);
         
         // Update settings, using fallbacks if API values are empty
         setSettings(prevSettings => ({
@@ -75,6 +83,8 @@ export default function ComingSoonPage() {
         
       } catch (error) {
         console.error('[Coming Soon] API Error:', error);
+        // Don't fail silently - use default settings if API fails
+        console.log('[Coming Soon] Using fallback settings due to API error');
       }
     };
     
