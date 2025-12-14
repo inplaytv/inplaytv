@@ -18,7 +18,7 @@ export default function ComingSoonPage() {
   const [settings, setSettings] = useState<ComingSoonSettings>({
     headline: 'COMING SOON',
     description: 'Be the first to Strike',
-    backgroundImage: '', // No default - load from admin
+    backgroundImage: '/backgrounds/inplay_bg-02.png', // Fallback background while API is broken
     logoText: 'InPlayTV',
     tagline: 'A new way to follow what matters.'
   });
@@ -88,6 +88,8 @@ export default function ComingSoonPage() {
         
       } catch (error) {
         console.error('[Coming Soon] API Error:', error);
+        // Keep fallback settings if API fails - don't update
+        console.log('[Coming Soon] Using fallback background:', settings.backgroundImage);
       }
     };
     
