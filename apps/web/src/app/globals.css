@@ -28,8 +28,8 @@ body {
   overflow-x: hidden;
   min-height: 100vh;
   position: relative;
-  /* Transparent background - pages control their own backgrounds */
-  background: transparent;
+  /* Dark gradient background for all pages */
+  background: linear-gradient(135deg, #0a0f1a 0%, #1a1f2e 50%, #0f1419 100%);
 }
 
 /* Background image handling removed - controlled by individual page components */

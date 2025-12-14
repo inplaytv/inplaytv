@@ -4,6 +4,18 @@
   margin: 0 auto;
   padding: 3rem 1rem 2rem 1rem;
   min-height: 100vh;
+  position: relative;
+}
+
+.wrap::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: -1;
 }
 
 /* Loading State */
@@ -182,6 +194,101 @@
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Featured Tournament Slider */
+.featuredSliderSection {
+  margin-bottom: 2rem;
+}
+
+.sliderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.sliderHeader h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.sliderControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sliderArrow {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sliderArrow:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.sliderDots {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sliderDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sliderDot.active {
+  background: #667eea;
+  width: 24px;
+  border-radius: 4px;
+}
+
+.featuredSlider {
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.sliderTrack {
+  display: flex;
+  transition: transform 0.5s ease;
+}
+
+.sliderSlide {
+  min-width: 100%;
+  flex-shrink: 0;
+}
+
+.sliderProgress {
+  margin-top: 1rem;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 2px;
+  transition: width 0.5s ease;
 }
 
 /* Empty State */

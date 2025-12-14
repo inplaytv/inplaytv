@@ -48,13 +48,74 @@ export default function TournamentsPage() {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [sortBy, setSortBy] = useState('prize_pool');
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [myEntries, setMyEntries] = useState(0);
+  const [backgroundUrl, setBackgroundUrl] = useState<string>('');
+  
+  // Featured tournaments data for slider
+  const featuredTournaments = [
+    { id: 1, name: 'Masters Tournament 2025' },
+    { id: 2, name: 'PGA Championship 2025' },
+    { id: 3, name: 'U.S. Open 2025' }
+  ];
+  
   const supabase = createClient();
   const router = useRouter();
 
   useEffect(() => {
     fetchData();
     checkUser();
+    fetchBackgroundSetting();
+  }, []);
+
+  const fetchBackgroundSetting = async () => {
+    try {
+      // Add cache busting to ensure fresh data
+      const response = await fetch(`/api/settings/tournament-background?t=${Date.now()}`);
+      if (response.ok) {
+        const data = await response.json();
+        const bgUrl = data.backgroundUrl || '/main_images/tournaments/golf-course-green.jpg';
+        console.log('🎨 Background URL fetched:', bgUrl);
+        setBackgroundUrl(bgUrl);
+      }
+    } catch (error) {
+      console.error('Error fetching background setting:', error);
+      const fallback = '/main_images/tournaments/golf-course-green.jpg';
+      console.log('🎨 Using fallback background:', fallback);
+      setBackgroundUrl(fallback);
+    }
+  };
+
+  // Auto-advance slider
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % featuredTournaments.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [featuredTournaments.length]);
+
+  // Refetch background when tab becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 Tab visible, refreshing background...');
+        setTimeout(() => fetchBackgroundSetting(), 100); // Small delay to ensure tab focus
+      }
+    };
+
+    const handleFocus = () => {
+      console.log('🔄 Window focused, refreshing background...');
+      fetchBackgroundSetting();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const handleJoinPrompt = () => {
@@ -229,13 +290,38 @@ export default function TournamentsPage() {
   }
 
   return (
-    <div className={styles.wrap}>
+    <div 
+      className={styles.wrap}
+      style={{
+        position: 'relative',
+        backgroundImage: backgroundUrl ? `url('${backgroundUrl}')` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Debug info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{position: 'fixed', top: '10px', left: '10px', background: 'rgba(0,0,0,0.8)', color: 'white', padding: '10px', fontSize: '12px', zIndex: 9999}}>
+          Background URL: {backgroundUrl || 'Not set'}
+          <br />
+          <button 
+            onClick={() => {
+              console.log('🔄 Manual refresh triggered');
+              fetchBackgroundSetting();
+            }}
+            style={{marginTop: '5px', padding: '5px', fontSize: '10px'}}
+          >
+            Force Refresh Background
+          </button>
+        </div>
+      )}
       {/* Page Header */}
       <div className={styles.pageHeader}>
         <div className={styles.headerTop}>
           <div className={styles.headerContent}>
             <h1 className={styles.pageTitle}>Tournament Selection</h1>
-            <p className={styles.pageSubtitle}>Choose your fantasy golf competition</p>
           </div>
           
           {userEmail && (
@@ -254,6 +340,296 @@ export default function TournamentsPage() {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Featured Tournament Slider */}
+      <div className={styles.featuredSliderSection}>
+        <div className={styles.sliderHeader}>
+          <h2>Featured Tournaments</h2>
+          <div className={styles.sliderControls}>
+            <button 
+              className={styles.sliderArrow}
+              onClick={() => setCurrentSlide(currentSlide === 0 ? featuredTournaments.length - 1 : currentSlide - 1)}
+            >
+              <i className="fas fa-chevron-left"></i>
+            </button>
+            <div className={styles.sliderDots}>
+              {featuredTournaments.map((_, index) => (
+                <button
+                  key={index}
+                  className={`${styles.sliderDot} ${index === currentSlide ? styles.active : ''}`}
+                  onClick={() => setCurrentSlide(index)}
+                />
+              ))}
+            </div>
+            <button 
+              className={styles.sliderArrow}
+              onClick={() => setCurrentSlide((currentSlide + 1) % featuredTournaments.length)}
+            >
+              <i className="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div className={styles.featuredSlider}>
+          <div 
+            className={styles.sliderTrack}
+            style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+          >
+            {/* Slide 1 - Masters Tournament */}
+            <div className={styles.sliderSlide}>
+              <div className={`${styles.featuredCompetitionCard} ${styles.glass}`}>
+                <div className={styles.featuredTop}>
+                  <div className={styles.featuredCourseInfo}>
+                    <div className={styles.featuredCourseTitle}>THE FULL COURSE</div>
+                    <div className={styles.featuredCourseSubtitle}>The Complete Competition</div>
+                  </div>
+                  <div className={styles.featuredBadge}>
+                    <i className="fas fa-crown"></i>
+                    FULL COURSE
+                  </div>
+                </div>
+                
+                <div className={styles.featuredContent}>
+                  <div className={styles.featuredImage}>
+                    <img 
+                      src="https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?w=600&h=300&fit=crop" 
+                      alt="Masters Tournament"
+                    />
+                  </div>
+                  <div className={styles.featuredInfo}>
+                    <h3 className={styles.featuredName}>Masters Tournament 2025</h3>
+                    <p className={styles.featuredLocation}>
+                      <i className="fas fa-map-marker-alt"></i>
+                      Augusta National Golf Club
+                    </p>
+                    <p className={styles.featuredDates}>
+                      <i className="fas fa-calendar"></i>
+                      April 10-13, 2025
+                    </p>
+                  </div>
+                  <div className={styles.featuredBadgeRight}>
+                    <i className="fas fa-star"></i>
+                    <span>FEATURED</span>
+                  </div>
+                </div>
+                
+                <div className={styles.featuredStats}>
+                  <div className={styles.featuredStatBox}>
+                    <i className="fas fa-trophy"></i>
+                    <div>
+                      <div className={styles.featuredStatValue}>£2.5M</div>
+                      <div className={styles.featuredStatLabel}>Prize Pool</div>
+                    </div>
+                  </div>
+                  <div className={styles.featuredStatBox}>
+                    <i className="fas fa-users"></i>
+                    <div>
+                      <div className={styles.featuredStatValue}>12,847</div>
+                      <div className={styles.featuredStatLabel}>Entries</div>
+                    </div>
+                  </div>
+                  <div className={styles.featuredStatBox}>
+                    <i className="fas fa-ticket-alt"></i>
+                    <div>
+                      <div className={styles.featuredStatValue}>£25</div>
+                      <div className={styles.featuredStatLabel}>Entry Fee</div>
+                    </div>
+                  </div>
+                  <div className={styles.featuredStatBox}>
+                    <i className="fas fa-medal"></i>
+                    <div>
+                      <div className={styles.featuredStatValue}>£500K</div>
+                      <div className={styles.featuredStatLabel}>1st Place</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className={styles.featuredActions}>
+                  <button className={styles.btnPrimary} onClick={handleJoinPrompt}>
+                    <i className="fas fa-users"></i>
+                    Build Your Team
+                  </button>
+                  <button className={styles.btnSecondary}>
+                    <i className="fas fa-list-ol"></i>
+                    Leaderboard List
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Slide 2 - PGA Championship */}
+            <div className={styles.sliderSlide}>
+              <div className={`${styles.featuredCompetitionCard} ${styles.glass}`}>
+                <div className={styles.featuredTop}>
+                  <div className={styles.featuredCourseInfo}>
+                    <div className={styles.featuredCourseTitle}>BEAT THE CUT</div>
+                    <div className={styles.featuredCourseSubtitle}>36 Holes Competition</div>
+                  </div>
+                  <div className={`${styles.featuredBadge} ${styles.badgeElite}`}>
+                    <i className="fas fa-star"></i>
+                    BEAT THE CUT
+                  </div>
+                </div>
+                
+                <div className={styles.featuredContent}>
+                  <div className={styles.featuredImage}>
+                    <img 
+                      src="https://images.unsplash.com/photo-1592919505780-303950717480?w=600&h=300&fit=crop" 
+                      alt="PGA Championship"
+                    />
+                  </div>
+                  <div className={styles.featuredInfo}>
+                    <h3 className={styles.featuredName}>PGA Championship 2025</h3>
+                    <p className={styles.featuredLocation}>
+                      <i className="fas fa-map-marker-alt"></i>
+                      Kiawah Island Golf Resort
+                    </p>
+                    <p className={styles.featuredDates}>
+                      <i className="fas fa-calendar"></i>
+                      May 15-18, 2025
+                    </p>
+                  </div>
+                  <div className={styles.featuredBadgeRight}>
+                    <i className="fas fa-star"></i>
+                    <span>FEATURED</span>
+                  </div>
+                </div>
+                
+                <div className={styles.featuredStats}>
+                  <div className={styles.featuredStatBox}>
+                    <i className="fas fa-trophy"></i>
+                    <div>
+                      <div className={styles.featuredStatValue}>£5.0M</div>
+                      <div className={styles.featuredStatLabel}>Prize Pool</div>
+                    </div>
+                  </div>
+                  <div className={styles.featuredStatBox}>
+                    <i className="fas fa-users"></i>
+                    <div>
+                      <div className={styles.featuredStatValue}>2,543</div>
+                      <div className={styles.featuredStatLabel}>Entries</div>
+                    </div>
+                  </div>
+                  <div className={styles.featuredStatBox}>
+                    <i className="fas fa-ticket-alt"></i>
+                    <div>
+                      <div className={styles.featuredStatValue}>£100</div>
+                      <div className={styles.featuredStatLabel}>Entry Fee</div>
+                    </div>
+                  </div>
+                  <div className={styles.featuredStatBox}>
+                    <i className="fas fa-medal"></i>
+                    <div>
+                      <div className={styles.featuredStatValue}>£1.2M</div>
+                      <div className={styles.featuredStatLabel}>1st Place</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className={styles.featuredActions}>
+                  <button className={styles.btnPrimary} onClick={handleJoinPrompt}>
+                    <i className="fas fa-users"></i>
+                    Build Your Team
+                  </button>
+                  <button className={styles.btnSecondary}>
+                    <i className="fas fa-list-ol"></i>
+                    Leaderboard List
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Slide 3 - U.S. Open */}
+            <div className={styles.sliderSlide}>
+              <div className={`${styles.featuredCompetitionCard} ${styles.glass}`}>
+                <div className={styles.featuredTop}>
+                  <div className={styles.featuredCourseInfo}>
+                    <div className={styles.featuredCourseTitle}>WEEKEND WARRIOR</div>
+                    <div className={styles.featuredCourseSubtitle}>Two Day Challenge</div>
+                  </div>
+                  <div className={`${styles.featuredBadge} ${styles.badgeHot}`}>
+                    <i className="fas fa-fire"></i>
+                    HOT
+                  </div>
+                </div>
+                
+                <div className={styles.featuredContent}>
+                  <div className={styles.featuredImage}>
+                    <img 
+                      src="https://images.unsplash.com/photo-1596727147705-61a532a659bd?w=600&h=300&fit=crop" 
+                      alt="U.S. Open"
+                    />
+                  </div>
+                  <div className={styles.featuredInfo}>
+                    <h3 className={styles.featuredName}>U.S. Open 2025</h3>
+                    <p className={styles.featuredLocation}>
+                      <i className="fas fa-map-marker-alt"></i>
+                      Pinehurst Resort
+                    </p>
+                    <p className={styles.featuredDates}>
+                      <i className="fas fa-calendar"></i>
+                      June 12-15, 2025
+                    </p>
+                  </div>
+                  <div className={styles.featuredBadgeRight}>
+                    <i className="fas fa-fire"></i>
+                    <span>HOT</span>
+                  </div>
+                </div>
+                
+                <div className={styles.featuredStats}>
+                  <div className={styles.featuredStatBox}>
+                    <i className="fas fa-trophy"></i>
+                    <div>
+                      <div className={styles.featuredStatValue}>£3.2M</div>
+                      <div className={styles.featuredStatLabel}>Prize Pool</div>
+                    </div>
+                  </div>
+                  <div className={styles.featuredStatBox}>
+                    <i className="fas fa-users"></i>
+                    <div>
+                      <div className={styles.featuredStatValue}>8,921</div>
+                      <div className={styles.featuredStatLabel}>Entries</div>
+                    </div>
+                  </div>
+                  <div className={styles.featuredStatBox}>
+                    <i className="fas fa-ticket-alt"></i>
+                    <div>
+                      <div className={styles.featuredStatValue}>£50</div>
+                      <div className={styles.featuredStatLabel}>Entry Fee</div>
+                    </div>
+                  </div>
+                  <div className={styles.featuredStatBox}>
+                    <i className="fas fa-medal"></i>
+                    <div>
+                      <div className={styles.featuredStatValue}>£750K</div>
+                      <div className={styles.featuredStatLabel}>1st Place</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className={styles.featuredActions}>
+                  <button className={styles.btnPrimary} onClick={handleJoinPrompt}>
+                    <i className="fas fa-users"></i>
+                    Build Your Team
+                  </button>
+                  <button className={styles.btnSecondary}>
+                    <i className="fas fa-list-ol"></i>
+                    Leaderboard List
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className={styles.sliderProgress}>
+          <div 
+            className={styles.progressBar}
+            style={{ width: `${((currentSlide + 1) / 3) * 100}%` }}
+          />
         </div>
       </div>
 

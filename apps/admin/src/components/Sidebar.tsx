@@ -78,6 +78,7 @@ const navSections: NavSection[] = [
       { label: 'Site', href: '/settings/site' },
       { label: 'Security', href: '/settings/security' },
       { label: 'Admins', href: '/settings/admins' },
+      { label: 'Backgrounds', href: '/backgrounds' },
       { label: 'Logs', href: '/settings/logs' },
     ],
   },
