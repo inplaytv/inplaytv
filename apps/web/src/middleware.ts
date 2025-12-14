@@ -151,7 +151,8 @@ export async function middleware(request: NextRequest) {
   // If coming-soon mode, show coming-soon page for all routes (URL stays the same)
   if (mode === 'coming-soon') {
     console.log('[Middleware] Rewriting to /coming-soon for path:', pathname);
-    return NextResponse.rewrite(new URL('/coming-soon', request.url));
+    const comingSoonUrl = new URL('/coming-soon', request.url);
+    return NextResponse.rewrite(comingSoonUrl);
   }
 
   // If maintenance mode, show maintenance page for all routes (URL stays the same)

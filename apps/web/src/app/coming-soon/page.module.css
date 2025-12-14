@@ -18,6 +18,19 @@
   }
 }
 
+/* Responsive background styles */
+.container :global(.responsive-bg) {
+  /* Default: show desktop background (second image) */
+  background-image: url('/backgrounds/inplay_bg-02.png') !important;
+}
+
+@media (max-width: 768px) {
+  .container :global(.responsive-bg) {
+    /* Mobile: show mobile background (first image) */
+    background-image: url('/backgrounds/golfer-bg-mobile.png') !important;
+  }
+}
+
 .container {
   position: relative;
   min-height: 100vh;

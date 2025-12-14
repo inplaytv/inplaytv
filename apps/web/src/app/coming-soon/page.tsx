@@ -138,13 +138,13 @@ export default function ComingSoonPage() {
     <div className={styles.container}>
       {/* Background image from admin panel or fallback */}
       <div 
+        className="responsive-bg"
         style={{ 
           position: 'fixed',
           top: 0,
           left: 0,
           width: '100vw',
           height: '100vh',
-          backgroundImage: settings.backgroundImage ? `url("${settings.backgroundImage.trim()}")` : 'none',
           backgroundColor: 'transparent',
           backgroundSize: 'cover',
           backgroundPosition: 'center top',

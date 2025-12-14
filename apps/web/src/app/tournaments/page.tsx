@@ -301,22 +301,6 @@ export default function TournamentsPage() {
         backgroundRepeat: 'no-repeat'
       }}
     >
-      {/* Debug info */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{position: 'fixed', top: '10px', left: '10px', background: 'rgba(0,0,0,0.8)', color: 'white', padding: '10px', fontSize: '12px', zIndex: 9999}}>
-          Background URL: {backgroundUrl || 'Not set'}
-          <br />
-          <button 
-            onClick={() => {
-              console.log('🔄 Manual refresh triggered');
-              fetchBackgroundSetting();
-            }}
-            style={{marginTop: '5px', padding: '5px', fontSize: '10px'}}
-          >
-            Force Refresh Background
-          </button>
-        </div>
-      )}
       {/* Page Header */}
       <div className={styles.pageHeader}>
         <div className={styles.headerTop}>
