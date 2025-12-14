@@ -30,8 +30,8 @@ export async function GET() {
     // Transform array to object
     const settings = {
       headline: data?.find(s => s.setting_key === 'coming_soon_headline')?.setting_value || 'COMING SOON',
-      description: data?.find(s => s.setting_key === 'coming_soon_description')?.setting_value || 'Precision meets passion in a live, immersive format. Competition will never emerge the same.',
-      backgroundImage: data?.find(s => s.setting_key === 'coming_soon_background_image')?.setting_value || '/backgrounds/golf-03.jpg',
+      description: data?.find(s => s.setting_key === 'coming_soon_description')?.setting_value || '',
+      backgroundImage: (data?.find(s => s.setting_key === 'coming_soon_background_image')?.setting_value || '').trim(),
       logoText: data?.find(s => s.setting_key === 'coming_soon_logo_text')?.setting_value || 'InPlayTV',
       tagline: data?.find(s => s.setting_key === 'coming_soon_tagline')?.setting_value || 'A new way to follow what matters.'
     };
@@ -42,8 +42,8 @@ export async function GET() {
     return NextResponse.json(
       { 
         headline: 'COMING SOON',
-        description: 'Precision meets passion in a live, immersive format. Competition will never emerge the same.',
-        backgroundImage: '/backgrounds/golf-03.jpg',
+        description: '',
+        backgroundImage: '',
         logoText: 'InPlayTV',
         tagline: 'A new way to follow what matters.'
       },
