@@ -18,7 +18,7 @@ export default function ComingSoonPage() {
   const [settings, setSettings] = useState<ComingSoonSettings>({
     headline: 'COMING SOON',
     description: 'Be the first to Strike',
-    backgroundImage: '/images/golf-bg2.jpg', // Default fallback image
+    backgroundImage: '/backgrounds/golf-course-teal.jpg', // Direct static image
     logoText: 'InPlayTV',
     tagline: 'A new way to follow what matters.'
   });
@@ -48,6 +48,11 @@ export default function ComingSoonPage() {
   // }, []);
 
   useEffect(() => {
+    // Temporarily disable API call to fix production issues
+    // TODO: Fix API route deployment on Vercel
+    console.log('[Coming Soon] Using static settings - API call disabled');
+    return;
+    
     const fetchSettings = async () => {
       try {
         const apiUrl = '/api/settings/coming-soon';
