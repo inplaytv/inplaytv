@@ -64,14 +64,24 @@ export default function ComingSoonPage() {
         
         const data = await response.json();
         
+        console.log('[Coming Soon Page] API Response:', data);
+        console.log('[Coming Soon Page] Background Image from API:', `'${data.backgroundImage}'`);
+        console.log('[Coming Soon Page] Background Image length:', data.backgroundImage?.length || 0);
+        console.log('[Coming Soon Page] Background Image is empty:', (data.backgroundImage || '').trim() === '');
+        
         // Update settings, using fallbacks if API values are empty
-        setSettings(prevSettings => ({
+        const newSettings = {
           headline: data.headline || prevSettings.headline,
           description: data.description || prevSettings.description,
           backgroundImage: (data.backgroundImage || '').trim(),
           logoText: data.logoText || prevSettings.logoText,
           tagline: data.tagline || prevSettings.tagline
-        }));
+        };
+        
+        console.log('[Coming Soon Page] Final settings:', newSettings);
+        console.log('[Coming Soon Page] Final background image:', `'${newSettings.backgroundImage}'`);
+        
+        setSettings(newSettings);
         
       } catch (error) {
         console.error('[Coming Soon] API Error:', error);
@@ -122,6 +132,8 @@ export default function ComingSoonPage() {
   return (
     <div className={styles.container}>
       {/* Background image from admin panel or fallback */}
+      {console.log('[Render] Background Image URL:', `'${settings.backgroundImage.trim()}'`)}
+      {console.log('[Render] Will show background:', settings.backgroundImage ? true : false)}
       <div 
         style={{ 
           position: 'fixed',

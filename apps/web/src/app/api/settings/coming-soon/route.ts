@@ -45,6 +45,9 @@ export async function GET() {
 
     console.log('[API Debug] Transformed settings:', settings);
     console.log('[API Debug] Background image value:', `'${settings.backgroundImage}'`);
+    console.log('[API Debug] Background image length:', settings.backgroundImage.length);
+    console.log('[API Debug] Background image is empty:', settings.backgroundImage === '');
+    console.log('[API Debug] Environment:', process.env.NODE_ENV);
 
     return NextResponse.json(settings, { headers });
   } catch (error: any) {
