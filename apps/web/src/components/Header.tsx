@@ -6,9 +6,6 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 
 export default function Header() {
-  // Header temporarily disabled during development
-  return null;
-  
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
@@ -82,14 +79,31 @@ export default function Header() {
     navMobile: {
       display: 'flex',
       flexDirection: 'column' as const,
-      gap: '1rem',
-      position: 'absolute' as const,
-      top: '100%',
+      gap: '1.5rem',
+      position: 'fixed' as const,
+      top: '0',
       left: 0,
       right: 0,
-      backgroundColor: '#0a0f1a',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-      padding: '1rem',
+      bottom: 0,
+      backgroundColor: 'rgba(10, 15, 28, 0.98)',
+      backdropFilter: 'blur(20px)',
+      padding: '6rem 2rem 2rem 2rem',
+      zIndex: 1000,
+      transform: isMenuOpen ? 'translateX(0)' : 'translateX(100%)',
+      transition: 'transform 0.3s ease-in-out',
+      overflowY: 'auto',
+    },
+    mobileMenuOverlay: {
+      position: 'fixed' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      zIndex: 999,
+      opacity: isMenuOpen ? 1 : 0,
+      visibility: isMenuOpen ? 'visible' : 'hidden',
+      transition: 'opacity 0.3s ease, visibility 0.3s ease',
     },
     link: {
       color: 'rgba(255, 255, 255, 0.8)',
@@ -127,9 +141,27 @@ export default function Header() {
       backgroundColor: 'transparent',
       border: 'none',
       color: '#fff',
-      fontSize: '1.5rem',
+      fontSize: '1.8rem',
       cursor: 'pointer',
       padding: '0.5rem',
+      borderRadius: '6px',
+      transition: 'all 0.2s ease',
+      position: 'relative',
+      zIndex: 1001,
+    },
+    hamburgerIcon: {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      gap: '3px',
+      width: '24px',
+      height: '20px',
+    },
+    hamburgerLine: {
+      width: '100%',
+      height: '3px',
+      backgroundColor: '#fff',
+      borderRadius: '2px',
+      transition: 'all 0.3s ease',
     },
   };
 
@@ -141,12 +173,25 @@ export default function Header() {
         </Link>
 
         <button
-          style={{ ...styles.menuToggle, display: 'block' }}
+          style={{ ...styles.menuToggle }}
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           aria-label="Toggle menu"
           className="mobile-menu-toggle"
         >
-          ☰
+          <div style={styles.hamburgerIcon}>
+            <div style={{
+              ...styles.hamburgerLine,
+              transform: isMenuOpen ? 'rotate(45deg) translate(6px, 6px)' : 'none'
+            }}></div>
+            <div style={{
+              ...styles.hamburgerLine,
+              opacity: isMenuOpen ? 0 : 1
+            }}></div>
+            <div style={{
+              ...styles.hamburgerLine,
+              transform: isMenuOpen ? 'rotate(-45deg) translate(6px, -6px)' : 'none'
+            }}></div>
+          </div>
         </button>
 
         <nav style={styles.nav} className="desktop-nav">
@@ -179,39 +224,45 @@ export default function Header() {
         </nav>
 
         {isMenuOpen && (
-          <nav style={styles.navMobile} className="mobile-nav">
-            <span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>
-              Tournaments
-            </span>
-            <span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed'}}>
-              How it works
-            </span>
+          <>
+            <div 
+              style={styles.mobileMenuOverlay} 
+              onClick={() => setIsMenuOpen(false)}
+            />
+            <nav style={styles.navMobile} className="mobile-nav">
+              <span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed', fontSize: '1.2rem'}}>
+                Tournaments
+              </span>
+              <span style={{...styles.link, opacity: 0.5, cursor: 'not-allowed', fontSize: '1.2rem'}}>
+                How it works
+              </span>
 
-            {userEmail ? (
-              <>
-                <Link href="/account" style={styles.link} onClick={() => setIsMenuOpen(false)}>
-                  Account
-                </Link>
-                <button onClick={handleSignOut} style={styles.button}>
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link href="/login" style={styles.link} onClick={() => setIsMenuOpen(false)}>
-                  Login
-                </Link>
-                <Link href="/signup" style={styles.buttonPrimary} onClick={() => setIsMenuOpen(false)}>
-                  Sign up
-                </Link>
-              </>
-            )}
-          </nav>
+              {userEmail ? (
+                <>
+                  <Link href="/account" style={{...styles.link, fontSize: '1.2rem'}} onClick={() => setIsMenuOpen(false)}>
+                    Account
+                  </Link>
+                  <button onClick={() => {handleSignOut(); setIsMenuOpen(false);}} style={{...styles.button, fontSize: '1.2rem', marginTop: '1rem'}}>
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" style={{...styles.link, fontSize: '1.2rem'}} onClick={() => setIsMenuOpen(false)}>
+                    Login
+                  </Link>
+                  <Link href="/signup" style={{...styles.buttonPrimary, fontSize: '1.2rem', marginTop: '1rem', textAlign: 'center'}} onClick={() => setIsMenuOpen(false)}>
+                    Sign up
+                  </Link>
+                </>
+              )}
+            </nav>
+          </>
         )}
       </div>
 
       <style jsx>{`
-        @media (min-width: 768px) {
+        @media (min-width: 769px) {
           .mobile-menu-toggle {
             display: none !important;
           }
@@ -219,11 +270,23 @@ export default function Header() {
             display: none !important;
           }
         }
-        @media (max-width: 767px) {
+        @media (max-width: 768px) {
+          .mobile-menu-toggle {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+          }
           .desktop-nav {
             display: none !important;
           }
         }
+        
+        /* Prevent body scroll when menu is open */
+        ${isMenuOpen ? `
+          body {
+            overflow: hidden;
+          }
+        ` : ''}
       `}</style>
     </header>
   );
