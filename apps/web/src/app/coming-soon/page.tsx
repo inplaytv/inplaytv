@@ -70,18 +70,21 @@ export default function ComingSoonPage() {
         console.log('[Coming Soon Page] Background Image is empty:', (data.backgroundImage || '').trim() === '');
         
         // Update settings, using fallbacks if API values are empty
-        const newSettings = {
-          headline: data.headline || prevSettings.headline,
-          description: data.description || prevSettings.description,
-          backgroundImage: (data.backgroundImage || '').trim(),
-          logoText: data.logoText || prevSettings.logoText,
-          tagline: data.tagline || prevSettings.tagline
-        };
-        
-        console.log('[Coming Soon Page] Final settings:', newSettings);
-        console.log('[Coming Soon Page] Final background image:', `'${newSettings.backgroundImage}'`);
-        
-        setSettings(newSettings);
+        setSettings(prevSettings => {
+          const newSettings = {
+            headline: data.headline || prevSettings.headline,
+            description: data.description || prevSettings.description,
+            backgroundImage: (data.backgroundImage || '').trim(),
+            logoText: data.logoText || prevSettings.logoText,
+            tagline: data.tagline || prevSettings.tagline
+          };
+          
+          console.log('[Coming Soon Page] Final settings:', newSettings);
+          console.log('[Coming Soon Page] Final background image:', `'${newSettings.backgroundImage}'`);
+          console.log('[Coming Soon Page] Will render background:', newSettings.backgroundImage ? true : false);
+          
+          return newSettings;
+        });
         
       } catch (error) {
         console.error('[Coming Soon] API Error:', error);
@@ -132,8 +135,6 @@ export default function ComingSoonPage() {
   return (
     <div className={styles.container}>
       {/* Background image from admin panel or fallback */}
-      {console.log('[Render] Background Image URL:', `'${settings.backgroundImage.trim()}'`)}
-      {console.log('[Render] Will show background:', settings.backgroundImage ? true : false)}
       <div 
         style={{ 
           position: 'fixed',
