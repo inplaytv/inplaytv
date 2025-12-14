@@ -22,12 +22,12 @@ export async function GET() {
     }
 
     return NextResponse.json({ 
-      backgroundUrl: data?.setting_value || '/main_images/tournaments/golf-02.jpg'
+      backgroundUrl: data?.setting_value || '/backgrounds/golf-02.jpg'
     });
   } catch (error) {
     console.error('Error fetching background:', error);
     return NextResponse.json({ 
-      backgroundUrl: '/main_images/tournaments/golf-02.jpg' // Default fallback
+      backgroundUrl: '/backgrounds/golf-02.jpg' // Default fallback
     }, { status: 500 });
   }
 }

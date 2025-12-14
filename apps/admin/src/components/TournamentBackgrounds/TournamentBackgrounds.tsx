@@ -64,7 +64,7 @@ export default function TournamentBackgrounds() {
     
     try {
       // Convert admin API URL to web app static URL
-      const webBackgroundUrl = backgroundUrl.replace('/api/images/tournaments/', '/main_images/tournaments/');
+      const webBackgroundUrl = backgroundUrl.replace('/api/images/tournaments/', '/backgrounds/');
       
       const response = await fetch('/api/settings/tournament-background', {
         method: 'POST',
@@ -138,7 +138,7 @@ export default function TournamentBackgrounds() {
           <h3>Current Tournament Background</h3>
           <div className={styles.currentPreview}>
             <img 
-              src={currentBackground && currentBackground.startsWith('http') ? currentBackground : `http://localhost:3000${currentBackground || '/main_images/tournaments/golf-course-green.jpg'}`} 
+              src={currentBackground && currentBackground.startsWith('http') ? currentBackground : `http://localhost:3000${currentBackground || '/backgrounds/golf-course-green.jpg'}`} 
               alt="Current background"
               className={styles.currentImage}
             />
@@ -154,7 +154,7 @@ export default function TournamentBackgrounds() {
         <div className={styles.grid}>
           {backgrounds.map((bg) => {
             const isCurrentBackground = activeTab === 'tournaments' && 
-              currentBackground === bg.url.replace(`/api/images/${activeTab}/`, `/main_images/${activeTab}/`);
+              currentBackground === bg.url.replace(`/api/images/${activeTab}/`, `/backgrounds/`);
             
             return (
               <div 

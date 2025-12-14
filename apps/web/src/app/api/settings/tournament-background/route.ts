@@ -37,7 +37,7 @@ export async function GET() {
     }
 
     // Get the setting_value from the result
-    const backgroundUrl = data?.setting_value || '/main_images/tournaments/golf-course-green.jpg';
+    const backgroundUrl = data?.setting_value || '/backgrounds/golf-course-green.jpg';
     
     // Return with cache-busting headers
     const response = NextResponse.json({ 
