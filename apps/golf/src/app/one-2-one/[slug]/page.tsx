@@ -346,6 +346,53 @@ export default function One2OnePage() {
           <span>ONE 2 ONE</span>
         </div>
 
+        {/* ONE 2 ONE Hub Card */}
+        <div className={styles.one2OneHubCard}>
+          <div className={styles.hubCardHeader}>
+            <div className={styles.hubCardIcon}>
+              <i className="fas fa-swords"></i>
+            </div>
+            <div className={styles.hubCardTitle}>
+              <h3>ONE 2 ONE MATCHMAKING</h3>
+              <p>Head-to-head battles • Winner takes all • Auto-matched opponents</p>
+            </div>
+            <div className={styles.hubCardCta}>
+              <span>View All ONE 2 ONE Competitions</span>
+              <i className="fas fa-arrow-right"></i>
+            </div>
+          </div>
+          
+          <div className={styles.hubCardStats}>
+            <div className={styles.hubStat}>
+              <div className={styles.hubStatIcon}>
+                <i className="fas fa-trophy"></i>
+              </div>
+              <div className={styles.hubStatContent}>
+                <span className={styles.hubStatLabel}>Winner Takes All</span>
+                <span className={styles.hubStatValue}>Beat your opponent and take home 90% of the combined entry fees</span>
+              </div>
+            </div>
+            <div className={styles.hubStat}>
+              <div className={styles.hubStatIcon}>
+                <i className="fas fa-sync-alt"></i>
+              </div>
+              <div className={styles.hubStatContent}>
+                <span className={styles.hubStatLabel}>Auto-Matching</span>
+                <span className={styles.hubStatValue}>First-come-first-served matching • No skill-based pairing</span>
+              </div>
+            </div>
+            <div className={styles.hubStat}>
+              <div className={styles.hubStatIcon}>
+                <i className="fas fa-shield-alt"></i>
+              </div>
+              <div className={styles.hubStatContent}>
+                <span className={styles.hubStatLabel}>Fair Play</span>
+                <span className={styles.hubStatValue}>If no opponent joins, you'll get a full refund automatically</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Modern Dropdown Navigation */}
         <div style={{ marginBottom: '2rem', position: 'relative', zIndex: 100 }}>
           {/* Menu Button */}
