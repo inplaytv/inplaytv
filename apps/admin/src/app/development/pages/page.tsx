@@ -26,12 +26,18 @@ export default function DevelopmentPagesPage() {
     }
   ]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newPage, setNewPage] = useState({
+  const [newPage, setNewPage] = useState<{
+    name: string;
+    url: string;
+    description: string;
+    app: 'golf' | 'web' | 'admin';
+    status: 'active' | 'inactive';
+  }>({
     name: '',
     url: '',
     description: '',
-    app: 'golf' as const,
-    status: 'active' as const
+    app: 'golf',
+    status: 'active'
   });
 
   const handleAddPage = () => {
@@ -109,7 +115,7 @@ export default function DevelopmentPagesPage() {
                 <label>App</label>
                 <select
                   value={newPage.app}
-                  onChange={(e) => setNewPage({ ...newPage, app: e.target.value as 'golf' | 'web' | 'admin' | '' })}
+                  onChange={(e) => setNewPage({ ...newPage, app: e.target.value as 'golf' | 'web' | 'admin' })}
                 >
                   <option value="golf">Golf App</option>
                   <option value="web">Web App</option>

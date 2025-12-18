@@ -9,6 +9,7 @@ interface PlatformImage {
   filename: string;
   category: string;
   public_url: string;
+  storage_path: string;
   alt_text: string | null;
   width: number | null;
   height: number | null;
