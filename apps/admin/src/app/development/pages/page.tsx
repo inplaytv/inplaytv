@@ -109,7 +109,7 @@ export default function DevelopmentPagesPage() {
                 <label>App</label>
                 <select
                   value={newPage.app}
-                  onChange={(e) => setNewPage({ ...newPage, app: e.target.value as 'golf' | 'web' | 'admin' })}
+                  onChange={(e) => setNewPage({ ...newPage, app: e.target.value as 'golf' | 'web' | 'admin' | '' })}
                 >
                   <option value="golf">Golf App</option>
                   <option value="web">Web App</option>

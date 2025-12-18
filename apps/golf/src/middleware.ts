@@ -60,12 +60,10 @@ async function getMaintenanceMode(): Promise<string> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Skip middleware entirely in development (localhost)
-  const isDevelopment = process.env.NODE_ENV === 'development' || 
-                        request.nextUrl.hostname === 'localhost' ||
-                        request.nextUrl.hostname === '127.0.0.1';
-  
-  if (isDevelopment) {
+  // ALWAYS allow localhost/127.0.0.1 - no maintenance checks in development
+  // This ensures local development is never blocked regardless of database state
+  const hostname = request.nextUrl.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return NextResponse.next();
   }
   
@@ -80,7 +78,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get maintenance mode
+  // Get maintenance mode (only for production domains)
   const mode = await getMaintenanceMode();
   
   // If site is live, allow everything

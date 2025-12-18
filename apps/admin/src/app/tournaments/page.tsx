@@ -4,6 +4,7 @@ import Link from 'next/link';
 import TournamentsList from './TournamentsList';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0; // Disable caching - always fetch fresh data
 
 interface Tournament {
   id: string;

@@ -45,6 +45,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // CRITICAL: Hide completed tournaments from golf app
+    // This ensures completed tournaments don't show in the slider/list
+    const { error: visibilityError } = await supabase
+      .from('tournaments')
+      .update({ is_visible: false })
+      .eq('status', 'completed');
+
+    if (visibilityError) {
+      console.error('Error hiding completed tournaments:', visibilityError);
+      // Don't fail the whole request, just log it
+    }
+
     const result = {
       success: true,
       message: 'Statuses updated successfully',

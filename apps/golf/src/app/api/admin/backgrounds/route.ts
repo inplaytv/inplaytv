@@ -1,74 +1,53 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabaseClient';
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-// Simple in-memory storage for backgrounds (for now)
-// In a real app, this would be in a database table
-let tournamentBackgrounds = {
-  backgroundImage: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2070',
-  opacity: 0.15,
-  overlay: 0.4
-};
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function GET() {
   try {
-    return NextResponse.json({
-      success: true,
-      data: tournamentBackgrounds
-    });
-  } catch (error) {
-    console.error('Error fetching tournament backgrounds:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch backgrounds' },
-      { status: 500 }
-    );
-  }
-}
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { backgroundImage, opacity, overlay } = body;
+    // Fetch active background settings
+    const { data, error } = await supabase
+      .from('tournament_background_settings')
+      .select('image_url, opacity, overlay')
+      .eq('is_active', true)
+      .maybeSingle();
 
-    // Validate the inputs
-    if (typeof backgroundImage !== 'string') {
-      return NextResponse.json(
-        { success: false, error: 'Background image URL is required' },
-        { status: 400 }
-      );
+    if (error && error.code !== 'PGRST116') {
+      throw error;
     }
 
-    if (opacity !== undefined && (typeof opacity !== 'number' || opacity < 0 || opacity > 1)) {
-      return NextResponse.json(
-        { success: false, error: 'Opacity must be a number between 0 and 1' },
-        { status: 400 }
-      );
-    }
-
-    if (overlay !== undefined && (typeof overlay !== 'number' || overlay < 0 || overlay > 1)) {
-      return NextResponse.json(
-        { success: false, error: 'Overlay must be a number between 0 and 1' },
-        { status: 400 }
-      );
-    }
-
-    // Update the background settings
-    tournamentBackgrounds = {
-      backgroundImage: backgroundImage,
-      opacity: opacity !== undefined ? opacity : tournamentBackgrounds.opacity,
-      overlay: overlay !== undefined ? overlay : tournamentBackgrounds.overlay
+    // Return settings or defaults
+    const settings = data || {
+      image_url: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2070',
+      opacity: 0.15,
+      overlay: 0.4
     };
 
     return NextResponse.json({
       success: true,
-      data: tournamentBackgrounds,
-      message: 'Tournament background updated successfully'
+      data: {
+        backgroundImage: settings.image_url,
+        opacity: parseFloat(settings.opacity),
+        overlay: parseFloat(settings.overlay)
+      }
     });
   } catch (error) {
-    console.error('Error updating tournament background:', error);
+    console.error('Error fetching tournament backgrounds:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update background' },
+      { 
+        success: false, 
+        error: 'Failed to fetch backgrounds',
+        data: {
+          backgroundImage: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2070',
+          opacity: 0.15,
+          overlay: 0.4
+        }
+      },
       { status: 500 }
     );
   }

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import RequireAuth from '@/components/RequireAuth';
 import InsufficientFundsModal from '@/components/InsufficientFundsModal';
+import TournamentBackgroundControls from '@/components/TournamentBackgroundControls';
 import styles from './tournaments.module.css';
 
 interface CompetitionType {
@@ -93,6 +94,78 @@ function useCountdown(targetDate: string | null) {
   }, [targetDate]);
 
   return countdown;
+}
+
+// Competition Countdown Component
+function CompetitionCountdown({ regCloseAt, status }: { regCloseAt: string | null; status: string }) {
+  const countdown = useCountdown(regCloseAt);
+  const isClosed = countdown === 'Registration Closed';
+  
+  // Determine status display
+  const getStatusInfo = () => {
+    if (status === 'reg_open' || (regCloseAt && !isClosed)) {
+      return { label: 'REGISTRATION OPEN', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)', icon: 'fa-check-circle' };
+    } else if (status === 'live' || isClosed) {
+      return { label: 'LIVE', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.1)', icon: 'fa-circle' };
+    } else if (status === 'completed') {
+      return { label: 'COMPLETED', color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.1)', icon: 'fa-flag-checkered' };
+    }
+    return { label: 'UPCOMING', color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)', icon: 'fa-clock' };
+  };
+
+  const statusInfo = getStatusInfo();
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      marginTop: '0.5rem'
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.375rem',
+        padding: '0.375rem 0.625rem',
+        background: statusInfo.bgColor,
+        borderRadius: '6px',
+        border: `1px solid ${statusInfo.color}30`,
+        whiteSpace: 'nowrap'
+      }}>
+        <i className={`fas ${statusInfo.icon}`} style={{ color: statusInfo.color, fontSize: '0.7rem' }}></i>
+        <span style={{ 
+          fontSize: '0.65rem', 
+          fontWeight: 600, 
+          color: statusInfo.color,
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          {statusInfo.label}
+        </span>
+      </div>
+      {regCloseAt && !isClosed && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.375rem',
+          padding: '0.375rem 0.625rem',
+          background: statusInfo.bgColor,
+          borderRadius: '6px',
+          border: `1px solid ${statusInfo.color}30`,
+          whiteSpace: 'nowrap'
+        }}>
+          <i className="fas fa-hourglass-half" style={{ color: statusInfo.color, fontSize: '0.7rem' }}></i>
+          <span style={{ 
+            fontSize: '0.65rem', 
+            fontWeight: 600, 
+            color: statusInfo.color
+          }}>
+            {countdown}
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Upcoming Tournament Card Component
@@ -274,29 +347,25 @@ export default function TournamentsPage() {
   const [activeTournaments, setActiveTournaments] = useState(0);
   const [totalPrizePool, setTotalPrizePool] = useState(0);
   const [backgroundSettings, setBackgroundSettings] = useState({
-    backgroundImage: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=2070',
-    opacity: 0.15,
-    overlay: 0.4
+    backgroundImage: '/backgrounds/golf-course-sunrise.jpg',
+    opacity: 0.3,
+    overlay: 0.5
   });
-  
-  // Featured tournaments data for slider
-  const featuredTournaments = [
-    { id: 1, name: 'Masters Tournament 2025' },
-    { id: 2, name: 'PGA Championship 2025' },
-    { id: 3, name: 'U.S. Open 2025' }
-  ];
   
   const supabase = createClient();
   const router = useRouter();
 
-  // Auto-advance slider
+  // Auto-advance slider - only if there's more than 1 tournament
   useEffect(() => {
+    // Only auto-advance if there are multiple tournaments
+    if (tournaments.length <= 1) return;
+    
     const interval = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % featuredTournaments.length);
+      setCurrentSlide(prev => (prev + 1) % tournaments.length);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [featuredTournaments.length]);
+  }, [tournaments.length]);
 
   useEffect(() => {
     fetchTournaments();
@@ -304,17 +373,23 @@ export default function TournamentsPage() {
     fetchBackgroundSettings();
   }, []);
 
-  const fetchBackgroundSettings = async () => {
+  async function fetchBackgroundSettings() {
     try {
-      const response = await fetch('/api/admin/backgrounds');
-      const result = await response.json();
-      if (result.success) {
-        setBackgroundSettings(result.data);
+      const response = await fetch('/api/settings/tournament-background');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.backgroundImage || data.backgroundUrl) {
+          setBackgroundSettings({
+            backgroundImage: data.backgroundImage || data.backgroundUrl,
+            opacity: data.opacity || 0.3,
+            overlay: data.overlay || 0.5
+          });
+        }
       }
     } catch (error) {
-      console.error('Error fetching background settings:', error);
+      console.log('Using default background');
     }
-  };
+  }
 
   async function checkUser() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -554,10 +629,13 @@ export default function TournamentsPage() {
 
   return (
     <RequireAuth>
+      <TournamentBackgroundControls 
+        currentSettings={backgroundSettings}
+        onSettingsChange={setBackgroundSettings}
+      />
       <div 
-        className={styles.wrap} 
-        style={{ 
-          paddingTop: '2rem',
+        className={styles.wrap}
+        style={{
           '--bg-image': `url(${backgroundSettings.backgroundImage})`,
           '--bg-opacity': backgroundSettings.opacity,
           '--bg-overlay': backgroundSettings.overlay
@@ -578,12 +656,6 @@ export default function TournamentsPage() {
               // Filter tournaments that have open registration OR live competitions
               const now = new Date();
               const upcomingTournaments = tournaments.filter(tournament => {
-                const tournamentEnd = tournament.end_date ? new Date(tournament.end_date) : null;
-                const tournamentEndOfDay = tournamentEnd ? new Date(tournamentEnd) : null;
-                if (tournamentEndOfDay) {
-                  tournamentEndOfDay.setHours(23, 59, 59, 999);
-                }
-                
                 // Show if tournament has open registration OR is live
                 const hasOpenRegistration = tournament.competitions.some(comp => {
                   const regCloseAt = comp.reg_close_at ? new Date(comp.reg_close_at) : null;
@@ -591,11 +663,8 @@ export default function TournamentsPage() {
                   return comp.status === 'reg_open' || comp.status === 'live' || (regCloseAt && now < regCloseAt);
                 });
                 
-                // Hide only if tournament is fully completed (past end date)
-                const isCompleted = tournamentEndOfDay && now > tournamentEndOfDay;
-                
-                // Show tournaments that are either upcoming, live, or have open registration
-                return !isCompleted && hasOpenRegistration;
+                // Show tournament if it has open competitions
+                return hasOpenRegistration;
               });
               
               if (upcomingTournaments.length === 0) {
@@ -649,8 +718,8 @@ export default function TournamentsPage() {
                         className={styles.sliderTrack}
                         style={{ transform: `translateX(-${currentSlide * 100}%)` }}
                       >
-                        {/* Dynamic Slides - Real Tournament Data */}
-                        {tournaments.slice(0, 2).map((tournament, index) => {
+                        {/* Dynamic Slides - Real Tournament Data Only */}
+                        {tournaments.map((tournament, index) => {
                           // Find Full Course competition for featured display
                           const fullCourseComp = tournament.competitions?.find(
                             c => c.competition_types?.name === 'Full Course'
@@ -784,121 +853,44 @@ export default function TournamentsPage() {
                             </div>
                           );
                         })}
+                      </div>
+                    </div>
 
-                        {/* Slide 3 - Keep Third Hard-coded Slide */}
-                        <div className={styles.sliderSlide}>
-                          <div className={`${styles.featuredCompetitionCard} ${styles.glass}`}>
-                            <div className={styles.featuredTop}>
-                              <div className={styles.featuredCourseInfo}>
-                                <div className={styles.featuredCourseTitle}>WEEKEND WARRIOR</div>
-                                <div className={styles.featuredCourseSubtitle}>Two Day Challenge</div>
-                              </div>
-                              <div className={`${styles.featuredBadge} ${styles.badgeHot}`}>
-                                <i className="fas fa-fire"></i>
-                                HOT
-                              </div>
-                            </div>
-                            
-                            <div className={styles.featuredContent}>
-                              <div className={styles.featuredImage}>
-                                <img 
-                                  src="https://images.unsplash.com/photo-1596727147705-61a532a659bd?w=600&h=300&fit=crop" 
-                                  alt="U.S. Open"
-                                />
-                              </div>
-                              <div className={styles.featuredInfo}>
-                                <h3 className={styles.featuredName}>U.S. Open 2025</h3>
-                                <p className={styles.featuredLocation}>
-                                  <i className="fas fa-map-marker-alt"></i>
-                                  Pinehurst Resort
-                                </p>
-                                <p className={styles.featuredDates}>
-                                  <i className="fas fa-calendar"></i>
-                                  June 12-15, 2025
-                                </p>
-                              </div>
-                              <div className={styles.featuredBadgeRight}>
-                                <i className="fas fa-fire"></i>
-                                <span>HOT</span>
-                              </div>
-                            </div>
-                            
-                            <div className={styles.featuredStats}>
-                              <div className={styles.featuredStatBox}>
-                                <i className="fas fa-trophy"></i>
-                                <div>
-                                  <div className={styles.featuredStatValue}>£3.2M</div>
-                                  <div className={styles.featuredStatLabel}>Prize Pool</div>
-                                </div>
-                              </div>
-                              <div className={styles.featuredStatBox}>
-                                <i className="fas fa-users"></i>
-                                <div>
-                                  <div className={styles.featuredStatValue}>8,921</div>
-                                  <div className={styles.featuredStatLabel}>Entries</div>
-                                </div>
-                              </div>
-                              <div className={styles.featuredStatBox}>
-                                <i className="fas fa-ticket-alt"></i>
-                                <div>
-                                  <div className={styles.featuredStatValue}>£50</div>
-                                  <div className={styles.featuredStatLabel}>Entry Fee</div>
-                                </div>
-                              </div>
-                              <div className={styles.featuredStatBox}>
-                                <i className="fas fa-medal"></i>
-                                <div>
-                                  <div className={styles.featuredStatValue}>£750K</div>
-                                  <div className={styles.featuredStatLabel}>1st Place</div>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className={styles.featuredActions}>
-                              <button className={styles.btnPrimary}>
-                                <i className="fas fa-users"></i>
-                                Build Your Team
-                              </button>
-                              <button className={styles.btnSecondary}>
-                                <i className="fas fa-list-ol"></i>
-                                Leaderboard List
-                              </button>
-                            </div>
+                    {/* Only show controls if there are multiple tournaments */}
+                    {tournaments.length > 1 && (
+                      <>
+                        <div className={styles.sliderControls}>
+                          <button 
+                            className={styles.sliderArrow}
+                            onClick={() => setCurrentSlide(currentSlide === 0 ? tournaments.length - 1 : currentSlide - 1)}
+                          >
+                            <i className="fas fa-chevron-left"></i>
+                          </button>
+                          <div className={styles.sliderDots}>
+                            {tournaments.map((_, index) => (
+                              <button
+                                key={index}
+                                className={`${styles.sliderDot} ${index === currentSlide ? styles.active : ''}`}
+                                onClick={() => setCurrentSlide(index)}
+                              />
+                            ))}
                           </div>
+                          <button 
+                            className={styles.sliderArrow}
+                            onClick={() => setCurrentSlide((currentSlide + 1) % tournaments.length)}
+                          >
+                            <i className="fas fa-chevron-right"></i>
+                          </button>
                         </div>
-                      </div>
-                    </div>
 
-                    <div className={styles.sliderControls}>
-                      <button 
-                        className={styles.sliderArrow}
-                        onClick={() => setCurrentSlide(currentSlide === 0 ? featuredTournaments.length - 1 : currentSlide - 1)}
-                      >
-                        <i className="fas fa-chevron-left"></i>
-                      </button>
-                      <div className={styles.sliderDots}>
-                        {featuredTournaments.map((_, index) => (
-                          <button
-                            key={index}
-                            className={`${styles.sliderDot} ${index === currentSlide ? styles.active : ''}`}
-                            onClick={() => setCurrentSlide(index)}
+                        <div className={styles.sliderProgress}>
+                          <div
+                            className={styles.progressBar}
+                            style={{ width: `${((currentSlide + 1) / tournaments.length) * 100}%` }}
                           />
-                        ))}
-                      </div>
-                      <button 
-                        className={styles.sliderArrow}
-                        onClick={() => setCurrentSlide((currentSlide + 1) % featuredTournaments.length)}
-                      >
-                        <i className="fas fa-chevron-right"></i>
-                      </button>
-                    </div>
-
-                    <div className={styles.sliderProgress}>
-                      <div
-                        className={styles.progressBar}
-                        style={{ width: `${((currentSlide + 1) / 3) * 100}%` }}
-                      />
-                    </div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Filters */}
@@ -1151,11 +1143,19 @@ export default function TournamentsPage() {
                         
                         return (
                           <div key={competition.id} className={`${styles.competitionCard} ${styles.glass}`}>
-                            <div className={styles.competitionHeader}>
+                            <div className={styles.competitionHeader} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div className={styles.competitionBadge}>
                                 {competition.competition_types.name}
                               </div>
-                              <div className={styles.competitionTournament}>
+                              <div style={{
+                                flex: 1,
+                                textAlign: 'center',
+                                fontSize: '1.125rem',
+                                fontWeight: 600,
+                                color: '#fff',
+                                letterSpacing: '0.3px',
+                                padding: '0 1rem'
+                              }}>
                                 {competition.tournament.name}
                               </div>
                             </div>
@@ -1178,6 +1178,12 @@ export default function TournamentsPage() {
                                   <i className="fas fa-calendar"></i>
                                   {formatDateRange(competition.tournament.start_date, competition.tournament.end_date)}
                                 </p>
+
+                                {/* Registration Status & Countdown - inline with location/date */}
+                                <CompetitionCountdown 
+                                  regCloseAt={competition.reg_close_at}
+                                  status={competition.status}
+                                />
                               </div>
                             </div>
                             

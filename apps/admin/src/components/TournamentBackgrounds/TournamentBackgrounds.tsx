@@ -63,21 +63,23 @@ export default function TournamentBackgrounds() {
     setNotification(null);
     
     try {
-      // Convert admin API URL to web app static URL
-      const webBackgroundUrl = backgroundUrl.replace('/api/images/tournaments/', '/backgrounds/');
+      // Extract just the filename from the admin URL
+      const filename = backgroundUrl.split('/').pop();
+      // Convert to golf app path
+      const golfBackgroundUrl = `/backgrounds/${filename}`;
       
       const response = await fetch('/api/settings/tournament-background', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ backgroundUrl: webBackgroundUrl }),
+        body: JSON.stringify({ backgroundUrl: golfBackgroundUrl }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setCurrentBackground(webBackgroundUrl);
+        setCurrentBackground(golfBackgroundUrl);
         setNotification({ message: 'Background updated successfully!', type: 'success' });
       } else {
         setNotification({ message: data.error || 'Failed to update background', type: 'error' });
@@ -153,8 +155,9 @@ export default function TournamentBackgrounds() {
         <h3>Available {tabs.find(tab => tab.id === activeTab)?.label} Images ({backgrounds.length})</h3>
         <div className={styles.grid}>
           {backgrounds.map((bg) => {
-            const isCurrentBackground = activeTab === 'tournaments' && 
-              currentBackground === bg.url.replace(`/api/images/${activeTab}/`, `/backgrounds/`);
+            // For tournaments, bg.url is already /backgrounds/filename.jpg
+            // For other categories, bg.url is /api/images/category/filename.jpg
+            const isCurrentBackground = activeTab === 'tournaments' && currentBackground === bg.url;
             
             return (
               <div 

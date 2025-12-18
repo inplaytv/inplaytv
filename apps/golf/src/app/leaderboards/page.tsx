@@ -185,81 +185,57 @@ export default function LeaderboardsPage() {
     try {
       setTournamentLoading(true);
       
-      // Find tournament to get slug and check if it should be displayed
+      // SAFEGUARD: Clear existing leaderboard immediately to prevent cross-tournament contamination
+      setTournamentLeaderboard(null);
+      
+      // Find tournament to get slug
       const tournament = tournaments.find((t: any) => t.id === tournamentId);
       
       if (!tournament) {
-        console.error('Tournament not found in tournaments list');
-        setTournamentLeaderboard(null);
+        console.error('❌ Tournament not found in tournaments list');
         return;
       }
       
-      // Check if tournament ended more than 4 days ago
-      if (tournament.end_date) {
-        const endDate = new Date(tournament.end_date);
-        const fourDaysAgo = new Date();
-        fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
-        
-        if (endDate < fourDaysAgo) {
-          setTournamentLeaderboard({
-            tournament: tournament,
-            leaderboard: [],
-            source: 'archived',
-            message: 'This tournament has ended and leaderboard data is no longer available.'
-          });
-          return;
-        }
-      }
-      
       const tournamentSlug = tournament.slug || tournamentId;
+      const tournamentStarted = new Date(tournament.start_date) <= new Date();
       
-      // Check tournament status
-      const tournamentStatus = tournament.status;
-      const tournamentIsUpcoming = isUpcoming(tournamentStatus);
-      
-      // For live/completed tournaments, try to get live scores from DataGolf
-      if (!tournamentIsUpcoming) {
+      // SIMPLE LOGIC: Try DataGolf if tournament has started, otherwise use database
+      if (tournamentStarted) {
         const liveResponse = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/live-scores`);
         
         if (liveResponse.ok) {
           const liveData = await liveResponse.json();
           
-          // If DataGolf has live data, use it
-          if (liveData.leaderboard && liveData.leaderboard.length > 0) {
+          // SAFEGUARD: Verify tournament ID matches before setting data
+          if (liveData.tournament?.id === tournamentId && liveData.leaderboard?.length > 0) {
             setTournamentLeaderboard({
               tournament: liveData.tournament,
               leaderboard: liveData.leaderboard,
               source: 'datagolf-live',
-              lastUpdated: liveData.lastUpdated,
-              message: liveData.message
+              lastUpdated: liveData.lastUpdated
             });
             return;
           }
         }
       }
       
-      // Load from database - either for upcoming (show field) or completed (show results)
+      // Fallback to database (shows field with scores or zeros)
       const response = await fetch(`/api/tournaments/${encodeURIComponent(tournamentId)}/leaderboard`);
       if (!response.ok) {
         console.error('❌ Failed to fetch tournament leaderboard, status:', response.status);
         throw new Error('Failed to fetch tournament leaderboard');
       }
+      
       const data = await response.json();
       
-      // If tournament is upcoming and no golfers assigned yet, show message
-      if (tournamentIsUpcoming && (!data.leaderboard || data.leaderboard.length === 0)) {
-        setTournamentLeaderboard({
-          tournament: data.tournament,
-          leaderboard: [],
-          source: 'upcoming-empty',
-          message: `${tournament.name} field will be announced soon`
-        });
-      } else {
-        // Show the data with appropriate source
+      // SAFEGUARD: Verify tournament ID matches before setting data
+      if (data.tournament?.id === tournamentId) {
         setTournamentLeaderboard({
           ...data,
-          source: tournamentIsUpcoming ? 'upcoming-field' : 'database'
+          source: tournamentStarted ? 'database-live' : 'database-field'
         });
+      } else {
+        console.error('❌ Tournament ID mismatch - preventing cross-contamination');
       }
     } catch (error) {
       console.error('❌ Error loading tournament leaderboard:', error);
@@ -1308,7 +1284,7 @@ export default function LeaderboardsPage() {
             {/* PGA Leaderboard Entries */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {tournamentLoading && <div style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>Loading leaderboard...</div>}
-              {!tournamentLoading && tournamentLeaderboard && tournamentLeaderboard.leaderboard && tournamentLeaderboard.leaderboard.length > 0 ? (
+              {!tournamentLoading && tournamentLeaderboard && tournamentLeaderboard.tournament?.id === selectedTournament && tournamentLeaderboard.leaderboard?.length > 0 ? (
                 tournamentLeaderboard.leaderboard.map((golfer: any, index: number) => {
                   const position = typeof golfer.position === 'string' ? golfer.position : (index + 1);
                   const isTop3 = index < 3;
@@ -1434,37 +1410,12 @@ export default function LeaderboardsPage() {
                   </div>
                 );
               })
-              ) : !tournamentLoading && tournamentLeaderboard?.source === 'upcoming-empty' ? (
+              ) : !tournamentLoading && selectedTournament && tournamentLeaderboard?.leaderboard?.length === 0 ? (
                 <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af' }}>
                   <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
-                  <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#e5e7eb' }}>Field Not Yet Announced</div>
-                  <div style={{ fontSize: '14px', marginBottom: '8px' }}>
-                    {tournamentLeaderboard.message}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                    Tournament golfers will appear here once they are added in the admin panel
-                  </div>
-                </div>
-              ) : !tournamentLoading && tournamentLeaderboard?.source === 'upcoming' ? (
-                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📅</div>
-                  <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#e5e7eb' }}>Tournament Not Started</div>
-                  <div style={{ fontSize: '14px', marginBottom: '8px' }}>
-                    {tournamentLeaderboard.message}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                    Leaderboard will be available when the tournament begins
-                  </div>
-                </div>
-              ) : !tournamentLoading && tournamentLeaderboard?.source === 'archived' ? (
-                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
-                  <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#e5e7eb' }}>Tournament Archived</div>
-                  <div style={{ fontSize: '14px', marginBottom: '8px' }}>
-                    {tournamentLeaderboard.message || 'This tournament has ended and leaderboard data is no longer available.'}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                    Leaderboards are available for 4 days after tournament completion
+                  <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#e5e7eb' }}>No Golfers Assigned</div>
+                  <div style={{ fontSize: '14px' }}>
+                    Tournament field will appear here once golfers are added
                   </div>
                 </div>
               ) : !tournamentLoading && (
@@ -1657,11 +1608,22 @@ export default function LeaderboardsPage() {
                     console.log('✅ Found player:', player);
                     const isCaptain = popupScorecard.captain?.id === selectedPlayer;
                     
-                    // Get real golfer data - use live scores for scorecards, fallback to tournament leaderboard
-                    const liveLeaderboard = competitionLiveScores?.leaderboard || tournamentLeaderboard?.leaderboard;
+                    // CRITICAL SAFEGUARD: Only use tournament leaderboard if it matches the scorecard's tournament
+                    const scorecardTournamentId = popupScorecard?.tournamentId;
+                    const leaderboardTournamentId = tournamentLeaderboard?.tournament?.id;
+                    const isSameTournament = scorecardTournamentId && leaderboardTournamentId && 
+                                             scorecardTournamentId === leaderboardTournamentId;
+                    
+                    // Get real golfer data - use live scores for scorecards, fallback to tournament leaderboard ONLY if same tournament
+                    const liveLeaderboard = competitionLiveScores?.leaderboard || 
+                                           (isSameTournament ? tournamentLeaderboard?.leaderboard : null);
+                    
                     console.log('🔍 Searching for player data:', { 
                       hasLiveScores: !!competitionLiveScores, 
                       hasTournamentData: !!tournamentLeaderboard,
+                      isSameTournament,
+                      scorecardTournamentId,
+                      leaderboardTournamentId,
                       leaderboardSize: liveLeaderboard?.length,
                       searchingFor: { id: selectedPlayer, name: player.golferName },
                       sampleLeaderboardGolfer: liveLeaderboard?.[0]
@@ -2800,7 +2762,98 @@ export default function LeaderboardsPage() {
                 overflow: 'auto',
                 padding: '24px'
               }}>
-                {teeTimes.field && teeTimes.field.length > 0 ? (
+                {/* Show both round tee times AND field list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* Round Tee Times */}
+                  {(teeTimes.tournament?.round1_tee_time || teeTimes.tournament?.round2_tee_time) && (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '8px',
+                      padding: '16px'
+                    }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#e5e7eb', marginBottom: '16px' }}>
+                        Round Tee Times
+                      </h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                        {teeTimes.tournament.round1_tee_time && (
+                          <div style={{
+                            padding: '12px 16px',
+                            background: 'rgba(102, 126, 234, 0.1)',
+                            border: '1px solid rgba(102, 126, 234, 0.3)',
+                            borderRadius: '6px',
+                            textAlign: 'center'
+                          }}>
+                            <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>Round 1</div>
+                            <div style={{ fontSize: '18px', fontWeight: 700, color: '#667eea' }}>
+                              {new Date(teeTimes.tournament.round1_tee_time).toLocaleTimeString('en-US', { 
+                                hour: 'numeric', 
+                                minute: '2-digit',
+                                hour12: true
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {teeTimes.tournament.round2_tee_time && (
+                          <div style={{
+                            padding: '12px 16px',
+                            background: 'rgba(102, 126, 234, 0.1)',
+                            border: '1px solid rgba(102, 126, 234, 0.3)',
+                            borderRadius: '6px',
+                            textAlign: 'center'
+                          }}>
+                            <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>Round 2</div>
+                            <div style={{ fontSize: '18px', fontWeight: 700, color: '#667eea' }}>
+                              {new Date(teeTimes.tournament.round2_tee_time).toLocaleTimeString('en-US', { 
+                                hour: 'numeric', 
+                                minute: '2-digit',
+                                hour12: true
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {teeTimes.tournament.round3_tee_time && (
+                          <div style={{
+                            padding: '12px 16px',
+                            background: 'rgba(102, 126, 234, 0.1)',
+                            border: '1px solid rgba(102, 126, 234, 0.3)',
+                            borderRadius: '6px',
+                            textAlign: 'center'
+                          }}>
+                            <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>Round 3</div>
+                            <div style={{ fontSize: '18px', fontWeight: 700, color: '#667eea' }}>
+                              {new Date(teeTimes.tournament.round3_tee_time).toLocaleTimeString('en-US', { 
+                                hour: 'numeric', 
+                                minute: '2-digit',
+                                hour12: true
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {teeTimes.tournament.round4_tee_time && (
+                          <div style={{
+                            padding: '12px 16px',
+                            background: 'rgba(102, 126, 234, 0.1)',
+                            border: '1px solid rgba(102, 126, 234, 0.3)',
+                            borderRadius: '6px',
+                            textAlign: 'center'
+                          }}>
+                            <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>Round 4</div>
+                            <div style={{ fontSize: '18px', fontWeight: 700, color: '#667eea' }}>
+                              {new Date(teeTimes.tournament.round4_tee_time).toLocaleTimeString('en-US', { 
+                                hour: 'numeric', 
+                                minute: '2-digit',
+                                hour12: true
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Tournament Field */}
+                  {teeTimes.field && teeTimes.field.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {/* Field List with tee times */}
                     <div style={{
@@ -2809,8 +2862,8 @@ export default function LeaderboardsPage() {
                       borderRadius: '8px',
                       padding: '16px'
                     }}>
-                      <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#e5e7eb', marginBottom: '16px' }}>
-                        {teeTimes.eventInfo?.event_name || 'Tournament Field'} ({teeTimes.field.length} players)
+                      <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#e5e7eb', marginBottom: '12px' }}>
+                        Tournament Field ({teeTimes.field.length} players)
                       </h3>
                       {teeTimes.field.some((p: any) => p.tee_time) ? (
                         <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '12px' }}>
@@ -2818,7 +2871,7 @@ export default function LeaderboardsPage() {
                         </p>
                       ) : (
                         <p style={{ fontSize: '13px', color: '#fbbf24', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          ⏳ Tee times not announced yet - showing tournament field
+                          ⏳ Individual tee times not yet announced by DataGolf
                         </p>
                       )}
                       <div style={{
@@ -2874,7 +2927,11 @@ export default function LeaderboardsPage() {
                       </div>
                     </div>
                   </div>
-                ) : (
+                  )}
+                </div>
+                
+                {/* No data message */}
+                {!teeTimes.field?.length && !teeTimes.tournament?.round1_tee_time && (
                   <div style={{
                     textAlign: 'center',
                     padding: '40px 20px',

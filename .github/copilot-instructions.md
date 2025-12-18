@@ -1,0 +1,270 @@
+# InPlayTV Fantasy Golf Platform - AI Coding Instructions
+
+## Project Overview
+Turborepo monorepo for a real-time fantasy golf platform with three Next.js apps: **golf** (player-facing game app), **web** (marketing/auth), and **admin** (tournament management). Uses Supabase (PostgreSQL), DataGolf API, and Stripe for payments.
+
+## Architecture
+
+### Monorepo Structure
+- **`apps/golf/`** - Main game app (Next.js 16, React 19, port 3003)
+- **`apps/admin/`** - Admin dashboard (Next.js 14, React 18, port 3002)
+- **`apps/web/`** - Marketing site (Next.js 14, React 18, port 3000)
+- **`packages/scoring-service/`** - Shared TypeScript scoring logic with DataGolf adapter
+- **`packages/shared/`** - Shared utilities and types
+
+### Dev Commands (PowerShell)
+```powershell
+pnpm install              # Install all dependencies (requires pnpm@9.0.0)
+pnpm dev                  # Run all 3 apps in parallel
+pnpm dev:golf             # Run golf app only (most common)
+pnpm dev:admin            # Run admin app only
+pnpm kill:ports           # Kill all node processes (use when ports stuck)
+pnpm restart:golf         # Kill ports + restart golf app
+```
+
+**Note**: If `pnpm dev` hangs during install, use `pnpm install --no-frozen-lockfile`
+
+## Database Architecture
+
+### Critical Tables & Relationships
+- **`tournaments`** → **`tournament_golfers`** (junction) ← **`golfers`**
+  - Only golfers in `tournament_golfers` are valid for that tournament
+  - `tournament_golfers.status`: 'confirmed', 'withdrawn', 'cut'
+
+- **`golfer_groups`** + **`golfer_group_members`** → Restrict available golfers per competition
+  - `tournament_competitions.assigned_golfer_group_id` defines which golfers are valid
+
+- **InPlay Competitions**: `tournament_competitions` (Full Course, Beat The Cut, etc.)
+  - Linked via `competition_entries.competition_id`
+  
+- **ONE 2 ONE Challenges**: `tournament_instances` (head-to-head matches)
+  - Linked via `competition_entries.instance_id`
+
+- **Entries**: `competition_entries` → `competition_entry_picks` (6 golfers, 1 captain)
+
+**Validation Rule**: When creating entries, always verify `golfer_id` exists in `golfer_group_members` where `group_id = competition.assigned_golfer_group_id`
+
+Reference: `DATABASE-SCHEMA-REFERENCE.md` for complete schema details.
+
+## Supabase Client Patterns
+
+### Three Client Types (DO NOT MIX)
+1. **Browser Client** (`createClient()` from `lib/supabaseClient.ts`)
+   - Uses `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Client components only
+   
+2. **Server Client** (`createServerClient()` from `lib/supabaseServer.ts`)
+   - Uses HTTP-only cookies for auth
+   - API routes, server components
+   - Inherits user session automatically
+   
+3. **Admin Client** (`createAdminClient()` from `lib/supabaseAdminServer.ts`)
+   - Uses `SUPABASE_SERVICE_ROLE_KEY`
+   - Admin operations only (bypasses RLS)
+   - **NEVER expose service role key to browser**
+
+### Environment Variables (Required in Each App)
+```bash
+NEXT_PUBLIC_SUPABASE_URL=       # Supabase project URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=  # Public anon key
+SUPABASE_SERVICE_ROLE_KEY=      # Admin key (server-only!)
+DATAGOLF_API_KEY=               # DataGolf API access
+NEXT_PUBLIC_STRIPE_PUBLIC_KEY=  # Stripe publishable key
+STRIPE_SECRET_KEY=              # Stripe secret (server-only!)
+```
+
+## Middleware & Site Access Control
+
+Both `apps/golf/src/middleware.ts` and `apps/web/src/middleware.ts` check `site_settings` table for maintenance mode:
+- **'live'**: Normal operation
+- **'coming_soon'**: Redirects to coming soon page (admins bypass)
+- **'maintenance'**: Shows maintenance page (admins bypass)
+
+Admin bypass: Checks `admins` table for `user_id`. Middleware caches mode for 30s (golf) or no cache (web for instant updates).
+
+## DataGolf Integration
+
+- **Setup**: `.\scripts\setup-datagolf-key.ps1 -ApiKey "dg-your-key"`
+- **Test**: `node scripts/test-datagolf-connection.js`
+- **Sync APIs**: 
+  - `/api/sync-datagolf-salaries` - Update golfer salaries
+  - `/api/sync-datagolf-rankings` - Update world rankings
+  - Auto-called during tournament creation
+
+See `DATAGOLF-QUICKSTART.md` and `DATAGOLF-INTEGRATION-PLAN.md`
+
+## Tournament Lifecycle
+
+Admin manages via `/apps/admin/src/app/tournament-lifecycle/`:
+- **Statuses**: upcoming → registration_open → in_progress → completed
+- **Automated Transitions**: `/api/tournaments/auto-update-statuses` (cron job)
+- **Validation**: 
+  - `registration_open` requires golfers assigned
+  - `in_progress` requires competitions created
+- **Registration Windows**: `registration_opens_at`, `registration_closes_at` (timezone-aware)
+
+See `TOURNAMENT-LIFECYCLE-MANAGER.md` for complete workflow.
+
+## Styling Conventions
+
+- **CSS Modules**: Every page has co-located `.module.css` (e.g., `page.tsx` + `lobby.module.css`)
+- **Dark Theme**: Primary colors in admin, vibrant gradients in golf app
+- **Import Pattern**: `import styles from './component-name.module.css'`
+- **Glassmorphic Cards**: Semi-transparent backgrounds with backdrop blur (common in admin)
+
+## API Route Patterns
+
+All API routes in `apps/golf/src/app/api/`:
+- `export const dynamic = 'force-dynamic'` for real-time data
+- Server client for authenticated requests: `const supabase = await createServerClient()`
+- Admin client for privileged operations: `const supabaseAdmin = createAdminClient()`
+- Always validate user auth before mutations: `const { data: { user }, error } = await supabase.auth.getUser()`
+
+## Common Debugging Scripts (Root Directory)
+
+Root contains many `.js`/`.ps1` diagnostic scripts:
+- `check-database.js` - Verify DB schema
+- `check-tournament-golfers.js` - Validate tournament golfer assignments
+- `test-supabase-connection.js` - Test DB connectivity
+- `diagnose-*.js` - Various troubleshooting scripts
+
+Load env with: `require('dotenv').config({ path: './apps/golf/.env.local' })`
+
+## Key Documentation Files
+
+- `DATABASE-SCHEMA-REFERENCE.md` - Complete DB schema
+- `TOURNAMENT-LIFECYCLE-MANAGER.md` - Admin tournament management
+- `DATAGOLF-QUICKSTART.md` - External API integration
+- `SITE-ACCESS-CONTROL-FIXED.md` - Maintenance mode system
+- Root `.md` files document historical fixes and features (reference for patterns)
+
+## ONE 2 ONE vs InPlay Competitions
+
+### Two Completely Separate Systems
+**CRITICAL**: These are **mutually exclusive** competition types with different data models:
+
+| Feature | InPlay Competitions | ONE 2 ONE Challenges |
+|---------|-------------------|---------------------|
+| **Table** | `tournament_competitions` | `competition_instances` |
+| **Entry Link** | `competition_id` (NOT NULL) | `instance_id` (NOT NULL) |
+| **Constraint** | `instance_id` MUST be NULL | `competition_id` MUST be NULL |
+| **Players** | Unlimited (up to `entrants_cap`) | Exactly 2 (head-to-head) |
+| **Creation** | Admin pre-creates | User-triggered, auto-spawn |
+| **Team Size** | 6 golfers + 1 captain | 6 golfers + 1 captain (same) |
+| **Detection** | `competition_type_id` NOT NULL | `rounds_covered` NOT NULL |
+| **URL Pattern** | `/tournaments/[slug]` | `/one-2-one/[slug]` |
+
+### Entry Creation Flow Differences
+
+**InPlay (Standard):**
+1. User selects competition from list
+2. Builds 6-golfer team in team builder
+3. Submits entry → `competition_entries` created with `competition_id`
+4. Entry immediately active
+
+**ONE 2 ONE (Challenge-based):**
+1. User selects tournament + round template
+2. System creates `competition_instances` record with `status: 'pending'`
+3. User builds 6-golfer team
+4. Clicks "Purchase Scorecard" → Instance activated to `status: 'open'`
+5. Submits entry → `competition_entries` created with `instance_id`
+6. Challenge appears on Challenge Board
+7. Second player joins → Instance becomes `status: 'full'`, auto-spawns next instance
+
+### Code Detection Pattern
+```typescript
+// Type guards in apps/golf/src/lib/competition-utils.ts
+function isInPlayCompetition(item: any): boolean {
+  return item.competition_type_id !== null && item.rounds_covered === undefined;
+}
+
+function isOne2OneTemplate(item: any): boolean {
+  return item.rounds_covered !== null && item.competition_type_id === undefined;
+}
+
+// Database query pattern
+const { data: entry } = await supabase
+  .from('competition_entries')
+  .select('*')
+  .eq(isOne2One ? 'instance_id' : 'competition_id', id);
+```
+
+### Critical Validation Rule
+**NEVER** set both `competition_id` and `instance_id` on same entry - database constraint will fail:
+```sql
+CHECK (
+  (competition_id IS NOT NULL AND instance_id IS NULL) OR
+  (competition_id IS NULL AND instance_id IS NOT NULL)
+)
+```
+
+## Scoring Service Package
+
+### Purpose
+`packages/scoring-service/` provides a **provider-agnostic** scoring adapter for fetching live tournament data. Currently implements DataGolf, designed for easy migration to SportsRadar or other providers.
+
+### Architecture
+```
+scoring-service/src/index.ts
+├── ScoringAdapter interface (provider contract)
+├── DataGolfAdapter (current implementation)
+├── TournamentScores types (normalized format)
+└── Retry logic with exponential backoff
+```
+
+### When to Use
+**Import in API routes only** - scoring service is server-side only:
+```typescript
+import { DataGolfAdapter } from '@inplaytv/scoring-service';
+
+// Example: Fetch live scores
+const adapter = new DataGolfAdapter(process.env.DATAGOLF_API_KEY!);
+const scores = await adapter.fetchLiveScores(tournamentId, supabase);
+```
+
+### Key Types
+```typescript
+interface TournamentScores {
+  tournament: { id, name, currentRound, status, lastUpdate };
+  scores: PlayerRoundScore[]; // Array of golfer scores
+}
+
+interface PlayerRoundScore {
+  golfer: { id, dgId, name, country };
+  rounds: { round1?, round2?, round3?, round4? };
+  position?: string;
+  totalScore?: number;
+  toPar?: number;
+  status: 'not_started' | 'in_progress' | 'completed' | 'withdrawn' | 'cut';
+}
+```
+
+### DataGolf Integration Points
+- **Live Scores**: `/api/fantasy/calculate-scores` - Real-time scoring during tournaments
+- **Field Sync**: `/api/sync-datagolf-salaries` - Update golfer salaries before tournament
+- **Rankings**: `/api/sync-datagolf-rankings` - Update world rankings
+- **Historical Data**: Used for completed tournaments via `historical-raw-data` endpoint
+
+### Provider Migration Pattern
+To switch providers, create new adapter implementing `ScoringAdapter` interface:
+```typescript
+class SportsRadarAdapter implements ScoringAdapter {
+  async fetchLiveScores(tournamentId: string, supabase: SupabaseClient): Promise<TournamentScores> {
+    // Implement SportsRadar API calls
+    // Return same TournamentScores format
+  }
+}
+```
+
+## Critical Rules
+
+1. **Never mix Supabase client types** - Use appropriate client for context (browser/server/admin)
+2. **Validate golfer eligibility** - Always check against `golfer_groups` before creating entries
+3. **Use tournament slugs** - Routes use slugs, not IDs (e.g., `/tournaments/alfred-dunhill-championship`)
+4. **Server-side secrets** - Service role keys and Stripe secrets NEVER in client code
+5. **CSS Modules** - Always use co-located CSS modules, never global styles
+6. **Port conflicts** - Use `pnpm kill:ports` if dev server won't start
+7. **Admin checks** - Middleware uses `admins` table (`user_id` column), not auth metadata
+8. **Dynamic exports** - API routes need `export const dynamic = 'force-dynamic'` for real-time data
+9. **ONE 2 ONE entries** - Always check `instance_id` vs `competition_id` - they're mutually exclusive
+10. **Scoring service** - Server-side only, never import in client components

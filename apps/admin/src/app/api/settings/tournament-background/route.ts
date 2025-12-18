@@ -9,7 +9,7 @@ const supabase = createClient(
 export async function GET() {
   try {
     const { data, error } = await supabase
-      .from('settings')
+      .from('site_settings')
       .select('setting_value')
       .eq('setting_key', 'tournament_page_background')
       .single();
@@ -17,12 +17,26 @@ export async function GET() {
     if (error) {
       console.error('Database error:', error);
       return NextResponse.json({ 
-        backgroundUrl: '/main_images/tournaments/golf-02.jpg' // Default fallback
+        backgroundUrl: '/backgrounds/golf-course-green.jpg',
+        backgroundImage: '/backgrounds/golf-course-green.jpg',
+        opacity: 0.15,
+        overlay: 0.4
       });
     }
 
+    // Parse JSON settings or use plain string for backwards compatibility
+    let settings;
+    try {
+      settings = data?.setting_value ? JSON.parse(data.setting_value) : null;
+    } catch {
+      settings = { backgroundImage: data?.setting_value || '/backgrounds/golf-course-green.jpg' };
+    }
+
     return NextResponse.json({ 
-      backgroundUrl: data?.setting_value || '/backgrounds/golf-02.jpg'
+      backgroundUrl: settings.backgroundImage || settings.backgroundUrl || '/backgrounds/golf-course-green.jpg',
+      backgroundImage: settings.backgroundImage || settings.backgroundUrl || '/backgrounds/golf-course-green.jpg',
+      opacity: settings.opacity ?? 0.15,
+      overlay: settings.overlay ?? 0.4
     });
   } catch (error) {
     console.error('Error fetching background:', error);
@@ -44,12 +58,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Background URL is required' }, { status: 400 });
     }
 
+    // Store as JSON to support opacity and overlay settings
+    const settingsJson = JSON.stringify({
+      backgroundImage: backgroundUrl,
+      backgroundUrl: backgroundUrl, // Keep for backwards compatibility
+      opacity: 0.15,
+      overlay: 0.4
+    });
+
     // Update or insert the tournament background setting
     const { data, error } = await supabase
-      .from('settings')
+      .from('site_settings')
       .upsert({
         setting_key: 'tournament_page_background',
-        setting_value: backgroundUrl,
+        setting_value: settingsJson,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'setting_key'
@@ -64,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // Verify the update by reading it back
     const { data: verifyData, error: verifyError } = await supabase
-      .from('settings')
+      .from('site_settings')
       .select('setting_value')
       .eq('setting_key', 'tournament_page_background')
       .single();

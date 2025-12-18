@@ -20,7 +20,7 @@ export async function GET(
     // Get tournament by slug
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('*')
+      .select('*, round1_tee_time, round2_tee_time, round3_tee_time, round4_tee_time')
       .eq('slug', slug)
       .single();
 
@@ -39,14 +39,15 @@ export async function GET(
     
     if (description.includes('lpga') || name.includes('lpga')) {
       tour = 'lpga';
-    } else if (description.includes('european') || name.includes('european') || description.includes('dp world')) {
+    } else if (description.includes('european') || name.includes('european') || description.includes('dp world') || description.includes('mauritius')) {
       tour = 'euro';
     } else if (description.includes('korn ferry')) {
       tour = 'kft';
     }
 
-    // Try field-updates endpoint first (has pre-tournament field list)
-    // This works for both upcoming and in-progress tournaments
+    console.log('🔍 Fetching tee times from DataGolf:', { tour, tournament: tournament.name });
+
+    // Try field-updates endpoint (has tee times and field list)
     let datagolfUrl = `https://feeds.datagolf.com/field-updates?tour=${tour}&file_format=json&key=${DATAGOLF_API_KEY}`;
     
     // Make request to DataGolf API
@@ -59,19 +60,43 @@ export async function GET(
     });
 
     if (!response.ok) {
-      console.error('❌ DataGolf field-updates API error:', response.status, response.statusText);
-      const errorText = await response.text();
-      console.error('❌ Error details:', errorText);
+      console.error('❌ DataGolf API error:', response.status);
+      
+      // Fallback: Return database golfers if DataGolf fails
+      const { data: tournamentGolfers } = await supabase
+        .from('tournament_golfers')
+        .select('golfers(id, name, country)')
+        .eq('tournament_id', tournament.id);
+      
+      const field = (tournamentGolfers || []).map((tg: any) => ({
+        player_name: tg.golfers?.name,
+        country: tg.golfers?.country
+      }));
       
       return NextResponse.json({
-        error: 'Failed to fetch tee times from DataGolf',
-        details: errorText,
-        status: response.status
-      }, { status: 500 });
+        tournament: {
+          name: tournament.name,
+          startDate: tournament.start_date,
+          endDate: tournament.end_date,
+          round1_tee_time: tournament.round1_tee_time,
+          round2_tee_time: tournament.round2_tee_time,
+          round3_tee_time: tournament.round3_tee_time,
+          round4_tee_time: tournament.round4_tee_time
+        },
+        field: field,
+        message: `${field.length} players (DataGolf unavailable)`,
+        source: 'database'
+      });
     }
 
     // Parse DataGolf response
     const apiResponse: any = await response.json();
+    
+    console.log('✅ DataGolf response:', { 
+      event_name: apiResponse.event_name, 
+      field_count: apiResponse.field?.length,
+      has_tee_times: apiResponse.field?.some((p: any) => p.tee_time)
+    });
     
     // Extract field from field-updates
     const fieldData = apiResponse.field || [];
@@ -114,7 +139,11 @@ export async function GET(
         name: tournament.name,
         startDate: tournament.start_date,
         endDate: tournament.end_date,
-        location: tournament.location
+        location: tournament.location,
+        round1_tee_time: tournament.round1_tee_time,
+        round2_tee_time: tournament.round2_tee_time,
+        round3_tee_time: tournament.round3_tee_time,
+        round4_tee_time: tournament.round4_tee_time
       },
       field,
       eventInfo: {

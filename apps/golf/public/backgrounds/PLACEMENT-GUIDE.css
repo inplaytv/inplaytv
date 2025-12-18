@@ -1,0 +1,77 @@
+/* 
+ * BACKGROUND IMAGE PLACEMENT GUIDE
+ * 
+ * This file shows exactly where to add background image URLs in globals.css
+ * Copy the commented examples below and uncomment them in globals.css after adding images
+ */
+
+/* ========================================
+   OPTION 1: Add background to body (site-wide)
+   ======================================== */
+
+body {
+  /* Add after the gradient background */
+  background: 
+    /* url('/backgrounds/noise.png'),  /* Optional noise texture overlay */
+    /* url('/backgrounds/hero-bg.jpg') center/cover no-repeat fixed,  /* Full-width background image */
+    radial-gradient(circle at 20% 20%, rgba(102, 126, 234, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.15) 0%, transparent 50%),
+    linear-gradient(135deg, #0a0f1a 0%, #1a1f2e 50%, #0f1729 100%);
+  background-attachment: fixed;
+}
+
+/* ========================================
+   OPTION 2: Hero-specific background
+   ======================================== */
+
+/* Add to home.module.css */
+.hero {
+  position: relative;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('/backgrounds/hero-bg.jpg') center/cover no-repeat;
+  opacity: 0.3; /* Adjust opacity to blend with gradient */
+  z-index: -1;
+  border-radius: 16px; /* Match .glass border-radius */
+}
+
+/* ========================================
+   OPTION 3: Section-specific backgrounds
+   ======================================== */
+
+/* Add a class in home.module.css for sections */
+.sectionBg {
+  position: relative;
+}
+
+.sectionBg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('/backgrounds/section-bg.jpg') center/cover no-repeat;
+  opacity: 0.2;
+  z-index: -1;
+  border-radius: 16px;
+}
+
+/* ========================================
+   RECOMMENDED APPROACH
+   ======================================== */
+
+/*
+ * 1. Add 'hero-bg.jpg' to /public/backgrounds/
+ * 2. Add 'section-bg.jpg' to /public/backgrounds/
+ * 3. Add 'noise.png' to /public/backgrounds/ (optional)
+ * 4. Update globals.css body background with images
+ * 5. Adjust opacity values to taste (0.1 to 0.5 works well)
+ */

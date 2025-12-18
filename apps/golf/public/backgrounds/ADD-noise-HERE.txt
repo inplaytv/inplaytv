@@ -1,0 +1,11 @@
+Place your noise texture overlay here (optional).
+
+Recommended filename: noise.png
+Recommended size: 200x200px (small tileable pattern)
+Format: PNG with transparency
+
+After adding, the image will be accessible at:
+/backgrounds/noise.png
+
+Already referenced in globals.css at:
+body::before { background-image: url('/backgrounds/noise.png'); }
