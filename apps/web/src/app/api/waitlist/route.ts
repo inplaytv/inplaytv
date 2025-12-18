@@ -64,6 +64,55 @@ export async function POST(request: Request) {
       );
     }
 
+    // Send welcome email using template
+    try {
+      // Get the "Coming Soon Waitlist" template
+      const { data: template } = await supabase
+        .from('email_templates')
+        .select('*')
+        .eq('name', 'Coming Soon Waitlist')
+        .eq('is_active', true)
+        .single();
+
+      if (template) {
+        // Replace variables in template
+        let emailContent = template.content
+          .replace(/%%%website_name%%%/g, 'InPlayTV')
+          .replace(/%%%email%%%/g, email.toLowerCase().trim());
+
+        let emailSubject = template.subject
+          .replace(/%%%website_name%%%/g, 'InPlayTV');
+
+        // Store in outbox (for tracking)
+        await supabase.from('email_outbox').insert({
+          from_name: 'InPlayTV',
+          from_email: 'noreply@inplaytv.com',
+          to_email: email.toLowerCase().trim(),
+          subject: emailSubject,
+          content: emailContent,
+          template_id: template.id,
+          status: 'sent', // In production, integrate with actual email service
+          sent_at: new Date().toISOString()
+        });
+
+        // Add to contacts
+        await supabase.from('contacts').upsert({
+          email: email.toLowerCase().trim(),
+          tags: ['waitlist', 'coming-soon'],
+          status: 'active',
+          forms_submitted: 1,
+          emails_sent: 1,
+          last_contact: new Date().toISOString()
+        }, {
+          onConflict: 'email',
+          ignoreDuplicates: false
+        });
+      }
+    } catch (emailError) {
+      // Don't fail the waitlist signup if email fails
+      console.error('Email send error:', emailError);
+    }
+
     return NextResponse.json(
       { 
         success: true,

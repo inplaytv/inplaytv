@@ -91,6 +91,7 @@ const navSections: NavSection[] = [
       { label: 'Compose', href: '/email/compose' },
       { label: 'Templates', href: '/email/templates' },
       { label: 'Contacts', href: '/email/contacts' },
+      { label: 'Waitlist', href: '/waitlist' },
     ],
   },
 ];

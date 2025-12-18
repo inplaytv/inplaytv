@@ -135,23 +135,9 @@ export default function ComingSoonPage() {
   };
 
   return (
-    <div className={styles.container}>
-      {/* Background image from admin panel or fallback */}
-      <div 
-        className="responsive-bg"
-        style={{ 
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'transparent',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center top',
-          backgroundRepeat: 'no-repeat',
-          zIndex: -1
-        }}
-      />
+    <div className={styles.container} suppressHydrationWarning>
+      {/* Background image from CSS - responsive based on media queries */}
+      <div className="responsive-bg" suppressHydrationWarning />
       
       <div className={styles.noise} />
       

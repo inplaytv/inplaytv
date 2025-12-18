@@ -20,6 +20,16 @@
 
 /* Responsive background styles */
 .container :global(.responsive-bg) {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: transparent;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  z-index: -1;
   /* Default: show desktop background (second image) */
   background-image: url('/backgrounds/inplay_bg-02.png') !important;
 }
