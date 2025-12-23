@@ -64,31 +64,29 @@ export async function isAdmin(userId: string): Promise<boolean> {
  * Use this in protected admin pages
  */
 export async function assertAdminOrRedirect() {
-  // DEVELOPMENT BYPASS: Skip auth checks entirely in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🔓 Development mode - skipping admin auth check');
-    return {
-      id: 'dev-user-id',
-      email: 'dev@admin.local',
-      created_at: new Date().toISOString(),
-      app_metadata: {},
-      user_metadata: {},
-      aud: 'authenticated',
-      role: 'authenticated'
-    };
+  try {
+    const user = await getCurrentUser();
+    
+    if (!user) {
+      redirect('/login');
+    }
+    
+    // Check if user is actually an admin in the database
+    const adminClient = createAdminClient();
+    const { data: adminRecord, error: adminError } = await adminClient
+      .from('admins')
+      .select('user_id, is_super_admin')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (adminError || !adminRecord) {
+      console.error('User not in admins table:', user?.email, user?.id, adminError);
+      redirect('/login?error=unauthorized');
+    }
+    
+    return user;
+  } catch (error: any) {
+    console.error('Auth error:', error.message);
+    throw error;
   }
-
-  const user = await getCurrentUser();
-  
-  if (!user) {
-    redirect('/login');
-  }
-  
-  const userIsAdmin = await isAdmin(user.id);
-  
-  if (!userIsAdmin) {
-    redirect('/login?error=unauthorized');
-  }
-  
-  return user;
 }

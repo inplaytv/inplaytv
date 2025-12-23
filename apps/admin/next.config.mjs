@@ -6,7 +6,6 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  turbopack: {},
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
       config.watchOptions = {

@@ -656,13 +656,15 @@ export default function TournamentsPage() {
               // Filter tournaments that have open registration OR live competitions
               const now = new Date();
               const upcomingTournaments = tournaments.filter(tournament => {
-                // Show if tournament has open registration OR is live
+                // Show if tournament itself has registration open, OR any competition has open registration OR is live
+                if (tournament.status === 'registration_open') return true;
+
                 const hasOpenRegistration = tournament.competitions.some(comp => {
                   const regCloseAt = comp.reg_close_at ? new Date(comp.reg_close_at) : null;
                   // Show if status is reg_open, live, or registration close date is in the future
                   return comp.status === 'reg_open' || comp.status === 'live' || (regCloseAt && now < regCloseAt);
                 });
-                
+
                 // Show tournament if it has open competitions
                 return hasOpenRegistration;
               });

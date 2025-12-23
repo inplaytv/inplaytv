@@ -68,7 +68,6 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
       const tournamentRes = await fetch(`/api/tournaments/${params.id}`);
       if (tournamentRes.ok) {
         const tournamentData = await tournamentRes.json();
-        console.log('Tournament data:', tournamentData); // Debug: verify tour field
         setTournament(tournamentData);
       }
 

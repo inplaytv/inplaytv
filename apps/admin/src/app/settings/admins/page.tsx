@@ -29,6 +29,11 @@ export default function AdminsPage() {
       // Add cache buster to force fresh data
       const response = await fetch(`/api/admins/list?_t=${Date.now()}`, {
         cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       });
       if (!response.ok) throw new Error('Failed to fetch admins');
       
@@ -87,6 +92,7 @@ export default function AdminsPage() {
       setError('');
       const response = await fetch(`/api/admins/${userId}/remove`, {
         method: 'DELETE',
+        cache: 'no-store',
       });
 
       const result = await response.json();
@@ -95,9 +101,16 @@ export default function AdminsPage() {
         throw new Error(result.error || 'Failed to remove admin');
       }
 
-      // Show success and refresh list
+      // Remove from local state immediately for instant UI update
+      setAdmins(prev => prev.filter(admin => admin.user_id !== userId));
+      
+      // Show success message
       alert(`✅ ${result.message}`);
-      await fetchAdmins();
+      
+      // Force refresh from server with delay to ensure database has updated
+      setTimeout(() => {
+        fetchAdmins();
+      }, 100);
     } catch (err: any) {
       console.error('Error removing admin:', err);
       setError(err.message);

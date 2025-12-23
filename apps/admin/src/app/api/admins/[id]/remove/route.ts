@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabaseAdminServer';
 
+export const dynamic = 'force-dynamic';
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -43,20 +45,6 @@ export async function DELETE(
 
     const userId = params.id;
 
-    // Check if target is a super admin
-    const { data: targetAdmin } = await adminClient
-      .from('admins')
-      .select('user_id, is_super_admin')
-      .eq('user_id', userId)
-      .single();
-
-    if (targetAdmin?.is_super_admin) {
-      return NextResponse.json(
-        { error: 'Cannot remove Super Admin accounts' },
-        { status: 400 }
-      );
-    }
-
     // Prevent removing yourself
     if (userId === user.id) {
       return NextResponse.json(
@@ -65,19 +53,28 @@ export async function DELETE(
       );
     }
 
-    // Remove admin using admin client
-    const { error: deleteError } = await adminClient
+    // Check if target is a super admin (warn but allow removal by other super admins)
+    const { data: targetAdmin } = await adminClient
       .from('admins')
-      .delete()
+      .select('user_id, is_super_admin')
+      .eq('user_id', userId)
+      .single();
+
+    // Remove admin using admin client
+    const { error: deleteError, count } = await adminClient
+      .from('admins')
+      .delete({ count: 'exact' })
       .eq('user_id', userId);
 
     if (deleteError) {
+      console.error('Delete error:', deleteError);
       throw deleteError;
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Admin access revoked successfully'
+      message: 'Admin access revoked successfully',
+      deleted: count
     });
 
   } catch (error: any) {
