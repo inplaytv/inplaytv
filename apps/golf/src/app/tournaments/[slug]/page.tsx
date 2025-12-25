@@ -68,7 +68,7 @@ function extractTour(description: string | null, name?: string): 'PGA' | 'LPGA' 
 }
 
 // Custom hook for individual countdown timer
-function useCountdown(targetDate: string | null, status?: string) {
+function useCountdown(targetDate: string | null, status?: string, closedText?: string, competitionStartDate?: string | null) {
   const [countdown, setCountdown] = useState('Calculating...');
 
   useEffect(() => {
@@ -82,9 +82,32 @@ function useCountdown(targetDate: string | null, status?: string) {
       const target = new Date(targetDate).getTime();
       const diff = target - now;
 
-      // If time has expired, show closed
+      // If registration time has expired
       if (diff <= 0) {
-        setCountdown('Registration Closed');
+        // Check if we have a competition start date and it hasn't started yet
+        if (competitionStartDate) {
+          const compStart = new Date(competitionStartDate).getTime();
+          const timeUntilStart = compStart - now;
+          
+          if (timeUntilStart > 0) {
+            // Show countdown to competition start
+            const days = Math.floor(timeUntilStart / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeUntilStart % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeUntilStart % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeUntilStart % (1000 * 60)) / 1000);
+
+            if (days > 0) {
+              setCountdown(`Starts in ${days}d ${hours}h ${minutes}m ${seconds}s`);
+            } else if (hours > 0) {
+              setCountdown(`Starts in ${hours}h ${minutes}m ${seconds}s`);
+            } else {
+              setCountdown(`Starts in ${minutes}m ${seconds}s`);
+            }
+            return;
+          }
+        }
+        // No start date or it has passed
+        setCountdown(closedText || 'Closed');
       } else {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -105,7 +128,7 @@ function useCountdown(targetDate: string | null, status?: string) {
     const timer = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(timer);
-  }, [targetDate, status]);
+  }, [targetDate, status, closedText, competitionStartDate]);
 
   return countdown;
 }
@@ -122,10 +145,23 @@ function CompetitionCard({
   formatCurrency,
   formatDateRange
 }: any) {
-  const countdown = useCountdown(competition.reg_close_at, competition.status);
+  // Use statusBadge to determine what countdown to show
+  const isLive = statusBadge.label === 'Live';
+  const isAwaitingStart = statusBadge.label === 'Awaiting Start';
+  
+  // If live or awaiting start, no countdown needed
+  // If can register, countdown to reg close
+  // Otherwise, show closed message
+  const countdown = useCountdown(
+    canRegister ? competition.reg_close_at : null, 
+    competition.status, 
+    isLive ? 'Live Now' : (isAwaitingStart ? 'Starting Soon' : 'Registration Closed'),
+    competition.start_at
+  );
   
   // Registration is closed if countdown says so OR if canRegister is false
-  const isClosed = countdown === 'Registration Closed' || !canRegister;
+  const isClosed = !canRegister;
+  const isStartingSoon = countdown.startsWith('Starts in');
   
   const tour = extractTour(tournament.description, tournament.name);
 
@@ -217,22 +253,24 @@ function CompetitionCard({
         </div>
 
         {/* Registration Countdown */}
-        {competition.reg_close_at && (
+        {(competition.reg_close_at || competition.start_at) && !isLive && (
           <div className={styles.registrationCountdown} style={{
-            background: isClosed ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-            borderTop: isClosed ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)',
-            borderBottom: isClosed ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)'
+            background: isStartingSoon ? 'rgba(59, 130, 246, 0.1)' : (isClosed ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)'),
+            borderTop: isStartingSoon ? '1px solid rgba(59, 130, 246, 0.2)' : (isClosed ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)'),
+            borderBottom: isStartingSoon ? '1px solid rgba(59, 130, 246, 0.2)' : (isClosed ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)')
           }}>
             <div className={styles.countdownIcon} style={{
-              color: isClosed ? '#ef4444' : '#10b981'
+              color: isStartingSoon ? '#3b82f6' : (isClosed ? '#ef4444' : '#10b981')
             }}>
               <i className="fas fa-clock"></i>
             </div>
             <div className={styles.countdownContent}>
-              <div className={styles.countdownLabel}>{isClosed ? 'Registration' : 'Registration Closes'}</div>
+              <div className={styles.countdownLabel}>
+                {isStartingSoon ? 'Competition' : (isClosed ? 'Registration' : 'Registration Closes')}
+              </div>
               <div className={styles.countdownTimer} key={countdown} style={{
-                color: isClosed ? '#ef4444' : '#10b981'
-              }}>{isClosed && countdown === 'Registration Closed' ? 'Closed' : countdown}</div>
+                color: isStartingSoon ? '#3b82f6' : (isClosed ? '#ef4444' : '#10b981')
+              }}>{countdown}</div>
             </div>
           </div>
         )}
@@ -396,7 +434,7 @@ function One2OneCard({
         <div className={styles.cardActions}>
           {!isClosed ? (
             <Link 
-              href={`/one-2-one/${tournament.slug}?template=${template.id}`}
+              href={`/one-2-one?tournament=${tournament.id}&template=${template.id}`}
               className={styles.btnPlay}
               style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
             >
@@ -537,6 +575,7 @@ export default function TournamentDetailPage() {
       upcoming: { label: 'Upcoming', icon: 'fa-clock', color: '#3b82f6' },
       reg_open: { label: 'Registration Open', icon: 'fa-door-open', color: '#10b981' },
       reg_closed: { label: 'Registration Closed', icon: 'fa-door-closed', color: '#f59e0b' },
+      awaiting_start: { label: 'Awaiting Start', icon: 'fa-hourglass-half', color: '#3b82f6' },
       live: { label: 'Live', icon: 'fa-circle', color: '#ef4444' },
       completed: { label: 'Completed', icon: 'fa-check-circle', color: '#8b5cf6' },
       cancelled: { label: 'Cancelled', icon: 'fa-times-circle', color: '#ef4444' },
@@ -570,6 +609,8 @@ export default function TournamentDetailPage() {
     console.log(`📊 ${competition.competition_types?.name || 'Unknown'}:`, {
       reg_close_at: competition.reg_close_at,
       reg_open_at: competition.reg_open_at,
+      start_at: competition.start_at,
+      tournament_end: tournament.end_date,
       regCloseAt: regCloseAt?.toISOString(),
       now: now.toISOString(),
       isPastDeadline: regCloseAt ? now >= regCloseAt : 'no deadline',
@@ -581,6 +622,15 @@ export default function TournamentDetailPage() {
     if (tournamentEndOfDay) {
       tournamentEndOfDay.setHours(23, 59, 59, 999);
     }
+    
+    console.log(`📊 ${competition.competition_types?.name || 'Unknown'} DATES:`, {
+      tournamentEnd: tournamentEnd?.toISOString(),
+      tournamentEndOfDay: tournamentEndOfDay?.toISOString(),
+      compStartAt: competition.start_at ? new Date(competition.start_at).toISOString() : null,
+      isAfterRegClose: regCloseAt ? now >= regCloseAt : false,
+      isAfterCompStart: competition.start_at ? now >= new Date(competition.start_at) : false,
+      isBeforeTournEnd: tournamentEndOfDay ? now <= tournamentEndOfDay : false
+    });
     
     // PRIORITY 1: Check if tournament has completed
     if (tournamentEndOfDay && now > tournamentEndOfDay) {
@@ -594,16 +644,36 @@ export default function TournamentDetailPage() {
     
     // PRIORITY 3: Check if registration is currently open by dates (MOST IMPORTANT!)
     // This must come BEFORE checking database status
+    
+    // Parse competition start date if available
+    const compStartAt = competition.start_at ? new Date(competition.start_at) : null;
+    
+    // If we have a close date and it's passed, registration is definitely closed
+    if (regCloseAt && now >= regCloseAt) {
+      // Registration has closed - check if competition has actually started
+      if (compStartAt && now >= compStartAt) {
+        // Competition has started
+        if (tournamentEndOfDay && now <= tournamentEndOfDay) {
+          // Tournament is still in progress - show as live
+          return statusConfig.live;
+        } else {
+          // Tournament has ended - show as completed
+          return statusConfig.completed;
+        }
+      } else if (compStartAt && now < compStartAt) {
+        // Competition hasn't started yet - show as awaiting start with countdown
+        return statusConfig.awaiting_start;
+      } else {
+        // No start date set, just show registration closed
+        return statusConfig.reg_closed;
+      }
+    }
+    
+    // If we have both open and close dates and we're in the window
     if (regOpenAt && regCloseAt) {
       if (now >= regOpenAt && now < regCloseAt) {
         // Registration is open - regardless of database status field
         return statusConfig.reg_open;
-      } else if (now >= regCloseAt) {
-        // Registration has closed - show as Live if tournament ongoing, otherwise closed
-        if (tournamentEndOfDay && now <= tournamentEndOfDay) {
-          return statusConfig.live;
-        }
-        return statusConfig.reg_closed;
       }
     }
     

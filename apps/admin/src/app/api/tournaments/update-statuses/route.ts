@@ -61,7 +61,7 @@ export async function GET(request: Request) {
   try {
     const { data: tournaments, error } = await supabase
       .from('tournaments')
-      .select('id, name, status, start_date, end_date, registration_open_date, registration_close_date, updated_at')
+      .select('id, name, status, start_date, end_date, registration_opens_at, registration_closes_at, updated_at')
       .order('start_date', { ascending: false });
 
     if (error) {

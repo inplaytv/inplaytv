@@ -54,7 +54,7 @@ const menuCategories: MenuCategory[] = [
       },
       { 
         label: '1-2-1 Matchmaker', 
-        href: '/one-2-one/alfred-dunhill-championship', 
+        href: '/one-2-one', 
         icon: 'fa-swords',
         description: 'Head-to-head challenges'
       },

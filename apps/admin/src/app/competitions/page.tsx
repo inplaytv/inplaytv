@@ -81,11 +81,92 @@ export default function CompetitionsPage() {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
   const [customEntrants, setCustomEntrants] = useState<{ [key: string]: string }>({});
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === competitions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(competitions.map(c => c.id)));
+    }
+  };
+
+  const handleSelectOne = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    const confirmed = confirm(
+      `Are you sure you want to delete ${selectedIds.size} competition(s)?\n\n` +
+      `This will permanently remove:\n` +
+      `- Competition entries\n` +
+      `- Competition picks\n` +
+      `- Related data\n\n` +
+      `This action CANNOT be undone!`
+    );
+    
+    if (!confirmed) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch('/api/competitions/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ competitionIds: Array.from(selectedIds) }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Successfully deleted ${result.deleted} competition(s)`);
+        
+        // Force immediate UI update - remove deleted items from state
+        setCompetitions(prev => prev.filter(c => !selectedIds.has(c.id)));
+        setSelectedIds(new Set());
+        
+        // Also force a fresh fetch from server to ensure sync
+        setTimeout(async () => {
+          const timestamp = Date.now();
+          const res = await fetch(`/api/competitions?_=${timestamp}`, {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setCompetitions(data);
+          }
+        }, 100);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to delete competitions'}`);
+      }
+    } catch (err) {
+      console.error('Error deleting competitions:', err);
+      alert('Failed to delete competitions. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchCompetitions() {
       try {
-        const res = await fetch('/api/competitions');
+        // Add cache busting timestamp to force fresh data
+        const timestamp = Date.now();
+        const res = await fetch(`/api/competitions?_=${timestamp}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
         if (res.ok) {
           const data = await res.json();
           setCompetitions(data);
@@ -105,6 +186,17 @@ export default function CompetitionsPage() {
 
   return (
     <div>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .spinner {
+          display: inline-block;
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
+      
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Active Competitions</h1>
@@ -112,6 +204,49 @@ export default function CompetitionsPage() {
             Competitions that are linked to tournaments and available for entrants to join
           </p>
         </div>
+        
+        {selectedIds.size > 0 && (
+          <button
+            onClick={handleBulkDelete}
+            disabled={isDeleting}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: 'rgba(239, 68, 68, 0.2)',
+              border: '2px solid rgba(239, 68, 68, 0.6)',
+              borderRadius: '8px',
+              color: '#f87171',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              cursor: isDeleting ? 'not-allowed' : 'pointer',
+              opacity: isDeleting ? 0.5 : 1,
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+            onMouseOver={(e) => {
+              if (!isDeleting) {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.8)';
+              }
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.6)';
+            }}
+          >
+            {isDeleting ? (
+              <>
+                <span className="spinner">⏳</span>
+                Deleting...
+              </>
+            ) : (
+              <>
+                🗑️ Delete {selectedIds.size} Competition{selectedIds.size > 1 ? 's' : ''}
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       <div style={{
@@ -123,6 +258,19 @@ export default function CompetitionsPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: 'rgba(0, 0, 0, 0.2)' }}>
+              <th style={{ padding: '0.875rem', textAlign: 'left', width: '40px' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === competitions.length && competitions.length > 0}
+                  onChange={handleSelectAll}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    cursor: 'pointer',
+                    accentColor: '#10b981',
+                  }}
+                />
+              </th>
               <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Tournament</th>
               <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Competition Type</th>
               <th style={{ padding: '0.875rem', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>Entry Fee</th>
@@ -136,13 +284,32 @@ export default function CompetitionsPage() {
           <tbody>
             {competitions.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
+                <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
                   No active competitions yet. Create tournaments and add competition types to them.
                 </td>
               </tr>
             ) : (
               competitions.map((comp) => (
-                <tr key={comp.id} style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                <tr 
+                  key={comp.id} 
+                  style={{ 
+                    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                    background: selectedIds.has(comp.id) ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+                  }}
+                >
+                  <td style={{ padding: '0.875rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(comp.id)}
+                      onChange={() => handleSelectOne(comp.id)}
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        cursor: 'pointer',
+                        accentColor: '#ef4444',
+                      }}
+                    />
+                  </td>
                   <td style={{ padding: '0.875rem' }}>
                     <div style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500, marginBottom: '0.25rem' }}>
                       {comp.tournaments.name}

@@ -22,7 +22,9 @@ export async function GET(request: NextRequest) {
         tournaments!inner (
           id,
           name,
-          slug
+          slug,
+          end_date,
+          status
         ),
         competition_templates!inner (
           name,
@@ -34,15 +36,27 @@ export async function GET(request: NextRequest) {
       .in('status', ['pending', 'open'])  // Show both pending (awaiting first team) and open challenges
       .lt('current_players', 2)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100);  // Fetch more, we'll filter client-side
 
     if (error) {
       console.error('Error fetching all open challenges:', error);
       throw error;
     }
 
+    // CRITICAL: Filter out challenges from tournaments that have ended
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const activeInstances = (instances || []).filter((inst: any) => {
+      if (!inst.tournaments?.end_date) return false;
+      const tournamentEnd = new Date(inst.tournaments.end_date);
+      tournamentEnd.setHours(23, 59, 59, 999); // End of tournament day
+      return today <= tournamentEnd; // Only include tournaments that haven't ended yet
+    })
+    .slice(0, 50);  // Limit to 50 after filtering
+
     // Get the FIRST entry (creator) for each instance
-    const instanceIds = (instances || []).map(inst => inst.id);
+    const instanceIds = activeInstances.map(inst => inst.id);
     
     const { data: entries } = await supabase
       .from('competition_entries')
@@ -76,8 +90,8 @@ export async function GET(request: NextRequest) {
 
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
-    // Transform data for frontend
-    const challenges = (instances || [])
+    // Transform data for frontend (using filtered activeInstances)
+    const challenges = activeInstances
       .filter(inst => creatorEntryMap.has(inst.id))  // Only show instances with at least 1 entry
       .map((inst: any) => {
       const entry = creatorEntryMap.get(inst.id);

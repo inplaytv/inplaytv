@@ -217,7 +217,7 @@ export default function LobbyPage() {
                 </div>
               </Link>
 
-              <Link href="/one-2-one/alfred-dunhill-championship" className={styles.actionCard}>
+              <Link href="/one-2-one" className={styles.actionCard}>
                 <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
                   <i className="fas fa-swords"></i>
                 </div>
@@ -272,7 +272,15 @@ export default function LobbyPage() {
             </div>
           ) : (
             <div className={styles.tournamentsGrid}>
-              {tournaments.slice(0, 3).map((tournament) => {
+              {tournaments
+                .filter(tournament => {
+                  // CRITICAL: Exclude completed tournaments as a safety check
+                  const now = new Date();
+                  const tournamentEnd = new Date(tournament.end_date);
+                  tournamentEnd.setHours(23, 59, 59, 999);
+                  return now <= tournamentEnd; // Only show tournaments that haven't ended yet
+                })
+                .slice(0, 3).map((tournament) => {
                 const status = getTournamentStatus(tournament);
                 return (
                   <Link 

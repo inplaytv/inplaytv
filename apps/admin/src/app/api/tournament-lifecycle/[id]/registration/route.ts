@@ -16,10 +16,10 @@ export async function POST(
     const { 
       registration_opens_at, 
       registration_closes_at,
-      round1_tee_time,
-      round2_tee_time,
-      round3_tee_time,
-      round4_tee_time
+      round_1_start,
+      round_2_start,
+      round_3_start,
+      round_4_start
     } = await request.json();
 
     // Validate required fields
@@ -62,11 +62,11 @@ export async function POST(
       );
     }
 
-    // Validate that registration closes before tournament starts
-    const tournamentStart = new Date(tournament.start_date);
-    if (closesAt >= tournamentStart) {
+    // Validate that registration closes before tournament ends
+    const tournamentEnd = new Date(tournament.end_date);
+    if (closesAt > tournamentEnd) {
       return NextResponse.json(
-        { error: 'Registration must close before the tournament starts' },
+        { error: 'Registration must close before the tournament ends' },
         { status: 400 }
       );
     }
@@ -76,10 +76,10 @@ export async function POST(
       registration_opens_at: string;
       registration_closes_at: string;
       updated_at: string;
-      round1_tee_time?: string;
-      round2_tee_time?: string;
-      round3_tee_time?: string;
-      round4_tee_time?: string;
+      round_1_start?: string;
+      round_2_start?: string;
+      round_3_start?: string;
+      round_4_start?: string;
     }
 
     const updates: TournamentUpdates = {
@@ -89,10 +89,10 @@ export async function POST(
     };
 
     // Add round tee times if provided
-    if (round1_tee_time) updates.round1_tee_time = round1_tee_time;
-    if (round2_tee_time) updates.round2_tee_time = round2_tee_time;
-    if (round3_tee_time) updates.round3_tee_time = round3_tee_time;
-    if (round4_tee_time) updates.round4_tee_time = round4_tee_time;
+    if (round_1_start) updates.round_1_start = round_1_start;
+    if (round_2_start) updates.round_2_start = round_2_start;
+    if (round_3_start) updates.round_3_start = round_3_start;
+    if (round_4_start) updates.round_4_start = round_4_start;
 
     console.log('[Registration] Updating tournament with:', updates);
 
@@ -113,9 +113,14 @@ export async function POST(
     }
 
     // Auto-calculate competition registration times based on round tee times
-    console.log('[Registration] Auto-calculating competition times...');
+    console.log('[Registration] Auto-syncing competition times from lifecycle...');
     try {
-      const calculateUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL?.replace('/rest/v1', '')}/api/tournaments/${params.id}/competitions/calculate-times`;
+      // Construct the internal API URL correctly
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002';
+      const calculateUrl = `${baseUrl}/api/tournaments/${params.id}/competitions/calculate-times`;
+      
+      console.log('[Registration] Calling:', calculateUrl);
+      
       const calculateRes = await fetch(calculateUrl, {
         method: 'POST',
         headers: {
@@ -125,12 +130,13 @@ export async function POST(
       
       if (calculateRes.ok) {
         const calcData = await calculateRes.json();
-        console.log(`[Registration] ✅ Auto-calculated times for ${calcData.updated} competitions`);
+        console.log(`[Registration] ✅ Synced ${calcData.updated} competitions from lifecycle`);
       } else {
-        console.warn('[Registration] ⚠️ Could not auto-calculate competition times');
+        const errorText = await calculateRes.text();
+        console.warn('[Registration] ⚠️ Could not sync competition times:', errorText);
       }
     } catch (calcError) {
-      console.warn('[Registration] ⚠️ Competition time calculation failed:', calcError);
+      console.warn('[Registration] ⚠️ Competition time sync failed:', calcError);
       // Don't fail the whole request if this fails
     }
 

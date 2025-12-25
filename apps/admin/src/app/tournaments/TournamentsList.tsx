@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import styles from './tournaments.module.css';
 
 interface Tournament {
   id: string;
@@ -13,14 +14,48 @@ interface Tournament {
   start_date: string;
   end_date: string;
   updated_at: string;
-  registration_open_date?: string;
-  registration_close_date?: string;
+  registration_opens_at?: string | null;
+  registration_closes_at?: string | null;
+  round_1_start?: string | null;
+  round_2_start?: string | null;
+  round_3_start?: string | null;
+  round_4_start?: string | null;
+  image_url?: string | null;
+  competition_count?: number;
   is_visible: boolean;
 }
 
 interface TournamentsListProps {
   initialTournaments: Tournament[];
 }
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: '#6b7280',
+  upcoming: '#3b82f6',
+  registration_open: '#10b981',
+  registration_closed: '#f59e0b',
+  live_inplay: '#ef4444',
+  completed: '#8b5cf6',
+  cancelled: '#6b7280',
+  reg_open: '#10b981',
+  reg_closed: '#f59e0b',
+  live: '#ef4444',
+  in_progress: '#f59e0b',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: '📝 Draft',
+  upcoming: '📅 Upcoming',
+  registration_open: '✅ Registration Open',
+  registration_closed: '⚠️ Registration Closed',
+  live_inplay: '🏌️ Live In-Play',
+  completed: '🏆 Completed',
+  cancelled: '❌ Cancelled',
+  reg_open: '✅ Reg Open',
+  reg_closed: '⚠️ Reg Closed',
+  live: '🏌️ Live',
+  in_progress: '🏌️ In Progress',
+};
 
 // Calculate dynamic status based on tournament dates
 function getStatusBadge(status: string) {
@@ -80,8 +115,19 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [applyingStatus, setApplyingStatus] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards'); // Default to card view
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const getTimingStatus = (tournament: Tournament) => {
+    const hasRegistration = tournament.registration_opens_at && tournament.registration_closes_at;
+    const hasTeeTimes = tournament.round_1_start || tournament.round_2_start || tournament.round_3_start || tournament.round_4_start;
+    
+    if (hasRegistration && hasTeeTimes) return { icon: '✅', label: 'Complete', color: '#10b981' };
+    if (hasRegistration) return { icon: '⚠️', label: 'Needs Tee Times', color: '#f59e0b' };
+    if (hasTeeTimes) return { icon: '⚠️', label: 'Needs Registration', color: '#f59e0b' };
+    return { icon: '❌', label: 'Not Set', color: '#ef4444' };
+  };
 
   // Set mounted state and initial timestamp on client side only
   useEffect(() => {
@@ -222,7 +268,7 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
       const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
       
       // Required columns
-      const requiredColumns = ['name', 'slug', 'start_date', 'end_date', 'registration_open_date', 'registration_close_date'];
+      const requiredColumns = ['name', 'slug', 'start_date', 'end_date', 'registration_opens_at', 'registration_closes_at'];
       const missingColumns = requiredColumns.filter((col) => !headers.includes(col));
       
       if (missingColumns.length > 0) {
@@ -373,6 +419,40 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
           >
             {updating ? '⏳ Updating...' : '🔄 Update Statuses Now'}
           </button>
+          
+          {/* View Mode Toggle */}
+          <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', borderRadius: '6px', padding: '0.25rem' }}>
+            <button
+              onClick={() => setViewMode('cards')}
+              style={{
+                padding: '0.375rem 0.75rem',
+                background: viewMode === 'cards' ? 'rgba(59, 130, 246, 0.9)' : 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                color: '#fff',
+                fontSize: '0.8125rem',
+                cursor: 'pointer',
+                fontWeight: viewMode === 'cards' ? 600 : 400,
+              }}
+            >
+              🎴 Cards
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              style={{
+                padding: '0.375rem 0.75rem',
+                background: viewMode === 'table' ? 'rgba(59, 130, 246, 0.9)' : 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                color: '#fff',
+                fontSize: '0.8125rem',
+                cursor: 'pointer',
+                fontWeight: viewMode === 'table' ? 600 : 400,
+              }}
+            >
+              📊 Table
+            </button>
+          </div>
           
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem' }}>
             <input
@@ -534,7 +614,7 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
               CSV Format Requirements:
             </p>
             <p style={{ margin: '0', fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.6' }}>
-              Required columns: <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '3px' }}>name, slug, start_date, end_date, registration_open_date, registration_close_date</code><br/>
+              Required columns: <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '3px' }}>name, slug, start_date, end_date, registration_opens_at, registration_closes_at</code><br/>
               Optional columns: <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '3px' }}>description, location, timezone, status, image_url, external_id</code><br/>
               Date format: <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '3px' }}>YYYY-MM-DD HH:MM:SS</code> or <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.125rem 0.25rem', borderRadius: '3px' }}>YYYY-MM-DDTHH:MM:SSZ</code>
             </p>
@@ -604,7 +684,117 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
         </div>
       )}
 
+      {/* Card View */}
+      {viewMode === 'cards' && (
+        <div className={styles.grid}>
+          {tournaments.map((tournament) => {
+            const timingStatus = getTimingStatus(tournament);
+            const statusColor = STATUS_COLORS[tournament.status as keyof typeof STATUS_COLORS] || '#6b7280';
+            
+            return (
+              <div key={tournament.id} className={styles.card} style={{ opacity: tournament.is_visible ? 1 : 0.5 }}>
+                {/* Tournament Image */}
+                {tournament.image_url && (
+                  <div className={styles.cardImage} style={{ backgroundImage: `url(${tournament.image_url})` }} />
+                )}
+                
+                {/* Tournament Info */}
+                <div className={styles.cardContent}>
+                  <div className={styles.cardHeader}>
+                    <h3 className={styles.cardTitle}>{tournament.name}</h3>
+                    <span 
+                      className={styles.statusBadge} 
+                      style={{ backgroundColor: `${statusColor}22`, color: statusColor, borderColor: `${statusColor}44` }}
+                    >
+                      {STATUS_LABELS[tournament.status as keyof typeof STATUS_LABELS] || tournament.status}
+                    </span>
+                  </div>
+
+                  {tournament.location && (
+                    <p className={styles.location}>📍 {tournament.location}</p>
+                  )}
+
+                  <div className={styles.dateRange}>
+                    <span>{formatDate(tournament.start_date)}</span>
+                    <span className={styles.dateSeparator}>→</span>
+                    <span>{formatDate(tournament.end_date)}</span>
+                  </div>
+
+                  {/* Timing Status */}
+                  <div className={styles.timingStatus}>
+                    <span style={{ color: timingStatus.color }}>
+                      {timingStatus.icon} Lifecycle: {timingStatus.label}
+                    </span>
+                  </div>
+
+                  {/* Competition Count */}
+                  {tournament.competition_count !== undefined && (
+                    <div className={styles.competitionCount}>
+                      🏆 {tournament.competition_count} Competition{tournament.competition_count !== 1 ? 's' : ''}
+                    </div>
+                  )}
+
+                  {/* Visibility Toggle */}
+                  <button
+                    onClick={() => handleToggleVisibility(tournament)}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      marginBottom: '0.75rem',
+                      background: tournament.is_visible ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+                      border: `1px solid ${tournament.is_visible ? 'rgba(16, 185, 129, 0.3)' : 'rgba(107, 114, 128, 0.3)'}`,
+                      borderRadius: '6px',
+                      color: tournament.is_visible ? '#10b981' : '#9ca3af',
+                      fontSize: '0.8125rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {tournament.is_visible ? '👁️ Visible on Golf App' : '👁️‍🗨️ Hidden from Golf App'}
+                  </button>
+
+                  {/* Quick Actions */}
+                  <div className={styles.cardActions}>
+                    <Link href={`/tournament-lifecycle?tournament=${tournament.id}`} className={styles.actionButton}>
+                      ⏰ Lifecycle
+                    </Link>
+                    <Link href={`/tournaments/${tournament.id}`} className={styles.actionButtonPrimary}>
+                      ⚙️ Settings
+                    </Link>
+                    <Link href={`/tournaments/${tournament.id}/manage-golfers`} className={styles.actionButton}>
+                      ⛳ Golfers
+                    </Link>
+                  </div>
+
+                  {/* Delete Button */}
+                  <button
+                    onClick={() => handleDelete(tournament)}
+                    disabled={deleting === tournament.id}
+                    style={{
+                      width: '100%',
+                      marginTop: '0.5rem',
+                      padding: '0.5rem',
+                      background: deleting === tournament.id ? 'rgba(100, 100, 100, 0.2)' : 'rgba(239, 68, 68, 0.1)',
+                      border: `1px solid ${deleting === tournament.id ? 'rgba(100, 100, 100, 0.4)' : 'rgba(239, 68, 68, 0.3)'}`,
+                      borderRadius: '6px',
+                      color: deleting === tournament.id ? '#9ca3af' : '#f87171',
+                      fontSize: '0.8125rem',
+                      fontWeight: 500,
+                      cursor: deleting === tournament.id ? 'not-allowed' : 'pointer',
+                      opacity: deleting === tournament.id ? 0.5 : 1,
+                    }}
+                  >
+                    {deleting === tournament.id ? '🗑️ Deleting...' : '🗑️ Delete Tournament'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Tournaments Table */}
+      {viewMode === 'table' && (
       <div style={{
         background: 'rgba(30, 30, 35, 0.95)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -712,6 +902,7 @@ export default function TournamentsList({ initialTournaments }: TournamentsListP
         </tbody>
       </table>
     </div>
+    )}
     </>
   );
 }

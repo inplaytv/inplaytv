@@ -60,6 +60,9 @@ async function getMaintenanceMode(): Promise<string> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
+  // REMOVED: Don't redirect one-2-one tournament pages - they're needed for challenge creation
+  // The /one-2-one/[slug] pages are still used for creating new challenges
+  
   // ALWAYS allow localhost/127.0.0.1 - no maintenance checks in development
   // This ensures local development is never blocked regardless of database state
   const hostname = request.nextUrl.hostname;

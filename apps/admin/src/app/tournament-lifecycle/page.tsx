@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import styles from './TournamentLifecycle.module.css';
 
 interface Tournament {
@@ -26,6 +27,7 @@ interface StatusTransition {
 }
 
 export default function TournamentLifecyclePage() {
+  const searchParams = useSearchParams();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
@@ -41,6 +43,20 @@ export default function TournamentLifecyclePage() {
     const interval = setInterval(fetchTournaments, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Auto-select tournament from URL parameter
+  useEffect(() => {
+    const tournamentId = searchParams.get('tournament');
+    if (tournamentId && tournaments.length > 0) {
+      const tournament = tournaments.find(t => t.id === tournamentId);
+      if (tournament) {
+        console.log('[Lifecycle UI] Auto-selecting tournament from URL:', tournament.name);
+        setSelectedTournament(tournament);
+      } else {
+        console.warn('[Lifecycle UI] Tournament not found:', tournamentId);
+      }
+    }
+  }, [searchParams, tournaments]);
 
   // Update countdown timers every second
   useEffect(() => {
@@ -866,8 +882,8 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
     
     // Load existing tee times from tournament
     const tournamentData = tournament as any;
-    if (tournamentData.round1_tee_time) {
-      setRound1TeeTime(new Date(tournamentData.round1_tee_time).toISOString().slice(0, 16));
+    if (tournamentData.round_1_start) {
+      setRound1TeeTime(new Date(tournamentData.round_1_start).toISOString().slice(0, 16));
     } else {
       // Default to tournament start date at 06:20
       const r1 = new Date(tournament.start_date);
@@ -875,8 +891,8 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
       setRound1TeeTime(r1.toISOString().slice(0, 16));
     }
     
-    if (tournamentData.round2_tee_time) {
-      setRound2TeeTime(new Date(tournamentData.round2_tee_time).toISOString().slice(0, 16));
+    if (tournamentData.round_2_start) {
+      setRound2TeeTime(new Date(tournamentData.round_2_start).toISOString().slice(0, 16));
     } else {
       const r2 = new Date(tournament.start_date);
       r2.setDate(r2.getDate() + 1);
@@ -884,8 +900,8 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
       setRound2TeeTime(r2.toISOString().slice(0, 16));
     }
     
-    if (tournamentData.round3_tee_time) {
-      setRound3TeeTime(new Date(tournamentData.round3_tee_time).toISOString().slice(0, 16));
+    if (tournamentData.round_3_start) {
+      setRound3TeeTime(new Date(tournamentData.round_3_start).toISOString().slice(0, 16));
     } else {
       const r3 = new Date(tournament.start_date);
       r3.setDate(r3.getDate() + 2);
@@ -893,8 +909,8 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
       setRound3TeeTime(r3.toISOString().slice(0, 16));
     }
     
-    if (tournamentData.round4_tee_time) {
-      setRound4TeeTime(new Date(tournamentData.round4_tee_time).toISOString().slice(0, 16));
+    if (tournamentData.round_4_start) {
+      setRound4TeeTime(new Date(tournamentData.round_4_start).toISOString().slice(0, 16));
     } else {
       const r4 = new Date(tournament.start_date);
       r4.setDate(r4.getDate() + 3);
@@ -931,17 +947,17 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
           const updatedTournament = await tournamentRes.json();
           
           // Update form with new tee times
-          if (updatedTournament.round1_tee_time) {
-            setRound1TeeTime(new Date(updatedTournament.round1_tee_time).toISOString().slice(0, 16));
+          if (updatedTournament.round_1_start) {
+            setRound1TeeTime(new Date(updatedTournament.round_1_start).toISOString().slice(0, 16));
           }
-          if (updatedTournament.round2_tee_time) {
-            setRound2TeeTime(new Date(updatedTournament.round2_tee_time).toISOString().slice(0, 16));
+          if (updatedTournament.round_2_start) {
+            setRound2TeeTime(new Date(updatedTournament.round_2_start).toISOString().slice(0, 16));
           }
-          if (updatedTournament.round3_tee_time) {
-            setRound3TeeTime(new Date(updatedTournament.round3_tee_time).toISOString().slice(0, 16));
+          if (updatedTournament.round_3_start) {
+            setRound3TeeTime(new Date(updatedTournament.round_3_start).toISOString().slice(0, 16));
           }
-          if (updatedTournament.round4_tee_time) {
-            setRound4TeeTime(new Date(updatedTournament.round4_tee_time).toISOString().slice(0, 16));
+          if (updatedTournament.round_4_start) {
+            setRound4TeeTime(new Date(updatedTournament.round_4_start).toISOString().slice(0, 16));
           }
           
           alert(`✅ Successfully synced from DataGolf!\n\nGolfers added: ${data.golfersAdded || 0}\nTee times updated: Check the form below`);
@@ -968,10 +984,10 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
         body: JSON.stringify({
           registration_opens_at: registrationOpens || null,
           registration_closes_at: registrationCloses || null,
-          round1_tee_time: round1TeeTime || null,
-          round2_tee_time: round2TeeTime || null,
-          round3_tee_time: round3TeeTime || null,
-          round4_tee_time: round4TeeTime || null,
+          round_1_start: round1TeeTime || null,
+          round_2_start: round2TeeTime || null,
+          round_3_start: round3TeeTime || null,
+          round_4_start: round4TeeTime || null,
         }),
       });
 

@@ -20,10 +20,27 @@ export default function NewTournamentPage() {
     status: 'draft',
     external_id: '',
     image_url: '',
+    auto_manage_timing: true, // Auto-calculate registration times
   });
 
   const generateSlug = (name: string) => {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  };
+
+  // Calculate registration close time: start_date - 15 minutes
+  const getComputedRegClose = () => {
+    if (!formData.start_date) return null;
+    const startDate = new Date(formData.start_date);
+    const regClose = new Date(startDate.getTime() - 15 * 60 * 1000); // -15 mins
+    return regClose.toISOString().slice(0, 16); // Format for datetime-local
+  };
+
+  // Calculate registration open time: start_date - 7 days
+  const getComputedRegOpen = () => {
+    if (!formData.start_date) return null;
+    const startDate = new Date(formData.start_date);
+    const regOpen = new Date(startDate.getTime() - 7 * 24 * 60 * 60 * 1000); // -7 days
+    return regOpen.toISOString().slice(0, 16);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -270,6 +287,67 @@ export default function NewTournamentPage() {
             </div>
           </div>
 
+          <div style={{
+            marginTop: '1.5rem',
+            padding: '1rem',
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            borderRadius: '6px',
+          }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              cursor: 'pointer',
+              fontSize: '0.9375rem',
+              color: '#fff',
+            }}>
+              <input
+                type="checkbox"
+                checked={formData.auto_manage_timing}
+                onChange={(e) => setFormData({ ...formData, auto_manage_timing: e.target.checked })}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer',
+                }}
+              />
+              <div>
+                <strong>Auto-calculate competition registration times</strong>
+                <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.7)', marginTop: '0.25rem' }}>
+                  Opens 7 days before, closes 15 minutes before first tee-off
+                </div>
+              </div>
+            </label>
+
+            {formData.auto_manage_timing && formData.start_date && (
+              <div style={{
+                marginTop: '1rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid rgba(59, 130, 246, 0.2)',
+                fontSize: '0.875rem',
+                color: 'rgba(255,255,255,0.8)',
+              }}>
+                <div style={{ marginBottom: '0.5rem' }}>
+                  <strong style={{ color: '#60a5fa' }}>Preview:</strong>
+                </div>
+                <div style={{ display: 'grid', gap: '0.5rem' }}>
+                  <div>
+                    <span style={{ color: 'rgba(255,255,255,0.6)' }}>Registration Opens:</span>{' '}
+                    <strong>{getComputedRegOpen() ? new Date(getComputedRegOpen()!).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'rgba(255,255,255,0.6)' }}>Registration Closes:</span>{' '}
+                    <strong>{getComputedRegClose() ? new Date(getComputedRegClose()!).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}</strong>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                    <i className="fas fa-info-circle"></i> These times will be automatically applied to all competitions for this tournament
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
 
         <div style={{
@@ -301,8 +379,8 @@ export default function NewTournamentPage() {
               >
                 <option value="draft">Draft</option>
                 <option value="upcoming">Upcoming</option>
-                <option value="reg_open">Registration Open</option>
-                <option value="reg_closed">Registration Closed</option>
+                <option value="registration_open">Registration Open</option>
+                <option value="registration_closed">Registration Closed</option>
                 <option value="live">Live</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>

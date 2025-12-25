@@ -101,15 +101,32 @@ function CompetitionCountdown({ regCloseAt, status }: { regCloseAt: string | nul
   const countdown = useCountdown(regCloseAt);
   const isClosed = countdown === 'Registration Closed';
   
-  // Determine status display
+  // Determine status display - ALWAYS CHECK DATES FIRST, NOT DATABASE STATUS
   const getStatusInfo = () => {
-    if (status === 'reg_open' || (regCloseAt && !isClosed)) {
-      return { label: 'REGISTRATION OPEN', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)', icon: 'fa-check-circle' };
-    } else if (status === 'live' || isClosed) {
-      return { label: 'LIVE', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.1)', icon: 'fa-circle' };
-    } else if (status === 'completed') {
-      return { label: 'COMPLETED', color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.1)', icon: 'fa-flag-checkered' };
+    // PRIORITY 1: Check actual date to determine if registration is closed
+    if (regCloseAt) {
+      const now = new Date();
+      const closeDate = new Date(regCloseAt);
+      const hasClosed = now >= closeDate;
+      
+      if (hasClosed) {
+        // Registration has closed - show as LIVE (not checking tournament dates here)
+        return { label: 'LIVE', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.1)', icon: 'fa-circle' };
+      } else {
+        // Registration is still open
+        return { label: 'REGISTRATION OPEN', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)', icon: 'fa-check-circle' };
+      }
     }
+    
+    // PRIORITY 2: No reg_close_at date - fall back to database status
+    if (status === 'completed') {
+      return { label: 'COMPLETED', color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.1)', icon: 'fa-flag-checkered' };
+    } else if (status === 'live') {
+      return { label: 'LIVE', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.1)', icon: 'fa-circle' };
+    } else if (status === 'reg_open') {
+      return { label: 'REGISTRATION OPEN', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)', icon: 'fa-check-circle' };
+    }
+    
     return { label: 'UPCOMING', color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)', icon: 'fa-clock' };
   };
 
@@ -340,6 +357,7 @@ export default function TournamentsPage() {
   const [userBalance, setUserBalance] = useState(0);
   const [requiredAmount, setRequiredAmount] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
   const [myEntries, setMyEntries] = useState(0);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [sortBy, setSortBy] = useState('prize_pool');
@@ -357,15 +375,15 @@ export default function TournamentsPage() {
 
   // Auto-advance slider - only if there's more than 1 tournament
   useEffect(() => {
-    // Only auto-advance if there are multiple tournaments
-    if (tournaments.length <= 1) return;
+    // Only auto-advance if there are multiple tournaments and not hovering
+    if (tournaments.length <= 1 || isHovering) return;
     
     const interval = setInterval(() => {
       setCurrentSlide(prev => (prev + 1) % tournaments.length);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [tournaments.length]);
+  }, [tournaments.length, isHovering]);
 
   useEffect(() => {
     fetchTournaments();
@@ -656,6 +674,11 @@ export default function TournamentsPage() {
               // Filter tournaments that have open registration OR live competitions
               const now = new Date();
               const upcomingTournaments = tournaments.filter(tournament => {
+                // CRITICAL: Exclude tournaments that have already ended (safety check)
+                const tournamentEnd = new Date(tournament.end_date);
+                tournamentEnd.setHours(23, 59, 59, 999); // End of the last day
+                if (now > tournamentEnd) return false; // Tournament has ended
+                
                 // Show if tournament itself has registration open, OR any competition has open registration OR is live
                 if (tournament.status === 'registration_open') return true;
 
@@ -719,6 +742,8 @@ export default function TournamentsPage() {
                       <div 
                         className={styles.sliderTrack}
                         style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                        onMouseEnter={() => setIsHovering(true)}
+                        onMouseLeave={() => setIsHovering(false)}
                       >
                         {/* Dynamic Slides - Real Tournament Data Only */}
                         {tournaments.map((tournament, index) => {
@@ -750,13 +775,12 @@ export default function TournamentsPage() {
                             <div key={tournament.id} className={styles.sliderSlide}>
                               <div className={`${styles.featuredCompetitionCard} ${styles.glass}`}>
                                 <div className={styles.featuredTop}>
-                                  <div className={styles.featuredCourseInfo}>
-                                    <div className={styles.featuredCourseTitle}>{competitionType.toUpperCase()}</div>
-                                    <div className={styles.featuredCourseSubtitle}>{featuredComp?.competition_types?.description || 'The Complete Competition'}</div>
-                                  </div>
                                   <div className={badgeClass}>
                                     <i className={badgeIcon}></i>
                                     {badgeText}
+                                  </div>
+                                  <div className={styles.featuredCourseInfo}>
+                                    <div className={styles.featuredCourseSubtitle}>{featuredComp?.competition_types?.description || 'The Complete Competition'}</div>
                                   </div>
                                 </div>
                                 
@@ -844,7 +868,7 @@ export default function TournamentsPage() {
                                     Build Your Team
                                   </Link>
                                   <Link 
-                                    href={`/tournaments/${tournament.slug}/leaderboard`}
+                                    href="/leaderboards"
                                     className={styles.btnSecondary}
                                   >
                                     <i className="fas fa-list-ol"></i>
@@ -1221,15 +1245,15 @@ export default function TournamentsPage() {
                             </div>
                             
                             <div className={styles.competitionActions}>
-                              <button 
+                              <Link 
+                                href={`/tournaments/${competition.tournament.slug}`}
                                 className={styles.btnPrimary}
-                                onClick={(e) => handleBuildTeam(e, competition.id, competition.entry_fee_pennies, competition.reg_close_at)}
                               >
                                 <i className="fas fa-users"></i>
                                 Build Your Team
-                              </button>
+                              </Link>
                               <Link 
-                                href={`/tournaments/${competition.tournament.slug}/leaderboard`}
+                                href="/leaderboards"
                                 className={styles.btnSecondary}
                               >
                                 <i className="fas fa-list-ol"></i>

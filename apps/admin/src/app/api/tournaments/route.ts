@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       status,
       external_id,
       image_url,
+      auto_manage_timing = true, // Default to auto-manage
     } = body;
 
     if (!name || !slug || !start_date || !end_date) {
@@ -55,10 +56,15 @@ export async function POST(request: NextRequest) {
 
     const adminClient = createAdminClient();
     
-    // Calculate registration dates: 6 days before start, 15 minutes before start
-    const startDateObj = new Date(start_date);
-    const registrationOpenDate = new Date(startDateObj.getTime() - 6 * 24 * 60 * 60 * 1000);
-    const registrationCloseDate = new Date(startDateObj.getTime() - 15 * 60 * 1000);
+    // Calculate registration dates if auto-manage enabled: 7 days before start, 15 minutes before start
+    let registrationOpenDate = null;
+    let registrationCloseDate = null;
+    
+    if (auto_manage_timing && start_date) {
+      const startDateObj = new Date(start_date);
+      registrationOpenDate = new Date(startDateObj.getTime() - 7 * 24 * 60 * 60 * 1000); // -7 days
+      registrationCloseDate = new Date(startDateObj.getTime() - 15 * 60 * 1000); // -15 minutes
+    }
     
     const { data, error } = await adminClient
       .from('tournaments')
@@ -73,8 +79,8 @@ export async function POST(request: NextRequest) {
         status: status || 'draft',
         external_id: external_id || null,
         image_url: image_url || null,
-        registration_open_date: registrationOpenDate.toISOString(),
-        registration_close_date: registrationCloseDate.toISOString(),
+        registration_opens_at: registrationOpenDate ? registrationOpenDate.toISOString() : null,
+        registration_closes_at: registrationCloseDate ? registrationCloseDate.toISOString() : null,
       })
       .select()
       .single();

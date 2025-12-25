@@ -79,6 +79,27 @@ export async function POST(
     }
 
     const adminClient = createAdminClient();
+
+    // Fetch tournament to get registration_opens_at for auto-population
+    const { data: tournament } = await adminClient
+      .from('tournaments')
+      .select('registration_opens_at, registration_closes_at')
+      .eq('id', params.id)
+      .single();
+
+    // Auto-populate reg_open_at from tournament if not provided
+    const finalRegOpenAt = reg_open_at || tournament?.registration_opens_at || null;
+    
+    // Auto-calculate reg_close_at: 15 minutes before start_at (or use tournament reg close as fallback)
+    let finalRegCloseAt = reg_close_at;
+    if (!finalRegCloseAt && start_at) {
+      const startTime = new Date(start_at);
+      const closeTime = new Date(startTime.getTime() - 15 * 60000); // 15 mins before
+      finalRegCloseAt = closeTime.toISOString();
+    } else if (!finalRegCloseAt && tournament?.registration_closes_at) {
+      finalRegCloseAt = tournament.registration_closes_at;
+    }
+
     const { data, error } = await adminClient
       .from('tournament_competitions')
       .insert({
@@ -89,8 +110,8 @@ export async function POST(
         admin_fee_percent: parseFloat(admin_fee_percent) || 10.00,
         guaranteed_prize_pool_pennies: guaranteed_prize_pool_pennies || null,
         first_place_prize_pennies: first_place_prize_pennies || null,
-        reg_open_at: reg_open_at || null,
-        reg_close_at: reg_close_at || null, // If null, DB trigger auto-sets to 15 mins before start_at
+        reg_open_at: finalRegOpenAt,
+        reg_close_at: finalRegCloseAt, // Auto-calculated: 15 mins before start_at
         start_at: start_at || null,
         end_at: end_at || null,
         status: status || 'draft',
@@ -185,6 +206,27 @@ export async function PUT(
     });
 
     const adminClient = createAdminClient();
+
+    // Fetch tournament to get registration_opens_at for auto-population
+    const { data: tournament } = await adminClient
+      .from('tournaments')
+      .select('registration_opens_at, registration_closes_at')
+      .eq('id', params.id)
+      .single();
+
+    // Auto-populate reg_open_at from tournament if not provided
+    const finalRegOpenAt = reg_open_at || tournament?.registration_opens_at || null;
+    
+    // Auto-calculate reg_close_at: 15 minutes before start_at (or use manual override)
+    let finalRegCloseAt = reg_close_at;
+    if (!finalRegCloseAt && start_at) {
+      const startTime = new Date(start_at);
+      const closeTime = new Date(startTime.getTime() - 15 * 60000); // 15 mins before
+      finalRegCloseAt = closeTime.toISOString();
+    } else if (!finalRegCloseAt && tournament?.registration_closes_at) {
+      finalRegCloseAt = tournament.registration_closes_at;
+    }
+
     const { data, error} = await adminClient
       .from('tournament_competitions')
       .update({
@@ -193,8 +235,8 @@ export async function PUT(
         admin_fee_percent: parseFloat(admin_fee_percent) || 10.00,
         guaranteed_prize_pool_pennies: guaranteed_prize_pool_pennies || null,
         first_place_prize_pennies: first_place_prize_pennies || null,
-        reg_open_at: reg_open_at || null,
-        reg_close_at: reg_close_at || null, // If null, DB trigger auto-sets to 15 mins before start_at
+        reg_open_at: finalRegOpenAt,
+        reg_close_at: finalRegCloseAt, // Auto-calculated: 15 mins before start_at
         start_at: start_at || null,
         end_at: end_at || null,
         status: status || 'draft',

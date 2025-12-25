@@ -1,7 +1,7 @@
 # InPlayTV Fantasy Golf Platform - AI Coding Instructions
 
 ## Project Overview
-Turborepo monorepo for a real-time fantasy golf platform with three Next.js apps: **golf** (player-facing game app), **web** (marketing/auth), and **admin** (tournament management). Uses Supabase (PostgreSQL), DataGolf API, and Stripe for payments.
+Turborepo monorepo for a real-time fantasy golf platform with three Next.js apps: **golf** (player-facing game app), **web** (marketing/auth), and **admin** (tournament management). Uses Supabase (PostgreSQL), DataGolf API, Stripe for payments, and comprehensive email/notification system.
 
 ## Architecture
 
@@ -11,6 +11,7 @@ Turborepo monorepo for a real-time fantasy golf platform with three Next.js apps
 - **`apps/web/`** - Marketing site (Next.js 14, React 18, port 3000)
 - **`packages/scoring-service/`** - Shared TypeScript scoring logic with DataGolf adapter
 - **`packages/shared/`** - Shared utilities and types
+- **`scripts/`** - Database migrations, diagnostic tools, and setup scripts
 
 ### Dev Commands (PowerShell)
 ```powershell
@@ -49,29 +50,35 @@ Reference: `DATABASE-SCHEMA-REFERENCE.md` for complete schema details.
 ## Supabase Client Patterns
 
 ### Three Client Types (DO NOT MIX)
-1. **Browser Client** (`createClient()` from `lib/supabaseClient.ts`)
+1. **Browser Client** (`createClient()` from `apps/golf/src/lib/supabaseClient.ts` or `apps/admin/src/lib/supabaseClient.ts`)
    - Uses `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - Client components only
    
-2. **Server Client** (`createServerClient()` from `lib/supabaseServer.ts`)
+2. **Server Client** (`createServerClient()` from `apps/golf/src/lib/supabaseServer.ts` or `apps/admin/src/lib/supabaseServer.ts`)
    - Uses HTTP-only cookies for auth
    - API routes, server components
    - Inherits user session automatically
    
-3. **Admin Client** (`createAdminClient()` from `lib/supabaseAdminServer.ts`)
+3. **Admin Client** (`createAdminClient()` from `apps/admin/src/lib/supabaseAdminServer.ts`)
    - Uses `SUPABASE_SERVICE_ROLE_KEY`
    - Admin operations only (bypasses RLS)
    - **NEVER expose service role key to browser**
+   - Only available in admin app
 
 ### Environment Variables (Required in Each App)
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=       # Supabase project URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY=  # Public anon key
-SUPABASE_SERVICE_ROLE_KEY=      # Admin key (server-only!)
-DATAGOLF_API_KEY=               # DataGolf API access
-NEXT_PUBLIC_STRIPE_PUBLIC_KEY=  # Stripe publishable key
-STRIPE_SECRET_KEY=              # Stripe secret (server-only!)
+NEXT_PUBLIC_SUPABASE_URL=         # Supabase project URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=    # Public anon key
+SUPABASE_SERVICE_ROLE_KEY=        # Admin key (server-only!)
+DATAGOLF_API_KEY=                 # DataGolf API access
+NEXT_PUBLIC_STRIPE_PUBLIC_KEY=    # Stripe publishable key (pk_test_...)
+STRIPE_SECRET_KEY=                # Stripe secret (server-only! sk_test_...)
+STRIPE_WEBHOOK_SECRET=            # Stripe webhook signature verification
+NEXT_PUBLIC_SITE_URL=             # Base URL (http://localhost:3003 or production)
+NEXT_PUBLIC_STRIPE_ENABLED=       # Optional: 'false' forces demo mode
 ```
+
+**Demo Mode**: If Stripe keys are missing, wallet top-ups use demo mode (no real payments). Perfect for staging/QA.
 
 ## Middleware & Site Access Control
 
@@ -93,17 +100,181 @@ Admin bypass: Checks `admins` table for `user_id`. Middleware caches mode for 30
 
 See `DATAGOLF-QUICKSTART.md` and `DATAGOLF-INTEGRATION-PLAN.md`
 
-## Tournament Lifecycle
+## Tournament Lifecycle & Registration Timing
 
+### Lifecycle Manager (Source of Truth)
 Admin manages via `/apps/admin/src/app/tournament-lifecycle/`:
-- **Statuses**: upcoming → registration_open → in_progress → completed
+- **Tournament Statuses**: upcoming → registration_open → in_progress → completed
+- **Registration Windows**: Sets `tournaments.registration_opens_at` and `registration_closes_at`
+- **Round Tee Times**: Sets `round1_tee_time`, `round2_tee_time`, `round3_tee_time`, `round4_tee_time`
 - **Automated Transitions**: `/api/tournaments/auto-update-statuses` (cron job)
-- **Validation**: 
-  - `registration_open` requires golfers assigned
-  - `in_progress` requires competitions created
-- **Registration Windows**: `registration_opens_at`, `registration_closes_at` (timezone-aware)
+
+### Competition Timing (Auto-Derived from Lifecycle)
+**CRITICAL**: Competitions do NOT have independent registration windows:
+- `tournament_competitions.reg_open_at` → Inherits from `tournaments.registration_opens_at`
+- `tournament_competitions.reg_close_at` → Auto-calculated as `start_at - 15 minutes`
+- `tournament_competitions.start_at` → Set from appropriate round tee time (e.g., Round 1 for Full Course)
+- `tournament_competitions.end_at` → Set from tournament end date
+
+**Competition Settings UI** shows registration as read-only (sourced from lifecycle manager). Only start/end times are editable (for weather delays).
+
+**Backend Auto-Calculation**: `/api/tournaments/[id]/competitions/route.ts` fetches tournament registration times and auto-populates competition fields on save.
 
 See `TOURNAMENT-LIFECYCLE-MANAGER.md` for complete workflow.
+
+## Wallet System & Payments
+
+### Wallet Architecture
+**CRITICAL**: All balance changes MUST go through `wallet_apply()` RPC function:
+```sql
+-- Function signature
+wallet_apply(
+  change_cents INTEGER,  -- Positive for credit, negative for debit
+  reason TEXT,           -- Audit trail (e.g., "topup:stripe", "entry:full-course")
+  target_user_id UUID    -- Optional, defaults to auth.uid()
+) RETURNS INTEGER        -- New balance in cents
+```
+
+### Tables (SELECT-only via RLS)
+- **`wallets`** - Current balance only (`balance_cents`)
+- **`wallet_transactions`** - Immutable audit log (all changes with `balance_after_cents`)
+- **`wallet_external_payments`** - Stripe/demo payment tracking (idempotency via `provider_payment_id` UNIQUE)
+
+### Payment Flows
+
+**Stripe Top-Up** (`/wallet` page):
+1. User clicks "Top Up Wallet" → `/api/stripe/create-checkout-session`
+2. Redirect to Stripe Checkout (or demo modal if keys missing)
+3. Stripe webhook → `/api/stripe/webhook` → Verify signature → `wallet_apply(amount, 'topup:stripe')`
+4. Record in `wallet_external_payments` with `provider='stripe'`
+
+**Entry Purchase** (`/api/competitions/[id]/entries` POST):
+1. Validate sufficient funds via `wallets.balance_cents`
+2. Call `deduct_from_wallet()` RPC (wraps `wallet_apply()` with negative amount)
+3. Create `competition_entries` record ONLY after successful deduction
+4. Never create entry before payment succeeds
+
+**Refunds** (automatic for unfilled ONE 2 ONE challenges):
+- Cron job: `/api/one-2-one/cron/cancel-unfilled` (runs hourly)
+- Cancels instances with < 2 players after registration closes
+- Calls `wallet_apply(entry_fee_paid, 'refund:challenge-cancelled')` per entry
+- Updates entry status to `'cancelled'`
+
+**Demo Mode**:
+- Activated when `STRIPE_SECRET_KEY` missing or `NEXT_PUBLIC_STRIPE_ENABLED=false`
+- Uses `/api/stripe/demo-simulate` to fake payment
+- Records in `wallet_external_payments` with `provider='demo'`
+- Perfect for QA without real Stripe
+
+### Payment Validation Pattern
+```typescript
+// Check balance before purchase
+const { data: wallet } = await supabase
+  .from('wallets')
+  .select('balance_cents')
+  .eq('user_id', user.id)
+  .single();
+
+if (wallet.balance_cents < entryFeePennies) {
+  return NextResponse.json({ error: 'Insufficient funds' }, { status: 402 });
+}
+
+// Deduct via RPC (atomic)
+const { data: result, error } = await supabase.rpc('deduct_from_wallet', {
+  p_user_id: user.id,
+  p_amount_cents: entryFeePennies,
+  p_reason: `Entry: ${competitionName}`
+});
+
+if (error?.message?.includes('Insufficient funds')) {
+  return NextResponse.json({ error: 'Insufficient funds' }, { status: 402 });
+}
+
+// NOW safe to create entry
+const { data: entry } = await supabase.from('competition_entries').insert({...});
+```
+
+## User Profiles & Display Names
+
+### Profile System
+**Tables**: `profiles` (extends `auth.users`)
+- `first_name` TEXT - User's first name (required at signup)
+- `last_name` TEXT - User's last name (required at signup)
+- `username` TEXT UNIQUE - 3+ characters (required at signup)
+- `display_name` TEXT GENERATED COLUMN - Auto-computed as:
+  - `"First Last"` if both names exist
+  - `username` if names missing
+  - `"User [id-prefix]"` as final fallback
+
+**Signup Flow** (`apps/web/src/app/(auth)/signup/page.tsx`):
+1. Collect: first_name, last_name, username, email, password
+2. Create auth user
+3. Create profile with all three name fields
+4. `display_name` auto-generated by database
+
+**Always use `display_name`** in:
+- Leaderboards (`/api/competitions/[id]/leaderboard`)
+- User menus (avatar dropdown)
+- Admin panels (user lists)
+- Challenge boards
+
+## Notification System
+
+### Notification Types
+- **Tee Times Available** - Auto-sent when DataGolf sync completes
+- **Registration Closing** - Cron job checks hourly, notifies 1-2 hours before close
+- **Tournament/Competition Live** - (Future enhancement)
+
+### Implementation
+**Bell Icon** (`apps/golf/src/components/NotificationBell.tsx`):
+- Real-time via Supabase subscriptions
+- Unread count badge
+- Dropdown with last 20 notifications
+- Click to mark read + navigate
+
+**Cron Job** (`/api/notifications/check-closing`):
+- Runs every hour (Vercel cron or external scheduler)
+- Finds competitions closing in 1-2 hours
+- Sends only to users who haven't entered
+- Marks `notified_closing = true` to prevent spam
+
+**User Preferences** (`notification_preferences` table):
+- `tee_times_available` - Default TRUE
+- `registration_closing` - Default TRUE
+- Editable in profile settings
+
+**Database Function** (`notify_tee_times_available()`):
+- Called from admin sync API after DataGolf update
+- Bulk inserts notifications for all users with preference enabled
+
+## Email Management (Admin)
+
+### Admin Email Panel (`/apps/admin/src/app/email/`)
+- **Inbox** - View form submissions with internal notes
+- **Outbox** - Track sent emails with delivery status
+- **Compose** - Send emails with template support
+- **Templates** - Manage pre-made templates with variable substitution (%%%variable%%%)
+- **Contacts** - Track contact list with form/email history
+
+### Tables
+- `email_templates` - Reusable email templates with categories
+- `email_outbox` - All sent emails tracking (status: sent/delivered/bounced)
+- `email_inbox` - Form submissions (status: unread/read/replied)
+- `contacts` - Contact database with tags and activity tracking
+- `email_activity` - Delivery tracking (opened, clicked, bounced)
+
+### Waitlist System
+**Public Form** (`apps/web/src/app/coming-soon`):
+- Auto-sends welcome email via template
+- Records in `waitlist_entries` table
+- Tracks in email outbox
+
+**Admin Launch Tool** (`/waitlist` in admin):
+- View all waitlist entries
+- Send bulk launch notifications
+- Individual email links
+
+**See**: `EMAIL-SYSTEM-COMPLETE.md` and `WAITLIST-EMAIL-SYSTEM-SETUP.md`
 
 ## Styling Conventions
 
@@ -127,8 +298,52 @@ Root contains many `.js`/`.ps1` diagnostic scripts:
 - `check-tournament-golfers.js` - Validate tournament golfer assignments
 - `test-supabase-connection.js` - Test DB connectivity
 - `diagnose-*.js` - Various troubleshooting scripts
+- `check-*.ps1` - PowerShell diagnostic tools
+- `fix-*.sql` - SQL migration scripts (apply via Supabase SQL Editor)
+- `setup-*.ps1` - Environment setup scripts
 
-Load env with: `require('dotenv').config({ path: './apps/golf/.env.local' })`
+**Load env pattern**: `require('dotenv').config({ path: './apps/golf/.env.local' })`
+
+### Script Categories
+
+**Database Inspection**:
+- `check-database.js` - Schema verification
+- `check-tournament-columns.js` - Column existence checks
+- `check-golfers-schema.js` - Golfer table structure
+- `quick-db-check.js` - Fast health check
+
+**Data Validation**:
+- `check-tournament-golfers.js` - Validate junction table
+- `check-entries.js` - Entry data integrity
+- `check-one2one-instances.sql` - Challenge instance status
+- `diagnose-golfer-visibility.js` - Golfer group issues
+
+**DataGolf Integration**:
+- `test-datagolf-connection.js` - API connectivity
+- `check-datagolf-fields.js` - Field structure validation
+- `sync-dunhill-scores.js` - Manual score sync
+- `get-datagolf-events.ps1` - Fetch available tournaments
+
+**Tournament Management**:
+- `check-tournament-setup.js` - Complete tournament validation
+- `check-tournament-status.js` - Status consistency
+- `verify-all-tournaments-timing.sql` - Registration window checks
+- `comprehensive-timing-check.js` - Full timing validation
+
+**Cleanup & Fixes**:
+- `delete-competition-entries.js` - Bulk entry deletion
+- `cleanup-*.sql` - Various cleanup scripts
+- `fix-*.sql` - Migration scripts for schema fixes
+- `nuclear-*.sql` - Emergency reset scripts (use with caution!)
+
+### Migration Scripts (`/scripts/`)
+Organized by date and purpose:
+- `2025-01-*.sql` - Schema migrations (run in Supabase SQL Editor)
+- `migrations/` - Versioned migration files
+- `setup-*.ps1` - PowerShell setup automation
+- `apply-*.js` - JavaScript migration runners
+
+**Always check `scripts/` directory** before creating new migrations - may already exist!
 
 ## Key Documentation Files
 
@@ -136,6 +351,11 @@ Load env with: `require('dotenv').config({ path: './apps/golf/.env.local' })`
 - `TOURNAMENT-LIFECYCLE-MANAGER.md` - Admin tournament management
 - `DATAGOLF-QUICKSTART.md` - External API integration
 - `SITE-ACCESS-CONTROL-FIXED.md` - Maintenance mode system
+- `EMAIL-SYSTEM-COMPLETE.md` - Email management system
+- `NOTIFICATION-SYSTEM-SETUP.md` - User notifications & cron jobs
+- `USER-NAMES-IMPLEMENTATION.md` - Profile & display name system
+- `WALLET-TOPUP-IMPLEMENTATION.md` - Stripe integration & demo mode
+- `ONE-2-ONE-REFUND-SYSTEM.md` - Automatic refund logic
 - Root `.md` files document historical fixes and features (reference for patterns)
 
 ## ONE 2 ONE vs InPlay Competitions
@@ -268,3 +488,39 @@ class SportsRadarAdapter implements ScoringAdapter {
 8. **Dynamic exports** - API routes need `export const dynamic = 'force-dynamic'` for real-time data
 9. **ONE 2 ONE entries** - Always check `instance_id` vs `competition_id` - they're mutually exclusive
 10. **Scoring service** - Server-side only, never import in client components
+11. **Registration timing** - Lifecycle Manager is source of truth; competitions auto-derive times, never set manually
+12. **Competition status** - Check `tournament_competitions.status`, NOT `tournaments.status` for entry validation
+13. **Wallet mutations** - ALWAYS use `wallet_apply()` RPC function, never direct INSERT/UPDATE on `wallets` table
+14. **Profile names** - Use `display_name` (auto-computed from first_name + last_name) in all user-facing displays
+15. **Refunds** - ONE 2 ONE instances auto-cancel and refund via cron job `/api/one-2-one/cron/cancel-unfilled`
+
+## Common Pitfalls & Debugging
+
+### Port Stuck Issues
+**Symptoms**: `pnpm dev` fails with "Port already in use"  
+**Fix**: `pnpm kill:ports` (kills all node processes)  
+**Prevention**: Use `pnpm restart:golf` instead of manually stopping/starting
+
+### Registration Validation Errors
+**Symptoms**: "Registration closed" even though tournament hasn't started  
+**Root Cause**: Checking wrong status field or wrong timestamp  
+**Fix**: Always check `competition.reg_close_at` (not tournament dates), use `competition.status` for validation  
+**Example**: See `apps/golf/src/app/build-team/[competitionId]/page.tsx` lines 131-145
+
+### Golfer Group Sync Issues
+**Symptoms**: Competition shows 0 available golfers after group assignment  
+**Root Cause**: `competition_golfers` table not populated after group change  
+**Fix**: Backend auto-syncs in `PUT /api/tournaments/[id]/competitions` - check `assigned_golfer_group_id` is set  
+**Verify**: Query `SELECT COUNT(*) FROM competition_golfers WHERE competition_id = ?`
+
+### DataGolf API Timeouts
+**Symptoms**: Golfer sync fails with timeout errors  
+**Root Cause**: DataGolf API rate limits or slow responses  
+**Fix**: Scoring service has built-in retry logic (3 attempts, exponential backoff)  
+**Test**: `node scripts/test-datagolf-connection.js`
+
+### Status Value Confusion
+**Known Issue**: Frontend sometimes uses inconsistent status names  
+**Database Values**: `draft`, `upcoming`, `reg_open`, `reg_closed`, `live`, `completed`, `cancelled`  
+**Do NOT use**: `registration_open`, `in-play`, `in_progress`, `active` (legacy frontend values)  
+**Reference**: `docs/ARCHITECTURE-BOUNDARIES.md` lines 116-133

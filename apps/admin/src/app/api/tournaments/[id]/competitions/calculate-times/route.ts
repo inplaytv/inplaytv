@@ -1,183 +1,68 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+﻿import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Constants
-const REGISTRATION_CLOSE_BUFFER_MS = 15 * 60 * 1000; // 15 minutes before tee time
-const DEBUG = process.env.NODE_ENV === 'development';
+const REGISTRATION_CLOSE_BUFFER_MS = 15 * 60 * 1000;
 
-/**
- * POST /api/tournaments/[id]/competitions/calculate-times
- * Auto-calculate registration close times based on round tee times
- */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const tournamentId = params.id;
-    if (DEBUG) console.log(`[Calculate Times] Processing tournament ${tournamentId}`);
-
-    // 1. Fetch tournament with round tee times
-    const { data: tournament, error: tournamentError } = await supabase
-      .from('tournaments')
-      .select('id, name, round1_tee_time, round2_tee_time, round3_tee_time, round4_tee_time, start_date')
-      .eq('id', tournamentId)
+    const { data: tournament } = await supabase
+      .from("tournaments")
+      .select("id, name, registration_opens_at, registration_closes_at, round_1_start, round_2_start, round_3_start, round_4_start, end_date")
+      .eq("id", params.id)
       .single();
 
-    if (tournamentError || !tournament) {
-      console.error('[Calculate Times] Tournament not found:', tournamentError);
-      return NextResponse.json(
-        { error: 'Tournament not found' },
-        { status: 404 }
-      );
-    }
+    if (!tournament) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    if (DEBUG) {
-      console.log('[Calculate Times] Tournament:', tournament.name);
-      console.log('[Calculate Times] Round tee times:', {
-        r1: tournament.round1_tee_time,
-        r2: tournament.round2_tee_time,
-        r3: tournament.round3_tee_time,
-        r4: tournament.round4_tee_time,
-      });
-    }
+    const { data: competitions } = await supabase
+      .from("tournament_competitions")
+      .select("id, competition_types!inner(name, round_start)")
+      .eq("tournament_id", params.id);
 
-    // 2. Fetch all competitions for this tournament
-    const { data: competitions, error: competitionsError } = await supabase
-      .from('tournament_competitions')
-      .select(`
-        id,
-        competition_type_id,
-        competition_types!inner (
-          id,
-          name,
-          slug,
-          round_start
-        )
-      `)
-      .eq('tournament_id', tournamentId);
+    if (!competitions) return NextResponse.json({ message: "No competitions", updated: 0 });
 
-    if (competitionsError) {
-      console.error('[Calculate Times] Error fetching competitions:', competitionsError);
-      return NextResponse.json(
-        { error: 'Failed to fetch competitions' },
-        { status: 500 }
-      );
-    }
-
-    if (!competitions || competitions.length === 0) {
-      if (DEBUG) console.log('[Calculate Times] No competitions found');
-      return NextResponse.json({
-        message: 'No competitions to update',
-        updated: 0,
-      });
-    }
-
-    if (DEBUG) console.log(`[Calculate Times] Found ${competitions.length} competitions`);
-
-    // 3. Calculate registration close times for each competition
     const updates = [];
-    const errors = [];
     const now = new Date();
 
     for (const comp of competitions) {
-      const compType = (comp.competition_types as unknown) as { round_start: number; name: string };
-      const roundStart = compType.round_start || 1; // Default to round 1
-      
-      if (DEBUG) {
-        console.log(`[Calculate Times] Processing: ${compType.name}`);
-        console.log(`[Calculate Times]   Starts at round: ${roundStart}`);
-      }
-
-      // Get the tee time for the round this competition starts on
-      let teeTime: string | null = null;
-      if (roundStart === 1) teeTime = tournament.round1_tee_time;
-      else if (roundStart === 2) teeTime = tournament.round2_tee_time;
-      else if (roundStart === 3) teeTime = tournament.round3_tee_time;
-      else if (roundStart === 4) teeTime = tournament.round4_tee_time;
+      const roundStart = (comp.competition_types as any).round_start || 1;
+      const teeTime = tournament[`round_${roundStart}_start` as keyof typeof tournament];
 
       if (!teeTime) {
-        // No tee time set = round hasn't started yet = registration should be open
-        if (DEBUG) console.log(`[Calculate Times]   ⚠️ No tee time for round ${roundStart}, setting to OPEN (round not started)`);
         updates.push({
           id: comp.id,
-          name: compType.name,
-          reg_close_at: null, // No close time yet
-          status: 'reg_open',
+          reg_open_at: tournament.registration_opens_at,
+          reg_close_at: tournament.registration_closes_at,
+          start_at: null,
+          end_at: tournament.end_date,
+          status: "reg_open",
         });
         continue;
       }
 
-      // Calculate close time using constant buffer
-      const teeTimeDate = new Date(teeTime);
-      const regCloseAt = new Date(teeTimeDate.getTime() - REGISTRATION_CLOSE_BUFFER_MS);
-
-      if (DEBUG) {
-        console.log(`[Calculate Times]   Tee time: ${teeTime}`);
-        console.log(`[Calculate Times]   Reg closes: ${regCloseAt.toISOString()}`);
-      }
-
-      // Calculate status based on current time
-      let status = 'draft';
-      
-      if (now >= regCloseAt) {
-        // Registration closed - competition is now live
-        status = 'live';
-      } else {
-        // Registration still open
-        status = 'reg_open';
-      }
-
-      if (DEBUG) console.log(`[Calculate Times]   Status: ${status} (${now >= regCloseAt ? 'registration closed' : 'registration open'})`);
+      const regCloseAt = new Date(new Date(teeTime as string).getTime() - REGISTRATION_CLOSE_BUFFER_MS);
+      const status = now >= regCloseAt ? "live" : (tournament.registration_opens_at && now >= new Date(tournament.registration_opens_at)) ? "reg_open" : "upcoming";
 
       updates.push({
         id: comp.id,
-        name: compType.name,
+        reg_open_at: tournament.registration_opens_at,
         reg_close_at: regCloseAt.toISOString(),
+        start_at: teeTime,
+        end_at: tournament.end_date,
         status,
       });
     }
 
-    // 4. Batch update all competitions
-    console.log(`[Calculate Times] Updating ${updates.length} competitions...`);
-    
     for (const update of updates) {
-      const { error: updateError } = await supabase
-        .from('tournament_competitions')
-        .update({
-          reg_close_at: update.reg_close_at,
-          status: update.status,
-        })
-        .eq('id', update.id);
-
-      if (updateError) {
-        console.error(`[Calculate Times] Error updating ${update.name}:`, updateError);
-      } else {
-        console.log(`[Calculate Times] ✅ Updated ${update.name}: ${update.status}`);
-      }
+      await supabase.from("tournament_competitions").update(update).eq("id", update.id);
     }
 
-    return NextResponse.json({
-      message: 'Competition times calculated successfully',
-      tournament: tournament.name,
-      updated: updates.length,
-      competitions: updates.map(u => ({
-        name: u.name,
-        reg_close_at: u.reg_close_at,
-        status: u.status,
-      })),
-    });
-
+    return NextResponse.json({ message: "Synced", tournament: tournament.name, updated: updates.length });
   } catch (error) {
-    console.error('[Calculate Times] Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

@@ -261,23 +261,47 @@ interface CompetitionEntrant {
 
   const allTournaments = Object.values(groupedEntries);
   
-  // Apply competition type filter if set
+  // LEFT PANEL: Always show all tournaments, only filter by Active/History
+  const tournamentsForLeftPanel = allTournaments.filter(tournament => {
+    const sampleEntry = tournament.entries[0];
+    if (!sampleEntry || !sampleEntry.tournament_competitions) return false;
+    
+    const status = getStatus(sampleEntry);
+    const isRecent = isRecentlyCompleted(sampleEntry);
+    
+    if (showHistory) {
+      return status === 'completed' && !isRecent;
+    } else {
+      return status !== 'completed' || isRecent;
+    }
+  });
+  
+  // MIDDLE PANEL: Apply competition type filter to entries within selected tournament
   let filteredTournaments = allTournaments;
   if (filterType === 'one-2-one') {
     filteredTournaments = allTournaments.map(tournament => ({
       ...tournament,
-      entries: tournament.entries.filter(e => e.tournament_competitions?.is_one_2_one === true)
-    })).filter(t => t.entries.length > 0);
+      entries: tournament.entries.filter(e => e.tournament_competitions?.is_one_2_one === true),
+      originalEntries: tournament.entries // Keep original for status checks
+    }));
   } else if (filterType === 'inplay') {
     filteredTournaments = allTournaments.map(tournament => ({
       ...tournament,
-      entries: tournament.entries.filter(e => !e.tournament_competitions?.is_one_2_one)
-    })).filter(t => t.entries.length > 0);
+      entries: tournament.entries.filter(e => !e.tournament_competitions?.is_one_2_one),
+      originalEntries: tournament.entries // Keep original for status checks
+    }));
+  } else {
+    filteredTournaments = allTournaments.map(tournament => ({
+      ...tournament,
+      originalEntries: tournament.entries
+    }));
   }
   
-  // Filter based on history view
+  // Filter based on history view for middle panel - use originalEntries for status check
   const tournaments = filteredTournaments.filter(tournament => {
-    const sampleEntry = tournament.entries[0];
+    const sampleEntry = (tournament as any).originalEntries?.[0] || tournament.entries[0];
+    if (!sampleEntry || !sampleEntry.tournament_competitions) return false;
+    
     const status = getStatus(sampleEntry);
     const isRecent = isRecentlyCompleted(sampleEntry);
     
@@ -290,6 +314,8 @@ interface CompetitionEntrant {
   
   const archivedCount = allTournaments.filter(tournament => {
     const sampleEntry = tournament.entries[0];
+    if (!sampleEntry || !sampleEntry.tournament_competitions) return false;
+    
     const status = getStatus(sampleEntry);
     const isRecent = isRecentlyCompleted(sampleEntry);
     return status === 'completed' && !isRecent;
@@ -432,13 +458,17 @@ interface CompetitionEntrant {
               )}
 
               <div style={{ display: 'grid', gap: '12px' }}>
-                {tournaments.map((tournament) => {
+                {tournamentsForLeftPanel.map((tournament) => {
                   const status = tournament.entries.length > 0 ? getStatus(tournament.entries[0]) : 'registration_open';
                   const isSelected = selectedTournamentId === tournament.tournamentName;
                   return (
                     <div 
                       key={tournament.tournamentName} 
-                      onClick={() => setSelectedTournamentId(tournament.tournamentName)}
+                      onClick={() => {
+                        setSelectedTournamentId(tournament.tournamentName);
+                        setFilterType(null);
+                        router.push('/entries');
+                      }}
                       style={{
                         padding: '16px',
                         background: isSelected 
@@ -504,7 +534,24 @@ interface CompetitionEntrant {
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
             }}>
               {(() => {
-                const selectedTournament = tournaments.find(t => t.tournamentName === selectedTournamentId);
+                // Find tournament in left panel (always available), then apply filter
+                let selectedTournament = tournamentsForLeftPanel.find(t => t.tournamentName === selectedTournamentId);
+                
+                // Apply competition type filter to the entries
+                if (selectedTournament) {
+                  if (filterType === 'one-2-one') {
+                    selectedTournament = {
+                      ...selectedTournament,
+                      entries: selectedTournament.entries.filter(e => e.tournament_competitions?.is_one_2_one === true)
+                    };
+                  } else if (filterType === 'inplay') {
+                    selectedTournament = {
+                      ...selectedTournament,
+                      entries: selectedTournament.entries.filter(e => !e.tournament_competitions?.is_one_2_one)
+                    };
+                  }
+                }
+                
                 return (
                   <>
                     <div style={{ marginBottom: '16px' }}>
@@ -610,8 +657,10 @@ interface CompetitionEntrant {
                   textAlign: 'center',
                   color: 'rgba(255,255,255,0.4)'
                 }}>
-                  <i className="fas fa-users" style={{ fontSize: '40px', marginBottom: '12px', opacity: 0.5 }}></i>
-                  <p style={{ fontSize: '14px', margin: 0 }}>No entries yet</p>
+                  <i className="fas fa-filter" style={{ fontSize: '40px', marginBottom: '12px', opacity: 0.5 }}></i>
+                  <p style={{ fontSize: '14px', margin: 0 }}>
+                    {filterType ? 'No entries match this filter' : 'No entries yet'}
+                  </p>
                 </div>
               ) : selectedTournament ? (
                 <div style={{ 

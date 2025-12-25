@@ -52,6 +52,14 @@ export async function GET(request: NextRequest) {
     // Status filter: Show only active tournaments
     if (statusFilter === 'active') {
       query = query.in('status', ['upcoming', 'registration_open', 'registration_closed', 'live']);
+      
+      // CRITICAL: Also filter by end_date to exclude past tournaments
+      // This prevents tournaments from showing if auto-update-statuses hasn't run yet
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Start of today
+      const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      query = query.gte('end_date', todayStr); // Only tournaments ending today or later
     }
 
     query = query.order('start_date', { ascending: true });

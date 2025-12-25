@@ -229,14 +229,6 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
     }
   };
 
-  if (loading) {
-    return <div style={{ padding: '2rem' }}>Loading...</div>;
-  }
-
-  if (!competition) {
-    return <div style={{ padding: '2rem' }}>Competition not found</div>;
-  }
-
   const calculatePrizePool = (entrants: number, entryFeePennies: number, adminFeePercent: number) => {
     const grossPennies = entrants * entryFeePennies;
     const adminFeePennies = Math.round(grossPennies * (adminFeePercent / 100));
@@ -251,6 +243,14 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
   const formatPennies = (pennies: number) => {
     return `£${(pennies / 100).toFixed(2)}`;
   };
+
+  if (loading) {
+    return <div style={{ padding: '2rem' }}>Loading...</div>;
+  }
+
+  if (!competition) {
+    return <div style={{ padding: '2rem' }}>Competition not found</div>;
+  }
 
   return (
     <div>
@@ -544,64 +544,57 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
         }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem' }}>Registration & Timing</h2>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                Registration Opens
-              </label>
-              <input
-                type="datetime-local"
-                value={formData.reg_open_at}
-                onChange={(e) => setFormData({ ...formData, reg_open_at: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.625rem',
-                  background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  borderRadius: '4px',
-                  color: '#fff',
-                }}
-              />
+          {/* Registration Window - Read-only from Lifecycle Manager */}
+          <div style={{
+            marginBottom: '1.5rem',
+            padding: '1rem',
+            background: 'rgba(59, 130, 246, 0.05)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            borderRadius: '8px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.75rem', gap: '0.5rem' }}>
+              <i className="fas fa-calendar-check" style={{ color: '#60a5fa' }} />
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#60a5fa', margin: 0 }}>Registration Window</h3>
+              <span style={{
+                marginLeft: 'auto',
+                padding: '0.125rem 0.5rem',
+                background: 'rgba(59, 130, 246, 0.2)',
+                border: '1px solid rgba(59, 130, 246, 0.4)',
+                borderRadius: '12px',
+                fontSize: '0.7rem',
+                color: '#60a5fa',
+                fontWeight: '500'
+              }}>
+                🎯 FROM LIFECYCLE MANAGER
+              </span>
             </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                Registration Closes
-                {!manualRegClose && formData.start_at && (
-                  <span style={{ color: 'rgba(16, 185, 129, 0.8)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
-                    (auto: 15 mins before start)
-                  </span>
-                )}
-              </label>
-              <input
-                type="datetime-local"
-                value={formData.reg_close_at}
-                onChange={(e) => {
-                  setManualRegClose(true);
-                  setShowRegCloseWarning(true);
-                  setFormData({ ...formData, reg_close_at: e.target.value });
-                }}
-                style={{
-                  width: '100%',
-                  padding: '0.625rem',
-                  background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  borderRadius: '4px',
-                  color: '#fff',
-                }}
-              />
-              {showRegCloseWarning && (
-                <p style={{ fontSize: '0.75rem', color: 'rgba(251, 191, 36, 0.9)', marginTop: '0.25rem' }}>
-                  ⚠️ Manual override active. Auto-calculation disabled.
-                </p>
-              )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.25rem' }}>Opens</label>
+                <div style={{ padding: '0.625rem', background: 'rgba(0,0,0,0.2)', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60a5fa', fontWeight: 500 }}>
+                  {formData.reg_open_at 
+                    ? new Date(formData.reg_open_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
+                    : 'Set in tournament lifecycle'}
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.25rem' }}>Closes (Auto: 15 min before comp start)</label>
+                <div style={{ padding: '0.625rem', background: 'rgba(0,0,0,0.2)', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60a5fa', fontWeight: 500 }}>
+                  {formData.start_at 
+                    ? new Date(new Date(formData.start_at).getTime() - 15 * 60000).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
+                    : 'Set comp start time first'}
+                </div>
+              </div>
             </div>
+            <p style={{ fontSize: '0.75rem', color: 'rgba(96, 165, 250, 0.8)', marginTop: '0.5rem', marginBottom: 0 }}>
+              <i className="fas fa-info-circle" /> Registration window is set via the tournament's <strong>Lifecycle Manager</strong>. Competition start time determines the exact registration close deadline.
+            </p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                Start Time
+                Competition Start Time <span style={{ color: 'rgba(59, 130, 246, 0.8)', fontSize: '0.75rem' }}>(from lifecycle)</span>
               </label>
               <input
                 type="datetime-local"
@@ -611,16 +604,19 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
                   width: '100%',
                   padding: '0.625rem',
                   background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.2)',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
                   borderRadius: '4px',
                   color: '#fff',
                 }}
               />
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.25rem' }}>
+                Round tee time (editable for weather delays)
+              </p>
             </div>
 
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                End Time
+                Competition End Time <span style={{ color: 'rgba(59, 130, 246, 0.8)', fontSize: '0.75rem' }}>(from lifecycle)</span>
               </label>
               <input
                 type="datetime-local"
@@ -628,6 +624,19 @@ export default function EditCompetitionPage({ params }: { params: { id: string }
                 onChange={(e) => setFormData({ ...formData, end_at: e.target.value })}
                 style={{
                   width: '100%',
+                  padding: '0.625rem',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  borderRadius: '4px',
+                  color: '#fff',
+                }}
+              />
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.25rem' }}>
+                Tournament end date (editable for weather delays)
+              </p>
+            </div>
+          </div>
+        </div>
                   padding: '0.625rem',
                   background: 'rgba(0,0,0,0.3)',
                   border: '1px solid rgba(255,255,255,0.2)',

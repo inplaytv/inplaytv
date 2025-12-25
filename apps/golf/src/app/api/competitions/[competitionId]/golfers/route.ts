@@ -97,6 +97,8 @@ export async function GET(
       .eq('id', competitionId)
       .maybeSingle();
 
+    console.log('🔵 GOLFERS API - Competition data:', { competitionId, competition, compError });
+
     let tournamentId = competition?.tournament_id;
     let golferGroupId = competition?.assigned_golfer_group_id;
 
@@ -104,13 +106,25 @@ export async function GET(
     if (!tournamentId) {
       const { data: instance, error: instanceError } = await supabase
         .from('competition_instances')
-        .select('tournament_id')
+        .select('tournament_id, template_id')
         .eq('id', competitionId)
         .maybeSingle();
       
+      console.log('🔵 GOLFERS API - Instance data:', { instance, instanceError });
+      
       tournamentId = instance?.tournament_id;
-      // ONE 2 ONE instances don't have assigned_golfer_group_id - they use all tournament golfers
-      golferGroupId = null;
+      
+      // ONE 2 ONE instances inherit golfer group from their template competition
+      if (instance?.template_id) {
+        const { data: templateComp } = await supabase
+          .from('tournament_competitions')
+          .select('assigned_golfer_group_id')
+          .eq('id', instance.template_id)
+          .maybeSingle();
+        
+        golferGroupId = templateComp?.assigned_golfer_group_id;
+        console.log('🔵 GOLFERS API - Inherited golfer group from template:', golferGroupId);
+      }
     }
 
     if (!tournamentId) {

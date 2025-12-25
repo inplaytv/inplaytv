@@ -98,6 +98,27 @@ export async function PUT(
       throw error;
     }
 
+    // Auto-sync competition times from lifecycle manager if round tee times were provided
+    if (round1_tee_time || round2_tee_time || round3_tee_time || round4_tee_time) {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002';
+        const syncResponse = await fetch(`${baseUrl}/api/tournaments/${params.id}/competitions/calculate-times`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        
+        if (syncResponse.ok) {
+          const syncData = await syncResponse.json();
+          console.log('✅ Auto-synced competition times:', syncData);
+        } else {
+          console.warn('⚠️ Failed to auto-sync competition times');
+        }
+      } catch (syncError) {
+        console.error('❌ Error auto-syncing competition times:', syncError);
+        // Don't fail the tournament update if sync fails
+      }
+    }
+
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('PUT tournament error:', error);

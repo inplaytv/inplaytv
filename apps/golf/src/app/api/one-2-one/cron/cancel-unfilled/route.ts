@@ -5,12 +5,117 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 /**
+ * Safety net: Cancel challenges from tournaments that have completely ended
+ * This is a fallback for edge cases where reg_close_at didn't trigger
+ */
+async function handleEndedTournamentInstances(supabase: any, now: string) {
+  const { data: tournamentInstances, error: tournamentError } = await supabase
+    .from('competition_instances')
+    .select(`
+      id,
+      instance_number,
+      current_players,
+      status,
+      tournaments!inner (
+        id,
+        name,
+        end_date,
+        status
+      )
+    `)
+    .in('status', ['open', 'pending'])
+    .lt('current_players', 2);
+
+  let cancelledSafety = 0;
+  let refundedSafety = 0;
+
+  if (tournamentInstances && tournamentInstances.length > 0) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (const instance of tournamentInstances) {
+      if (!instance.tournaments?.end_date) continue;
+      
+      const tournamentEnd = new Date(instance.tournaments.end_date);
+      tournamentEnd.setHours(23, 59, 59, 999);
+
+      if (today > tournamentEnd) {
+        console.log(`⚠️  Safety net: Cancelling challenge ${instance.id} from ended tournament: ${instance.tournaments.name}`);
+
+        await supabase
+          .from('competition_instances')
+          .update({
+            status: 'cancelled',
+            cancelled_at: now,
+            cancellation_reason: 'Tournament ended (safety net refund)'
+          })
+          .eq('id', instance.id);
+
+        cancelledSafety++;
+
+        if (instance.current_players > 0) {
+          const { data: entries } = await supabase
+            .from('competition_entries')
+            .select('id, user_id, entry_fee_paid')
+            .eq('instance_id', instance.id)
+            .in('status', ['submitted', 'paid']);
+
+          if (entries) {
+            for (const entry of entries) {
+              await supabase
+                .from('competition_entries')
+                .update({ status: 'cancelled' })
+                .eq('id', entry.id);
+
+              const { data: wallet } = await supabase
+                .from('wallets')
+                .select('balance_pennies')
+                .eq('user_id', entry.user_id)
+                .single();
+
+              if (wallet) {
+                await supabase
+                  .from('wallets')
+                  .update({
+                    balance_pennies: wallet.balance_pennies + entry.entry_fee_paid
+                  })
+                  .eq('user_id', entry.user_id);
+
+                await supabase
+                  .from('wallet_transactions')
+                  .insert({
+                    user_id: entry.user_id,
+                    amount_pennies: entry.entry_fee_paid,
+                    transaction_type: 'refund',
+                    description: `ONE 2 ONE refund - tournament ended (safety net)`,
+                    related_entry_id: entry.id
+                  });
+
+                refundedSafety++;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return { cancelledSafety, refundedSafety };
+}
+
+/**
  * POST /api/one-2-one/cron/cancel-unfilled
  * Cron job to:
  * 1. Delete 'pending' instances older than 30 minutes (abandoned team builders)
- * 2. Cancel 'open' instances with < 2 players after reg_close_at
- * Should be called every minute by Vercel Cron or similar
+ * 2. Cancel 'open' instances with < 2 players after reg_close_at (PRIMARY REFUND TRIGGER)
+ * 3. Cancel 'open' or 'pending' instances from tournaments that have ended (SAFETY NET)
+ * Should be called every 1-5 minutes by Vercel Cron or similar
  * Requires cron secret for security
+ * 
+ * REFUND PRIORITY:
+ * - Each ONE 2 ONE challenge has its own reg_close_at time
+ * - Refunds happen when the challenge's registration closes, not when tournament ends
+ * - Tournament end date is only a fallback for edge cases
  */
 export async function POST(request: NextRequest) {
   try {
@@ -56,7 +161,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // STEP 2: Find 'open' instances that should be cancelled (past reg_close_at with < 2 players)
+    // STEP 2: Cancel 'open' instances past reg_close_at (PRIMARY REFUND TRIGGER)
+    console.log('⏰ Checking for challenges past registration close time...');
     const { data: instances, error: instancesError } = await supabase
       .from('competition_instances')
       .select('*')
@@ -74,8 +180,11 @@ export async function POST(request: NextRequest) {
 
     if (!instances || instances.length === 0) {
       return NextResponse.json({
-        message: 'No instances to cancel',
-        cancelled: 0,
+        message: 'Cleanup complete',
+        deletedPending: deletedPending,
+        cancelledFromEndedTournaments: cancelledFromEndedTournaments,
+        refundedFromEndedTournaments: refundedFromEndedTournaments,
+        cancelledOpen: 0,
         refunded: 0
       });
     }
@@ -85,10 +194,13 @@ export async function POST(request: NextRequest) {
     const results = [];
 
     for (const instance of instances) {
+      const tournamentName = instance.tournaments?.name || 'Unknown';
+      console.log(`🚫 Cancelling challenge ${instance.id} from ${tournamentName} (reg closed: ${instance.reg_close_at})`);
+      
       // Cancel the instance
       const cancellationReason = instance.current_players === 0
-        ? 'No players joined'
-        : 'Only 1 player joined - refunded';
+        ? 'Registration closed - no players joined'
+        : 'Registration closed - opponent not found';
 
       const { error: updateError } = await supabase
         .from('competition_instances')
@@ -133,33 +245,18 @@ export async function POST(request: NextRequest) {
               .update({ status: 'cancelled' })
               .eq('id', entry.id);
 
-            // Refund to wallet
-            const { data: wallet } = await supabase
-              .from('wallets')
-              .select('balance_pennies')
-              .eq('user_id', entry.user_id)
-              .single();
+            // Refund to wallet using wallet_apply RPC
+            const { error: refundError } = await supabase.rpc('wallet_apply', {
+              change_cents: entry.entry_fee_paid,
+              reason: `Refund: ONE 2 ONE challenge cancelled - registration closed without opponent`,
+              target_user_id: entry.user_id
+            });
 
-            if (wallet) {
-              await supabase
-                .from('wallets')
-                .update({
-                  balance_pennies: wallet.balance_pennies + entry.entry_fee_paid
-                })
-                .eq('user_id', entry.user_id);
-
-              // Record transaction
-              await supabase
-                .from('wallet_transactions')
-                .insert({
-                  user_id: entry.user_id,
-                  amount_pennies: entry.entry_fee_paid,
-                  transaction_type: 'refund',
-                  description: `ONE 2 ONE refund - match cancelled (insufficient players)`,
-                  related_entry_id: entry.id
-                });
-
+            if (!refundError) {
               refundedCount++;
+              console.log(`💰 Refunded ${entry.entry_fee_paid} pennies to user ${entry.user_id}`);
+            } else {
+              console.error(`❌ Failed to refund user ${entry.user_id}:`, refundError);
             }
           }
         }
@@ -170,16 +267,23 @@ export async function POST(request: NextRequest) {
         instance_number: instance.instance_number,
         players: instance.current_players,
         status: 'cancelled',
-        refunded: instance.current_players
+        refunded: instance.current_players,
+        reason: 'Registration closed'
       });
     }
 
+    // STEP 3: Safety net - check for challenges from tournaments that have ended
+    console.log('🏆 Safety check: Looking for challenges from ended tournaments...');
+    const { cancelledSafety, refundedSafety } = await handleEndedTournamentInstances(supabase, now);
+
     return NextResponse.json({
-      message: `Processed cleanup`,
+      message: `Cleanup complete`,
       deletedPending: deletedPending,
-      cancelledOpen: cancelledCount,
-      refunded: refundedCount,
-      results
+      cancelledByRegClose: cancelledCount,
+      refundedByRegClose: refundedCount,
+      cancelledSafetyNet: cancelledSafety,
+      refundedSafetyNet: refundedSafety,
+      note: 'Primary refund trigger is reg_close_at (step 2). Tournament end (step 3) is fallback only.'
     });
 
   } catch (error) {

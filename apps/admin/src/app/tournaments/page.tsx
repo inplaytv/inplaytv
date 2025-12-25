@@ -16,26 +16,85 @@ interface Tournament {
   end_date: string;
   updated_at: string;
   is_visible: boolean;
+  image_url: string | null;
+  registration_opens_at: string | null;
+  registration_closes_at: string | null;
+  round_1_start: string | null;
+  round_2_start: string | null;
+  round_3_start: string | null;
+  round_4_start: string | null;
+  competition_count?: number;
 }
 
 async function getTournaments(): Promise<Tournament[]> {
-  const adminClient = createAdminClient();
-  
-  const { data, error } = await adminClient
-    .from('tournaments')
-    .select('id, name, slug, location, status, start_date, end_date, updated_at, is_visible')
-    .order('start_date', { ascending: false });
+  try {
+    const adminClient = createAdminClient();
+    
+    const { data, error } = await adminClient
+      .from('tournaments')
+      .select(`
+        id, 
+        name, 
+        slug, 
+        location, 
+        status, 
+        start_date, 
+        end_date, 
+        updated_at, 
+        is_visible,
+        image_url,
+        registration_opens_at,
+        registration_closes_at,
+        round_1_start,
+        round_2_start,
+        round_3_start,
+        round_4_start
+      `)
+      .order('start_date', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching tournaments:', error);
+    if (error) {
+      console.error('Error fetching tournaments:', error);
+      return [];
+    }
+
+    // Fetch competition counts separately
+    const tournamentsWithCounts = await Promise.all(
+      (data || []).map(async (t: any) => {
+        try {
+          const { count } = await adminClient
+            .from('tournament_competitions')
+            .select('*', { count: 'exact', head: true })
+            .eq('tournament_id', t.id);
+          
+          return {
+            ...t,
+            competition_count: count || 0,
+          };
+        } catch (err) {
+          console.error(`Error fetching competition count for ${t.id}:`, err);
+          return {
+            ...t,
+            competition_count: 0,
+          };
+        }
+      })
+    );
+
+    return tournamentsWithCounts;
+  } catch (err) {
+    console.error('Error in getTournaments:', err);
     return [];
   }
-
-  return data || [];
 }
 
 export default async function TournamentsPage() {
-  await assertAdminOrRedirect();
+  try {
+    await assertAdminOrRedirect();
+  } catch (err) {
+    console.error('Auth error:', err);
+    return <div>Authentication error</div>;
+  }
+  
   const tournaments = await getTournaments();
 
   return (

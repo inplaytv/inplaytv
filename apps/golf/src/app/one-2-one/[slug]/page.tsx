@@ -219,13 +219,18 @@ export default function One2OnePage() {
   }, [currentTime]);
 
   useEffect(() => {
+    console.log('🔵 [slug] page loading for slug:', slug);
+    
     async function fetchData() {
       try {
+        console.log('🔵 Fetching tournaments and templates...');
+        
         // Fetch all tournaments for the selector
         const allTournamentsResponse = await fetch('/api/tournaments?status=active');
         if (allTournamentsResponse.ok) {
           const allTournamentsData = await allTournamentsResponse.json();
           const tournaments = allTournamentsData.tournaments || [];
+          console.log('🔵 Loaded tournaments:', tournaments.length);
           setAllTournaments(tournaments);
         }
 
@@ -233,10 +238,13 @@ export default function One2OnePage() {
         const response = await fetch(`/api/tournaments/${slug}/one-2-one`);
         if (!response.ok) throw new Error('Failed to fetch ONE 2 ONE data');
         
-      const data = await response.json();
-      // DON'T set tournament - force user to select it fresh
-      // setTournament(data.tournament);
-      setTemplates(data.templates || []);        // Initialize customEntryFees with template defaults
+        const data = await response.json();
+        console.log('🔵 Loaded templates:', data.templates?.length);
+        console.log('🔵 Tournament data:', data.tournament);
+        
+        // Don't auto-select - let user choose tournament from selector
+        // setTournament(data.tournament);
+        setTemplates(data.templates || []);        // Initialize customEntryFees with template defaults
         const initialFees: Record<string, number> = {};
         (data.templates || []).forEach((template: One2OneTemplate) => {
           initialFees[template.id] = template.entry_fee_pennies;
@@ -478,7 +486,7 @@ export default function One2OnePage() {
               {/* Dropdown Content */}
               <div style={{
                 position: 'absolute',
-                top: 'calc(100% + 1rem - 175px)',
+                top: 'calc(100% + 1rem - 475px)',
                 left: 0,
                 right: 0,
                 background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(31, 41, 55, 0.98))',
@@ -1236,18 +1244,159 @@ export default function One2OnePage() {
             
             return filteredChallenges.length === 0 ? (
             <div style={{
-              padding: '3rem',
+              padding: '4rem 2rem',
               textAlign: 'center',
-              background: 'rgba(255,255,255,0.03)',
-              borderRadius: '16px',
-              border: '1px dashed rgba(255,255,255,0.1)'
+              background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+              borderRadius: '20px',
+              border: '2px dashed rgba(102, 126, 234, 0.3)',
+              position: 'relative',
+              overflow: 'hidden'
             }}>
-              <i className="fas fa-inbox" style={{ fontSize: '3rem', color: 'rgba(255,255,255,0.2)', marginBottom: '1rem' }}></i>
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', margin: 0 }}>
+              {/* Animated Background Elements */}
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '200px',
+                height: '200px',
+                background: 'radial-gradient(circle, rgba(102, 126, 234, 0.15) 0%, transparent 70%)',
+                borderRadius: '50%',
+                filter: 'blur(40px)',
+                animation: 'pulse 3s ease-in-out infinite'
+              }}></div>
+              
+              {/* Icon with Gradient */}
+              <div style={{
+                position: 'relative',
+                zIndex: 1,
+                marginBottom: '1.5rem',
+                display: 'inline-block'
+              }}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto',
+                  boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)',
+                  transform: 'rotate(-5deg)'
+                }}>
+                  <i className="fas fa-swords" style={{ 
+                    fontSize: '2.5rem', 
+                    color: '#fff',
+                    transform: 'rotate(5deg)'
+                  }}></i>
+                </div>
+              </div>
+              
+              <h3 style={{ 
+                color: '#fff', 
+                fontSize: '1.5rem', 
+                fontWeight: 700, 
+                marginBottom: '0.75rem',
+                position: 'relative',
+                zIndex: 1
+              }}>
                 {openChallenges.length > 0 
-                  ? 'All open challenges are your own. Create a new challenge or wait for others!'
-                  : 'No open challenges at the moment. Be the first to create one!'}
+                  ? 'All Challenges Are Yours!' 
+                  : 'No Active Challenges Yet'}
+              </h3>
+              
+              <p style={{ 
+                color: 'rgba(255,255,255,0.7)', 
+                fontSize: '1rem', 
+                margin: '0 0 2rem 0',
+                maxWidth: '500px',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                lineHeight: '1.6',
+                position: 'relative',
+                zIndex: 1
+              }}>
+                {openChallenges.length > 0 
+                  ? 'You\'ve created all the open challenges! Wait for someone to accept, or create a different challenge type.'
+                  : 'Be the first to throw down the gauntlet! Create a challenge and show everyone what you\'re made of.'}
               </p>
+              
+              {/* Call to Action Buttons */}
+              <div style={{
+                display: 'flex',
+                gap: '1rem',
+                justifyContent: 'center',
+                flexWrap: 'wrap',
+                position: 'relative',
+                zIndex: 1
+              }}>
+                {selectedTemplate ? (
+                  <button
+                    onClick={() => handleJoinTemplate(selectedTemplate)}
+                    disabled={joiningTemplate === selectedTemplate.id}
+                    style={{
+                      padding: '0.875rem 2rem',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      color: '#fff',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      cursor: joiningTemplate ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)',
+                      transition: 'all 0.3s ease',
+                      opacity: joiningTemplate ? 0.6 : 1
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!joiningTemplate) {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.3)';
+                    }}
+                  >
+                    <i className="fas fa-plus-circle"></i>
+                    Create New Challenge
+                  </button>
+                ) : null}
+                
+                <button
+                  onClick={() => router.push('/tournaments')}
+                  style={{
+                    padding: '0.875rem 2rem',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    color: '#fff',
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    backdropFilter: 'blur(10px)',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                  }}
+                >
+                  <i className="fas fa-trophy"></i>
+                  Browse Tournaments
+                </button>
+              </div>
             </div>
           ) : (
             <div style={{

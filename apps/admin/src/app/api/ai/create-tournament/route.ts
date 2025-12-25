@@ -147,6 +147,8 @@ export async function POST(request: NextRequest) {
     console.log('✅ Tournament created:', createdTournament.id);
     
     // Step 3: Create competitions with typeId from AI generation
+    // NOTE: We do NOT set dates here - they should be set via Lifecycle Manager
+    // which knows about round tee times and proper scheduling
     const competitionsToInsert = competitions.map((comp) => {
       // Use typeId if provided (from new database-driven generator), otherwise fall back to name lookup
       let competitionTypeId = comp.typeId || null;
@@ -164,9 +166,9 @@ export async function POST(request: NextRequest) {
         entry_fee_pennies: entryFeePennies,
         entrants_cap: comp.entrantsCap,
         admin_fee_percent: comp.adminFeePercent,
-        reg_open_at: comp.regOpenAt,
-        reg_close_at: comp.regCloseAt,
-        status: 'upcoming',
+        // ⚠️ DATES INTENTIONALLY NOT SET - Use Lifecycle Manager to set round tee times
+        // reg_open_at, reg_close_at, start_at, end_at will be set via lifecycle manager
+        status: 'draft', // Keep as draft until lifecycle manager sets dates
       };
     });
     

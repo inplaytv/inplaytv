@@ -14,8 +14,8 @@ interface TournamentCSVRow {
   timezone?: string;
   start_date: string;
   end_date: string;
-  registration_open_date: string;
-  registration_close_date: string;
+  registration_opens_at: string;
+  registration_closes_at: string;
   status?: string;
   image_url?: string;
   external_id?: string;
@@ -49,11 +49,11 @@ export async function POST(request: Request) {
       if (!tournament.end_date) {
         errors.push(`Row ${index + 1}: Missing end_date`);
       }
-      if (!tournament.registration_open_date) {
-        errors.push(`Row ${index + 1}: Missing registration_open_date`);
+      if (!tournament.registration_opens_at) {
+        errors.push(`Row ${index + 1}: Missing registration_opens_at`);
       }
-      if (!tournament.registration_close_date) {
-        errors.push(`Row ${index + 1}: Missing registration_close_date`);
+      if (!tournament.registration_closes_at) {
+        errors.push(`Row ${index + 1}: Missing registration_closes_at`);
       }
     });
 
@@ -73,8 +73,8 @@ export async function POST(request: Request) {
       timezone: tournament.timezone?.trim() || 'Europe/London',
       start_date: tournament.start_date,
       end_date: tournament.end_date,
-      registration_open_date: tournament.registration_open_date,
-      registration_close_date: tournament.registration_close_date,
+      registration_opens_at: tournament.registration_opens_at,
+      registration_closes_at: tournament.registration_closes_at,
       status: tournament.status || 'upcoming',
       image_url: tournament.image_url?.trim() || null,
       external_id: tournament.external_id?.trim() || null,

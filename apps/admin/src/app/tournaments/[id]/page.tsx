@@ -18,6 +18,12 @@ interface Tournament {
   external_id: string | null;
   image_url: string | null;
   featured_competition_id: string | null;
+  registration_opens_at: string | null;
+  registration_closes_at: string | null;
+  round_1_start: string | null;
+  round_2_start: string | null;
+  round_3_start: string | null;
+  round_4_start: string | null;
 }
 
 interface CompetitionType {
@@ -141,6 +147,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
     round2_tee_time: '',
     round3_tee_time: '',
     round4_tee_time: '',
+    auto_manage_timing: false, // Will be set when loading tournament
   });
 
   const [competitionFormData, setCompetitionFormData] = useState({
@@ -160,6 +167,22 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
 
   const [manualRegClose, setManualRegClose] = useState(false);
   const [showRegCloseWarning, setShowRegCloseWarning] = useState(false);
+
+  // Calculate registration close time: start_date - 15 minutes
+  const getComputedRegClose = () => {
+    if (!formData.start_date) return null;
+    const startDate = new Date(formData.start_date);
+    const regClose = new Date(startDate.getTime() - 15 * 60 * 1000); // -15 mins
+    return regClose.toISOString().slice(0, 16); // Format for datetime-local
+  };
+
+  // Calculate registration open time: start_date - 7 days
+  const getComputedRegOpen = () => {
+    if (!formData.start_date) return null;
+    const startDate = new Date(formData.start_date);
+    const regOpen = new Date(startDate.getTime() - 7 * 24 * 60 * 60 * 1000); // -7 days
+    return regOpen.toISOString().slice(0, 16);
+  };
 
   // Auto-calculate reg_close_at when start_at changes
   useEffect(() => {
@@ -204,6 +227,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
           round2_tee_time: tournamentData.round_2_start ? tournamentData.round_2_start.slice(0, 16) : '',
           round3_tee_time: tournamentData.round_3_start ? tournamentData.round_3_start.slice(0, 16) : '',
           round4_tee_time: tournamentData.round_4_start ? tournamentData.round_4_start.slice(0, 16) : '',
+          auto_manage_timing: false,
         });
       }
 
@@ -254,8 +278,10 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
       if (res.ok) {
         const data = await res.json();
         setTournament(data);
-        setSuccess('Tournament updated successfully');
-        setTimeout(() => setSuccess(''), 3000);
+        // Refresh competitions to show synced timing from lifecycle
+        await fetchData();
+        setSuccess('Tournament updated successfully - Competition times synced from lifecycle');
+        setTimeout(() => setSuccess(''), 5000);
       } else {
         const data = await res.json();
         setError(data.error || 'Failed to update tournament');
@@ -284,8 +310,9 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
     }
     
     if (entryFee === 0) {
-      setError('⚠️ Entry fee is £0.00 - This competition will not appear in the golf app until an entry fee is set');
-      return;
+      if (!confirm('⚠️ WARNING: Entry fee is £0.00\n\nThis competition will NOT appear in the golf app until an entry fee is set.\n\nDo you want to save anyway as a draft?')) {
+        return;
+      }
     }
     
     const entrantsCap = parseInt(competitionFormData.entrants_cap);
@@ -295,8 +322,9 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
     }
     
     if (entrantsCap === 0) {
-      setError('⚠️ Max entries is 0 - This competition will not be visible to players until capacity is set');
-      return;
+      if (!confirm('⚠️ WARNING: Entrants cap is 0 (unlimited)\n\nPlayers can enter without limit. This may affect prize pool calculations.\n\nDo you want to save with unlimited capacity?')) {
+        return;
+      }
     }
     
     // Warn if prize fields are empty (using auto-calculation)
@@ -339,8 +367,8 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
           : null,
         assigned_golfer_group_id: competitionFormData.golfer_group_id || null,
       };
-      // Remove the pounds field and golfer_group_id as they're internal form fields
-      const { entry_fee_pounds, golfer_group_id, ...apiData } = dataToSend as any;
+      // Remove the pounds field and golfer_group_id (internal form fields), keep assigned_golfer_group_id for API
+      const { entry_fee_pounds, golfer_group_id, guaranteed_prize_pool_pounds, first_place_prize_pounds, ...apiData } = dataToSend as any;
 
       console.log('🔴 ADMIN SAVE - Competition Form Data:', {
         entry_fee_pounds: competitionFormData.entry_fee_pounds,
@@ -348,6 +376,13 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
         competition_id: editingCompetitionId,
         url,
         method,
+        timing_fields: {
+          reg_open_at: competitionFormData.reg_open_at,
+          reg_close_at: competitionFormData.reg_close_at,
+          start_at: competitionFormData.start_at,
+          end_at: competitionFormData.end_at,
+        },
+        golfer_group: competitionFormData.golfer_group_id,
       });
       console.log('🔴 ADMIN SAVE - Sending to API:', apiData);
 
@@ -459,7 +494,9 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
     const gross = entrants * entryFeePennies;
     const adminFee = Math.round(gross * (adminFeePercent / 100));
     const netPrize = gross - adminFee;
-    return { gross, adminFee, netPrize };
+    // Standard prize distribution: 40% first place
+    const first = Math.round(netPrize * 0.40);
+    return { gross, adminFee, netPrize, first };
   };
 
   const formatPennies = (pennies: number) => {
@@ -773,6 +810,68 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
             </div>
           </div>
 
+          {/* Auto-timing Section */}
+          <div style={{
+            marginTop: '1.5rem',
+            padding: '1rem',
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            borderRadius: '6px',
+          }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              cursor: 'pointer',
+              fontSize: '0.9375rem',
+              color: '#fff',
+            }}>
+              <input
+                type="checkbox"
+                checked={formData.auto_manage_timing}
+                onChange={(e) => setFormData({ ...formData, auto_manage_timing: e.target.checked })}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer',
+                }}
+              />
+              <div>
+                <strong>Auto-calculate competition registration times</strong>
+                <div style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.7)', marginTop: '0.25rem' }}>
+                  Opens 7 days before, closes 15 minutes before first tee-off
+                </div>
+              </div>
+            </label>
+
+            {formData.auto_manage_timing && formData.start_date && (
+              <div style={{
+                marginTop: '1rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid rgba(59, 130, 246, 0.2)',
+                fontSize: '0.875rem',
+                color: 'rgba(255,255,255,0.8)',
+              }}>
+                <div style={{ marginBottom: '0.5rem' }}>
+                  <strong style={{ color: '#60a5fa' }}>Preview:</strong>
+                </div>
+                <div style={{ display: 'grid', gap: '0.5rem' }}>
+                  <div>
+                    <span style={{ color: 'rgba(255,255,255,0.6)' }}>Registration Opens:</span>{' '}
+                    <strong>{getComputedRegOpen() ? new Date(getComputedRegOpen()!).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'rgba(255,255,255,0.6)' }}>Registration Closes:</span>{' '}
+                    <strong>{getComputedRegClose() ? new Date(getComputedRegClose()!).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}</strong>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                    ℹ️ These times will be automatically applied to all competitions for this tournament
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Round Tee Times Section */}
           <div style={{ 
             marginTop: '1.5rem', 
@@ -1062,10 +1161,12 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                   setShowAddCompetition(true);
                   setManualRegClose(false);
                   setShowRegCloseWarning(false);
-                  // Pre-populate competition dates from tournament
+                  // Pre-populate ALL timing fields from tournament lifecycle
                   if (tournament) {
                     setCompetitionFormData(prev => ({
                       ...prev,
+                      reg_open_at: tournament.registration_opens_at ? new Date(tournament.registration_opens_at).toISOString().slice(0, 16) : '',
+                      reg_close_at: tournament.registration_closes_at ? new Date(tournament.registration_closes_at).toISOString().slice(0, 16) : '',
                       start_at: tournament.start_date.slice(0, 16),
                       end_at: tournament.end_date.slice(0, 16),
                     }));
@@ -1121,10 +1222,38 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                     const selectedType = availableTypes.find(t => t.id === selectedTypeId);
                     
                     // Auto-populate template values if available
-                    if (selectedType && selectedType.is_template) {
-                      const regOpenAt = selectedType.default_reg_open_days_before && tournament
+                    if (selectedType && selectedType.is_template && tournament) {
+                      const regOpenAt = selectedType.default_reg_open_days_before
                         ? new Date(new Date(tournament.start_date).getTime() - (selectedType.default_reg_open_days_before * 24 * 60 * 60 * 1000)).toISOString().slice(0, 16)
                         : competitionFormData.reg_open_at;
+                      
+                      // 🎯 AUTO-POPULATE DATES FROM LIFECYCLE MANAGER
+                      // Use round_start to determine which round tee time to use
+                      let startAt = competitionFormData.start_at;
+                      let regCloseAt = competitionFormData.reg_close_at;
+                      let endAt = competitionFormData.end_at;
+                      
+                      const roundStart = selectedType.round_start;
+                      if (roundStart && tournament) {
+                        // Get the tee time for this round (database uses round_1_start, round_2_start, etc.)
+                        const teeTimeField = `round_${roundStart}_start` as keyof typeof tournament;
+                        const teeTime = tournament[teeTimeField];
+                        
+                        if (teeTime) {
+                          // Competition starts at round tee time
+                          startAt = new Date(teeTime).toISOString().slice(0, 16);
+                          
+                          // Registration closes 15 minutes before
+                          const closeTime = new Date(teeTime);
+                          closeTime.setMinutes(closeTime.getMinutes() - 15);
+                          regCloseAt = closeTime.toISOString().slice(0, 16);
+                        }
+                        
+                        // Competition ends at tournament end
+                        if (tournament.end_date) {
+                          endAt = new Date(tournament.end_date).toISOString().slice(0, 16);
+                        }
+                      }
                       
                       setCompetitionFormData({
                         ...competitionFormData,
@@ -1138,7 +1267,10 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                         admin_fee_percent: selectedType.default_admin_fee_percent !== null
                           ? selectedType.default_admin_fee_percent.toString()
                           : competitionFormData.admin_fee_percent,
-                        reg_open_at: regOpenAt,
+                        reg_open_at: regOpenAt || (tournament.registration_opens_at ? new Date(tournament.registration_opens_at).toISOString().slice(0, 16) : ''),
+                        reg_close_at: regCloseAt,
+                        start_at: startAt,
+                        end_at: endAt,
                       });
                     } else {
                       setCompetitionFormData({ ...competitionFormData, competition_type_id: selectedTypeId });
@@ -1386,15 +1518,14 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
               </p>
             </div>
 
-            <div style={{ marginBottom: '1rem', opacity: 0.5, pointerEvents: 'none' }}>
+            <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
                 Golfer Group
                 <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
-                  (Legacy - Auto-inherits from tournament)
+                  (Restrict available golfers)
                 </span>
               </label>
               <select
-                disabled
                 value={competitionFormData.golfer_group_id || ''}
                 onChange={(e) => setCompetitionFormData({ ...competitionFormData, golfer_group_id: e.target.value })}
                 style={{
@@ -1404,49 +1535,19 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                   border: '1px solid rgba(255,255,255,0.2)',
                   borderRadius: '4px',
                   color: '#fff',
-                  cursor: 'not-allowed',
+                  cursor: 'pointer',
                 }}
               >
-                <option value="">Competition inherits tournament golfers</option>
+                <option value="">Use all tournament golfers (no restriction)</option>
                 {golferGroups.map(group => (
                   <option key={group.id} value={group.id}>
                     {group.name} {group.golfer_count ? `(${group.golfer_count} golfers)` : ''}
                   </option>
                 ))}
               </select>
-              <p style={{ fontSize: '0.75rem', color: 'rgba(59, 130, 246, 0.8)', marginTop: '0.25rem' }}>
-                ℹ️ Competitions now automatically use all golfers from the tournament
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.25rem' }}>
+                💡 Select a golfer group to limit which golfers are available for this competition
               </p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                  Status *
-                </label>
-                <select
-                  required
-                  value={competitionFormData.status}
-                  onChange={(e) => setCompetitionFormData({ ...competitionFormData, status: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '4px',
-                    color: '#fff',
-                  }}
-                >
-                  <option value="draft">Draft</option>
-                  <option value="upcoming">Upcoming</option>
-                  <option value="reg_open">Registration Open</option>
-                  <option value="reg_closed">Registration Closed</option>
-                  <option value="live">Live</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-                {/* Golfer group validation temporarily disabled - needs proper junction table implementation */}
-              </div>
             </div>
 
             {/* Prize Pool Calculator */}
@@ -1572,71 +1673,116 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            {/* Timing - Auto-populated from Lifecycle */}
+            <div style={{
+              marginBottom: '1.5rem',
+              padding: '1rem',
+              background: 'rgba(59, 130, 246, 0.05)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '8px',
+            }}>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#60a5fa', margin: '0 0 0.75rem 0' }}>
+                📅 Round Tee Times (Competitions auto-inherit)
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                {[1, 2, 3, 4].map(round => {
+                  const teeTime = tournament?.[`round_${round}_start` as keyof Tournament];
+                  return (
+                    <div key={round}>
+                      <label style={{ display: 'block', fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.25rem' }}>Round {round}</label>
+                      <div style={{ padding: '0.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.3)', color: teeTime ? '#60a5fa' : 'rgba(255,255,255,0.4)', fontWeight: 500, fontSize: '0.75rem', textAlign: 'center' }}>
+                        {teeTime 
+                          ? new Date(teeTime).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                          : 'Not set'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ padding: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '4px', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.5rem' }}>
+                  <strong>Registration Window:</strong> {tournament?.registration_opens_at 
+                    ? new Date(tournament.registration_opens_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
+                    : 'Not set'} → {tournament?.registration_closes_at 
+                    ? new Date(tournament.registration_closes_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
+                    : 'Not set'}
+                </div>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(96, 165, 250, 0.8)', margin: 0 }}>
+                💡 Competition start times are based on which round they cover (e.g., Full Course = R1, Final Strike = R4). Set these in <strong>Lifecycle Manager</strong>.
+              </p>
+            </div>
+
+            <div style={{ display: 'none' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                  Registration Opens
+                <label style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                  <span>Competition Starts</span>
+                  {competitionFormData.start_at && (
+                    <span style={{
+                      marginLeft: '0.5rem',
+                      padding: '0.125rem 0.5rem',
+                      background: 'rgba(59, 130, 246, 0.2)',
+                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                      borderRadius: '12px',
+                      fontSize: '0.7rem',
+                      color: '#60a5fa',
+                      fontWeight: '500'
+                    }}>
+                      🎯 FROM LIFECYCLE
+                    </span>
+                  )}
                 </label>
                 <input
                   type="datetime-local"
-                  value={competitionFormData.reg_open_at}
-                  onChange={(e) => setCompetitionFormData({ ...competitionFormData, reg_open_at: e.target.value })}
+                  value={competitionFormData.start_at}
+                  onChange={(e) => setCompetitionFormData({ ...competitionFormData, start_at: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '0.625rem',
                     background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(59, 130, 246, 0.4)',
                     borderRadius: '4px',
                     color: '#fff',
                   }}
                 />
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.25rem' }}>
+                  <i className="fas fa-golf-ball" /> Round tee time (editable for weather delays)
+                </p>
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                  Registration Closes
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
-                    (Auto: 15 mins before start)
-                  </span>
+                <label style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
+                  <span>Competition Ends</span>
+                  {competitionFormData.end_at && (
+                    <span style={{
+                      marginLeft: '0.5rem',
+                      padding: '0.125rem 0.5rem',
+                      background: 'rgba(59, 130, 246, 0.2)',
+                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                      borderRadius: '12px',
+                      fontSize: '0.7rem',
+                      color: '#60a5fa',
+                      fontWeight: '500'
+                    }}>
+                      🎯 FROM LIFECYCLE
+                    </span>
+                  )}
                 </label>
                 <input
                   type="datetime-local"
-                  value={competitionFormData.reg_close_at}
-                  onFocus={() => {
-                    if (!manualRegClose) {
-                      setShowRegCloseWarning(true);
-                    }
-                  }}
-                  onChange={(e) => {
-                    setManualRegClose(true);
-                    setShowRegCloseWarning(false);
-                    setCompetitionFormData({ ...competitionFormData, reg_close_at: e.target.value });
-                  }}
+                  value={competitionFormData.end_at}
+                  onChange={(e) => setCompetitionFormData({ ...competitionFormData, end_at: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '0.625rem',
-                    background: manualRegClose ? 'rgba(245, 158, 11, 0.1)' : 'rgba(0,0,0,0.3)',
-                    border: manualRegClose ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(255,255,255,0.2)',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(59, 130, 246, 0.4)',
                     borderRadius: '4px',
                     color: '#fff',
                   }}
                 />
-                {showRegCloseWarning && (
-                  <div style={{
-                    marginTop: '0.5rem',
-                    padding: '0.625rem',
-                    background: 'rgba(245, 158, 11, 0.2)',
-                    border: '1px solid rgba(245, 158, 11, 0.4)',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    color: '#fbbf24',
-                  }}>
-                    ⚠️ This field is auto-generated to be 15 minutes before the competition start time. 
-                    Only change this if the competition starts early or you need a different registration close time.
-                  </div>
-                )}
-                <p style={{ fontSize: '0.75rem', color: manualRegClose ? '#fbbf24' : 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
-                  {manualRegClose ? '⚠️ Manual override active' : 'Auto-calculated from Competition Start time'}
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.25rem' }}>
+                  <i className="fas fa-flag-checkered" /> Tournament end (editable for weather delays)
                 </p>
               </div>
             </div>
@@ -1778,6 +1924,51 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                           ⚠ No golfers
                         </span>
                       )}
+                      {/* Inline Financial Info */}
+                      {(() => {
+                        const maxEntrants = comp.entrants_cap === 0 ? 100 : comp.entrants_cap;
+                        const prizePool = calculatePrizePool(
+                          maxEntrants,
+                          comp.entry_fee_pennies,
+                          comp.admin_fee_percent
+                        );
+                        
+                        return (
+                          <span style={{ 
+                            fontSize: '0.8rem', 
+                            color: 'rgba(255,255,255,0.5)', 
+                            fontWeight: 400,
+                            marginLeft: '0.5rem',
+                            display: 'inline-flex',
+                            gap: '0.75rem',
+                            flexWrap: 'wrap'
+                          }}>
+                            <span>
+                              Entry: <span style={{ color: 'rgba(255,255,255,0.7)' }}>
+                                {formatPennies(comp.entry_fee_pennies)}
+                              </span>
+                            </span>
+                            <span>•</span>
+                            <span>
+                              Cap: <span style={{ color: 'rgba(255,255,255,0.7)' }}>
+                                {comp.entrants_cap === 0 ? 'Unlimited' : comp.entrants_cap}
+                              </span>
+                            </span>
+                            <span>•</span>
+                            <span>
+                              1st: <span style={{ color: 'rgba(255,255,255,0.7)' }}>
+                                {formatPennies(prizePool.first)}
+                              </span>
+                            </span>
+                            <span>•</span>
+                            <span>
+                              Pool: <span style={{ color: 'rgba(255,255,255,0.7)' }}>
+                                {formatPennies(prizePool.netPrize)}
+                              </span>
+                            </span>
+                          </span>
+                        );
+                      })()}
                     </h4>
                     {isExpanded && (
                     <>
