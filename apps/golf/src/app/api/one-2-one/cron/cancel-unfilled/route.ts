@@ -179,14 +179,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!instances || instances.length === 0) {
-      return NextResponse.json({
-        message: 'Cleanup complete',
-        deletedPending: deletedPending,
-        cancelledFromEndedTournaments: cancelledFromEndedTournaments,
-        refundedFromEndedTournaments: refundedFromEndedTournaments,
-        cancelledOpen: 0,
-        refunded: 0
-      });
+      console.log('No open instances past reg_close_at found');
     }
 
     let cancelledCount = 0;
