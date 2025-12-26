@@ -745,14 +745,18 @@ export default function TournamentsPage() {
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
                       >
-                        {/* Dynamic Slides - Real Tournament Data Only */}
-                        {tournaments.map((tournament, index) => {
-                          // Find Full Course competition for featured display
+                        {/* Dynamic Slides - Only Registration Open Tournaments */}
+                        {tournaments
+                          .filter(tournament => {
+                            // Only show tournaments with at least one reg_open competition
+                            return tournament.competitions?.some(c => c.status === 'reg_open');
+                          })
+                          .map((tournament, index) => {
+                          // Find Full Course competition for featured display (prefer reg_open)
                           const fullCourseComp = tournament.competitions?.find(
-                            c => c.competition_types?.name === 'Full Course'
+                            c => c.competition_types?.name === 'Full Course' && c.status === 'reg_open'
                           );
-                          const featuredComp = tournament.featured_competition || fullCourseComp || tournament.competitions?.[0];
-                          
+                          const featuredComp = tournament.featured_competition || fullCourseComp || tournament.competitions?.find(c => c.status === 'reg_open');
                           // Calculate prize pool
                           const prizePool = featuredComp
                             ? (featuredComp.guaranteed_prize_pool_pennies && featuredComp.guaranteed_prize_pool_pennies > 0
@@ -770,6 +774,7 @@ export default function TournamentsPage() {
                           const badgeClass = index === 0 ? styles.featuredBadge : `${styles.featuredBadge} ${styles.badgeElite}`;
                           const badgeIcon = index === 0 ? 'fas fa-crown' : 'fas fa-star';
                           const badgeText = competitionType.toUpperCase();
+                          const isRegOpen = featuredComp?.status === 'reg_open';
 
                           return (
                             <div key={tournament.id} className={styles.sliderSlide}>
@@ -779,6 +784,12 @@ export default function TournamentsPage() {
                                     <i className={badgeIcon}></i>
                                     {badgeText}
                                   </div>
+                                  {isRegOpen && (
+                                    <div className={styles.registrationOpenBadge}>
+                                      <i className="fas fa-circle-check"></i>
+                                      <span>Registration Open</span>
+                                    </div>
+                                  )}
                                   <div className={styles.featuredCourseInfo}>
                                     <div className={styles.featuredCourseSubtitle}>{featuredComp?.competition_types?.description || 'The Complete Competition'}</div>
                                   </div>
