@@ -321,7 +321,7 @@ export default function One2OneUniversalPage() {
         ) : (
           <div className={styles.challengesGrid}>
             {displayedChallenges.map(challenge => {
-              const isMyChallenge = currentUserId && challenge.challenger?.userId === currentUserId;
+              const isMyChallenge = !!(currentUserId && challenge.challenger?.userId === currentUserId);
               const tournament = allTournaments.find(t => t.id === challenge.tournamentId);
               
               return (

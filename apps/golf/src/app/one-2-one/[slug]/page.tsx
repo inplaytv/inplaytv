@@ -1333,7 +1333,7 @@ export default function One2OnePage() {
               }}>
                 {selectedTemplate ? (
                   <button
-                    onClick={() => handleJoinTemplate(selectedTemplate)}
+                    onClick={() => handleJoinCompetition(selectedTemplate.id, currentEntryFee)}
                     disabled={joiningTemplate === selectedTemplate.id}
                     style={{
                       padding: '0.875rem 2rem',
