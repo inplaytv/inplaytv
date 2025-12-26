@@ -748,10 +748,16 @@ export default function TournamentsPage() {
                         {/* Dynamic Slides - Only Registration Open Tournaments */}
                         {tournaments
                           .filter(tournament => {
-                            // Show tournaments with competitions where registration is actually open
-                            // Check status OR check if reg_open_at has passed (in case status not updated yet)
+                            // Show tournaments with Full Course OR Beat The Cut competitions where registration is actually open
+                            // Exclude tournaments where only minor competitions (Third Round, Final Strike) are open
                             const now = new Date();
-                            return tournament.competitions?.some(c => {
+                            const hasMainCompetitionOpen = tournament.competitions?.some(c => {
+                              // Only consider major competitions (Full Course, Beat The Cut)
+                              const isMainCompetition = c.competition_types?.name === 'Full Course' || 
+                                                       c.competition_types?.name === 'Beat The Cut';
+                              if (!isMainCompetition) return false;
+                              
+                              // Check if registration is open
                               if (c.status === 'reg_open') return true;
                               if (c.status === 'live' || c.status === 'completed' || c.status === 'reg_closed') return false;
                               // For upcoming/draft, check if registration actually opened
@@ -762,6 +768,7 @@ export default function TournamentsPage() {
                               }
                               return false;
                             });
+                            return hasMainCompetitionOpen;
                           })
                           .map((tournament, index) => {
                           // Find Full Course competition for featured display (prefer reg_open)
