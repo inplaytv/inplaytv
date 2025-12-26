@@ -748,15 +748,39 @@ export default function TournamentsPage() {
                         {/* Dynamic Slides - Only Registration Open Tournaments */}
                         {tournaments
                           .filter(tournament => {
-                            // Only show tournaments with at least one reg_open competition
-                            return tournament.competitions?.some(c => c.status === 'reg_open');
+                            // Show tournaments with competitions where registration is actually open
+                            // Check status OR check if reg_open_at has passed (in case status not updated yet)
+                            const now = new Date();
+                            return tournament.competitions?.some(c => {
+                              if (c.status === 'reg_open') return true;
+                              if (c.status === 'live' || c.status === 'completed' || c.status === 'reg_closed') return false;
+                              // For upcoming/draft, check if registration actually opened
+                              if (c.reg_open_at && c.reg_close_at) {
+                                const regOpen = new Date(c.reg_open_at);
+                                const regClose = new Date(c.reg_close_at);
+                                return now >= regOpen && now < regClose;
+                              }
+                              return false;
+                            });
                           })
                           .map((tournament, index) => {
                           // Find Full Course competition for featured display (prefer reg_open)
+                          const now = new Date();
+                          const isCompetitionOpen = (c: any) => {
+                            if (c.status === 'reg_open') return true;
+                            if (c.status === 'live' || c.status === 'completed' || c.status === 'reg_closed') return false;
+                            // Check timestamps for upcoming/draft
+                            if (c.reg_open_at && c.reg_close_at) {
+                              const regOpen = new Date(c.reg_open_at);
+                              const regClose = new Date(c.reg_close_at);
+                              return now >= regOpen && now < regClose;
+                            }
+                            return false;
+                          };
                           const fullCourseComp = tournament.competitions?.find(
-                            c => c.competition_types?.name === 'Full Course' && c.status === 'reg_open'
+                            c => c.competition_types?.name === 'Full Course' && isCompetitionOpen(c)
                           );
-                          const featuredComp = tournament.featured_competition || fullCourseComp || tournament.competitions?.find(c => c.status === 'reg_open');
+                          const featuredComp = tournament.featured_competition || fullCourseComp || tournament.competitions?.find(c => isCompetitionOpen(c));
                           // Calculate prize pool
                           const prizePool = featuredComp
                             ? (featuredComp.guaranteed_prize_pool_pennies && featuredComp.guaranteed_prize_pool_pennies > 0
@@ -774,7 +798,7 @@ export default function TournamentsPage() {
                           const badgeClass = index === 0 ? styles.featuredBadge : `${styles.featuredBadge} ${styles.badgeElite}`;
                           const badgeIcon = index === 0 ? 'fas fa-crown' : 'fas fa-star';
                           const badgeText = competitionType.toUpperCase();
-                          const isRegOpen = featuredComp?.status === 'reg_open';
+                          const isRegOpen = featuredComp ? isCompetitionOpen(featuredComp) : false;
 
                           return (
                             <div key={tournament.id} className={styles.sliderSlide}>
