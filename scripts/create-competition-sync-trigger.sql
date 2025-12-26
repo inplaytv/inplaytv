@@ -15,10 +15,10 @@ BEGIN
   -- Get tournament timing info
   SELECT 
     registration_opens_at,
-    round1_tee_time,
-    round2_tee_time,
-    round3_tee_time,
-    round4_tee_time
+    round_1_start,
+    round_2_start,
+    round_3_start,
+    round_4_start
   INTO 
     v_reg_opens_at,
     v_round1_tee_time,
@@ -116,30 +116,30 @@ BEGIN
         WHERE ct.id = tc.competition_type_id 
         AND ct.rounds_covered IS NOT NULL 
         AND 1 = ANY(ct.rounds_covered)
-      ) THEN NEW.round1_tee_time
+      ) THEN NEW.round_1_start
       WHEN EXISTS (
         SELECT 1 FROM competition_types ct 
         WHERE ct.id = tc.competition_type_id 
         AND ct.rounds_covered IS NOT NULL 
         AND 2 = ANY(ct.rounds_covered)
-      ) THEN NEW.round2_tee_time
+      ) THEN NEW.round_2_start
       WHEN EXISTS (
         SELECT 1 FROM competition_types ct 
         WHERE ct.id = tc.competition_type_id 
         AND ct.rounds_covered IS NOT NULL 
         AND 3 = ANY(ct.rounds_covered)
-      ) THEN NEW.round3_tee_time
+      ) THEN NEW.round_3_start
       WHEN EXISTS (
         SELECT 1 FROM competition_types ct 
         WHERE ct.id = tc.competition_type_id 
         AND ct.rounds_covered IS NOT NULL 
         AND 4 = ANY(ct.rounds_covered)
-      ) THEN NEW.round4_tee_time
+      ) THEN NEW.round_4_start
       ELSE tc.start_at
     END,
     reg_close_at = CASE
-      WHEN NEW.round1_tee_time IS NOT NULL OR NEW.round2_tee_time IS NOT NULL 
-           OR NEW.round3_tee_time IS NOT NULL OR NEW.round4_tee_time IS NOT NULL
+      WHEN NEW.round_1_start IS NOT NULL OR NEW.round_2_start IS NOT NULL 
+           OR NEW.round_3_start IS NOT NULL OR NEW.round_4_start IS NOT NULL
       THEN (
         CASE 
           WHEN EXISTS (
@@ -147,25 +147,25 @@ BEGIN
             WHERE ct.id = tc.competition_type_id 
             AND ct.rounds_covered IS NOT NULL 
             AND 1 = ANY(ct.rounds_covered)
-          ) THEN NEW.round1_tee_time - INTERVAL '15 minutes'
+          ) THEN NEW.round_1_start - INTERVAL '15 minutes'
           WHEN EXISTS (
             SELECT 1 FROM competition_types ct 
             WHERE ct.id = tc.competition_type_id 
             AND ct.rounds_covered IS NOT NULL 
             AND 2 = ANY(ct.rounds_covered)
-          ) THEN NEW.round2_tee_time - INTERVAL '15 minutes'
+          ) THEN NEW.round_2_start - INTERVAL '15 minutes'
           WHEN EXISTS (
             SELECT 1 FROM competition_types ct 
             WHERE ct.id = tc.competition_type_id 
             AND ct.rounds_covered IS NOT NULL 
             AND 3 = ANY(ct.rounds_covered)
-          ) THEN NEW.round3_tee_time - INTERVAL '15 minutes'
+          ) THEN NEW.round_3_start - INTERVAL '15 minutes'
           WHEN EXISTS (
             SELECT 1 FROM competition_types ct 
             WHERE ct.id = tc.competition_type_id 
             AND ct.rounds_covered IS NOT NULL 
             AND 4 = ANY(ct.rounds_covered)
-          ) THEN NEW.round4_tee_time - INTERVAL '15 minutes'
+          ) THEN NEW.round_4_start - INTERVAL '15 minutes'
           ELSE tc.reg_close_at
         END
       )
@@ -184,10 +184,10 @@ CREATE TRIGGER update_competitions_on_tournament_lifecycle
   FOR EACH ROW
   WHEN (
     OLD.registration_opens_at IS DISTINCT FROM NEW.registration_opens_at OR
-    OLD.round1_tee_time IS DISTINCT FROM NEW.round1_tee_time OR
-    OLD.round2_tee_time IS DISTINCT FROM NEW.round2_tee_time OR
-    OLD.round3_tee_time IS DISTINCT FROM NEW.round3_tee_time OR
-    OLD.round4_tee_time IS DISTINCT FROM NEW.round4_tee_time
+    OLD.round_1_start IS DISTINCT FROM NEW.round_1_start OR
+    OLD.round_2_start IS DISTINCT FROM NEW.round_2_start OR
+    OLD.round_3_start IS DISTINCT FROM NEW.round_3_start OR
+    OLD.round_4_start IS DISTINCT FROM NEW.round_4_start
   )
   EXECUTE FUNCTION update_competitions_on_tournament_change();
 

@@ -9,7 +9,7 @@ DECLARE
   v_round4_time timestamptz;
 BEGIN
   -- Find the Final Strike competition and its tournament
-  SELECT tc.id, tc.tournament_id, t.round4_tee_time
+  SELECT tc.id, tc.tournament_id, t.round_4_start
   INTO v_comp_id, v_tourn_id, v_round4_time
   FROM tournament_competitions tc
   JOIN tournaments t ON t.id = tc.tournament_id
