@@ -1055,7 +1055,35 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
             </div>
 
             <div className={styles.formGroup}>
-              <label htmlFor="reg-closes">Registration Closes At</label>
+              <label htmlFor="reg-closes">
+                Registration Closes At
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (round4TeeTime) {
+                      const round4Date = new Date(round4TeeTime);
+                      const closesDate = new Date(round4Date.getTime() - 15 * 60000);
+                      setRegistrationCloses(closesDate.toISOString().slice(0, 16));
+                    } else {
+                      alert('Please set Round 4 Tee Time first');
+                    }
+                  }}
+                  style={{
+                    marginLeft: '8px',
+                    padding: '2px 8px',
+                    fontSize: '0.75rem',
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    border: 'none',
+                    borderRadius: '4px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: 600
+                  }}
+                  title="Auto-set to 15 minutes before Round 4 (latest competition)"
+                >
+                  Auto from R4
+                </button>
+              </label>
               <input
                 id="reg-closes"
                 type="datetime-local"
@@ -1063,7 +1091,7 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
                 onChange={(e) => setRegistrationCloses(e.target.value)}
                 className={styles.input}
               />
-              <small>When registration closes (typically before tournament starts)</small>
+              <small>Latest time for any competition entry (auto: 15min before Round 4, or set manually)</small>
             </div>
           </div>
 
