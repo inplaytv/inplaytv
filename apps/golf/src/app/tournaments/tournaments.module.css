@@ -24,6 +24,13 @@
   z-index: -2;
 }
 
+/* Mobile: Use scroll instead of fixed for better performance */
+@media (max-width: 768px) {
+  .wrap::before {
+    background-attachment: scroll;
+  }
+}
+
 .wrap::after {
   content: '';
   position: fixed;
