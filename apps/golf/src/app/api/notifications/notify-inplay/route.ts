@@ -91,12 +91,15 @@ export async function POST(request: Request) {
 
         const startDate = new Date(startTime);
         if (startDate >= now && startDate <= fifteenMinutesFromNow) {
+          const compTypes = comp.competition_types as any;
+          const typeName = Array.isArray(compTypes) ? compTypes[0]?.name : compTypes?.name;
+          
           competitions.push({
             id: comp.id,
             start_at: startTime,
             tournament_name: tournament.name,
             tournament_slug: tournament.slug,
-            competition_type_name: (Array.isArray(comp.competition_types) ? comp.competition_types[0]?.name : comp.competition_types?.name) || 'Competition'
+            competition_type_name: typeName || 'Competition'
           });
         }
       }
@@ -168,7 +171,6 @@ export async function POST(request: Request) {
           console.log(`  ✅ Sent ${notifications.length} notifications`);
           totalNotifications += notifications.length;
         }
-      }
       }
 
       // Mark competition as notified
