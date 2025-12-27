@@ -49,13 +49,13 @@ export async function POST(
     }
 
     // Get tournament to validate
-    const { data: tournament, error: fetchError } = await supabase
+    const { data: tournament, error: tournamentFetchError } = await supabase
       .from('tournaments')
       .select('*')
       .eq('id', params.id)
       .single();
 
-    if (fetchError || !tournament) {
+    if (tournamentFetchError || !tournament) {
       return NextResponse.json(
         { error: 'Tournament not found' },
         { status: 404 }
@@ -96,20 +96,40 @@ export async function POST(
 
     console.log('[Registration] Updating tournament with:', updates);
 
-    // Update tournament with registration windows and round tee times
-    const { data: updatedTournament, error: updateError } = await supabase
+    // Update tournament - the ct.rounds_covered error might be from a view but update may still work
+    const { error: updateError } = await supabase
       .from('tournaments')
       .update(updates)
-      .eq('id', params.id)
-      .select()
-      .single();
+      .eq('id', params.id);
 
     if (updateError) {
       console.error('Error updating registration windows:', updateError);
+      console.error('Full error object:', JSON.stringify(updateError, null, 2));
       return NextResponse.json(
-        { error: 'Failed to update registration windows' },
+        { 
+          error: 'Failed to update registration windows',
+          details: updateError.message,
+          code: updateError.code,
+          hint: updateError.hint,
+          fullError: updateError
+        },
         { status: 500 }
       );
+    }
+
+    console.log('[Registration] Update completed successfully');
+
+    // Fetch the updated tournament
+    const { data: updatedTournament, error: fetchError } = await supabase
+      .from('tournaments')
+      .select('id, name, registration_opens_at, registration_closes_at, round_1_start, round_2_start, round_3_start, round_4_start, updated_at')
+      .eq('id', params.id)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching updated tournament:', fetchError);
+      // Update succeeded but fetch failed - still count as success
+      console.log('[Registration] Update was successful despite fetch error');
     }
 
     // Auto-calculate competition registration times based on round tee times

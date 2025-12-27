@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import RequireAuth from '@/components/RequireAuth';
+import { usePageBackground } from '@/hooks/usePageBackground';
 import styles from './leaderboards.module.css';
 import { 
   isLive, 
@@ -74,6 +75,7 @@ interface Scorecard {
 
 export default function LeaderboardsPage() {
   const router = useRouter();
+  const backgroundSettings = usePageBackground('leaderboards_page_background');
   const [viewToggle, setViewToggle] = useState<'inplay' | 'tournament' | 'livestats'>('inplay');
   const [selectedCompetition, setSelectedCompetition] = useState<string>('');
   const [competitions, setCompetitions] = useState<any[]>([]);
@@ -268,14 +270,17 @@ export default function LeaderboardsPage() {
       tournaments.forEach((tournament: any) => {
         if (tournament.competitions && tournament.competitions.length > 0) {
           tournament.competitions.forEach((comp: any) => {
-            allCompetitions.push({
-              ...comp,
-              tournamentName: tournament.name,
-              tournamentSlug: tournament.slug,
-              tournamentLocation: tournament.location,
-              tournamentStartDate: tournament.start_date,
-              tournamentEndDate: tournament.end_date
-            });
+            // Only include InPlay competitions (exclude ONE 2 ONE challenges)
+            if (comp.competition_format !== 'one2one' && comp.competition_type_id) {
+              allCompetitions.push({
+                ...comp,
+                tournamentName: tournament.name,
+                tournamentSlug: tournament.slug,
+                tournamentLocation: tournament.location,
+                tournamentStartDate: tournament.start_date,
+                tournamentEndDate: tournament.end_date
+              });
+            }
           });
         }
       });
@@ -403,8 +408,12 @@ export default function LeaderboardsPage() {
       const response = await fetch(`/api/tournaments/${encodeURIComponent(tournamentSlug)}/tee-times`);
       
       if (!response.ok) {
-        console.error('❌ Tee times fetch failed:', response.status, response.statusText);
-        throw new Error('Failed to fetch tee times');
+        if (response.status === 404) {
+          console.warn('⚠️ Tee times API not yet implemented');
+          alert('Tee times feature coming soon!');
+          return;
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -413,7 +422,10 @@ export default function LeaderboardsPage() {
       setShowTeeTimes(true);
     } catch (error) {
       console.error('❌ Error loading tee times:', error);
-      alert('Failed to load tee times. Please try again.');
+      // Don't alert for 404s - they're expected until API is built
+      if (error instanceof Error && !error.message.includes('404')) {
+        alert('Failed to load tee times. Please try again.');
+      }
     } finally {
       setTeeTimesLoading(false);
     }
@@ -746,12 +758,18 @@ export default function LeaderboardsPage() {
 
   return (
     <RequireAuth>
-      <main style={{ 
-        maxWidth: '1400px', 
-        margin: '0 auto', 
-        padding: '20px',
-        minHeight: '100vh'
-      }}>
+      <main 
+        className={styles.container}
+        style={{ 
+          '--bg-image': `url(${backgroundSettings.backgroundImage})`,
+          '--bg-opacity': backgroundSettings.opacity,
+          '--bg-overlay': backgroundSettings.overlay,
+          maxWidth: '1400px', 
+          margin: '0 auto', 
+          padding: '20px',
+          minHeight: '100vh'
+        } as React.CSSProperties}
+      >
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(min(350px, 100%), 1fr))',

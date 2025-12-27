@@ -141,7 +141,7 @@ export default function TournamentLifecyclePage() {
         const sorted = sortTournamentsByPriority(data.tournaments);
         setTournaments(sorted);
         
-        console.log('[Lifecycle UI] Active tournaments:', sorted.filter(t => ['in_progress', 'registration_open', 'upcoming'].includes(t.status)).length);
+        console.log('[Lifecycle UI] Active tournaments:', sorted.filter(t => ['draft', 'in_progress', 'registration_open', 'reg_open', 'upcoming'].includes(t.status)).length);
         console.log('[Lifecycle UI] Completed tournaments:', sorted.filter(t => ['completed', 'cancelled'].includes(t.status)).length);
       } else {
         console.error('[Lifecycle UI] Failed to fetch tournaments:', res.status, res.statusText);
@@ -338,7 +338,7 @@ export default function TournamentLifecyclePage() {
       ) : (
         <>
           {/* Active Tournaments Section */}
-          {tournaments.some(t => ['in_progress', 'registration_open', 'upcoming'].includes(t.status)) && (
+          {tournaments.some(t => ['draft', 'in_progress', 'registration_open', 'reg_open', 'upcoming'].includes(t.status)) && (
             <>
               <div style={{ 
                 marginBottom: '16px', 
@@ -356,7 +356,7 @@ export default function TournamentLifecyclePage() {
               </div>
               <div className={styles.grid}>
                 {tournaments
-                  .filter(t => ['in_progress', 'registration_open', 'upcoming'].includes(t.status))
+                  .filter(t => ['draft', 'in_progress', 'registration_open', 'reg_open', 'upcoming'].includes(t.status))
                   .map((tournament) => (
                     <TournamentCard 
                       key={tournament.id} 
@@ -995,7 +995,10 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
         onSuccess();
       } else {
         const data = await res.json();
-        setError(data.error || 'Failed to update registration windows');
+        const errorMsg = data.details 
+          ? `Failed to update: ${data.details}${data.hint ? ` (${data.hint})` : ''}`
+          : (data.error || 'Failed to update registration windows');
+        setError(errorMsg);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to update registration windows');

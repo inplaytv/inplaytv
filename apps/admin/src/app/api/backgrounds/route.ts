@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get('category') || 'tournaments';
     
-    // Use absolute path to web app's images folder
-    const backgroundsDir = `C:\\inplaytv - New\\apps\\web\\public\\main_images\\${category}`;
+    // All page categories use images from the tournaments folder
+    const backgroundsDir = `C:\\inplaytv - New\\apps\\web\\public\\main_images\\tournaments`;
     
     console.log('Looking for backgrounds at:', backgroundsDir);
     console.log('Category:', category);
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       const stats = fs.statSync(path.join(backgroundsDir, file));
       return {
         filename: file,
-        url: `/api/images/${category}/${file}`, // Serve from admin app's image API
+        url: `/api/images/tournaments/${file}`, // Always serve from tournaments folder
         name: file.replace(/\.[^/.]+$/, "").replace(/-/g, ' ').replace(/_/g, ' '),
         size: stats.size
       };

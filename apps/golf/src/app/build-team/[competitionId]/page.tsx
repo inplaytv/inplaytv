@@ -1,9 +1,11 @@
 'use client';
 
 import { use, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import RequireAuth from '@/components/RequireAuth';
 import InsufficientFundsModal from '@/components/InsufficientFundsModal';
+import { createClient } from '@/lib/supabaseClient';
+import { fetchCompetitionDetails, fetchAvailableGolfers, canEditEntry, getCompetitionType } from '@/lib/unified-competition';
 import styles from './build-team.module.css';
 
 interface Golfer {
@@ -50,6 +52,11 @@ interface ExistingEntry {
 export default function BuildTeamPage({ params }: { params: Promise<{ competitionId: string }> }) {
   const { competitionId } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editEntryId = searchParams.get('entryId');
+  const isEditMode = !!editEntryId;
+  const supabase = createClient();
+  
   const [competition, setCompetition] = useState<Competition | null>(null);
   const [availableGolfers, setAvailableGolfers] = useState<Golfer[]>([]);
   const [lineup, setLineup] = useState<LineupSlot[]>([
@@ -61,7 +68,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
     { slotNumber: 6, golfer: null, isCaptain: false },
   ]);
   
-  const [totalBudget] = useState(60000); // £60,000 salary cap (updated from £50,000)
+  const [totalBudget] = useState(60000); // £600 salary cap in pennies
   const [searchQuery, setSearchQuery] = useState('');
   const [salaryFilter, setSalaryFilter] = useState<'all' | 'premium' | 'mid' | 'value'>('all');
   const [sortBy, setSortBy] = useState<'salary' | 'ranking' | 'points' | 'name'>('ranking');
@@ -113,80 +120,150 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
       setLoading(true);
       setError('');
 
-      // Fetch competition details FIRST to check tournament status
-      const compRes = await fetch(`/api/competitions/${competitionId}`);
-      if (!compRes.ok) throw new Error('Failed to load competition');
-      const compData = await compRes.json();
+      // EDIT MODE: Validate entry can be edited
+      let actualCompetitionId = competitionId;
+      if (isEditMode && editEntryId) {
+        const canEdit = await canEditEntry(editEntryId, supabase);
+        if (!canEdit) {
+          setError('Cannot edit - competition has already started. Teams cannot be modified after tee-off.');
+          setLoading(false);
+          setTimeout(() => router.push('/entries'), 3000);
+          return;
+        }
+
+        // Get the competition_id from the entry (unified system)
+        const { data: entryData, error: entryCheckError } = await supabase
+          .from('competition_entries')
+          .select('competition_id')
+          .eq('id', editEntryId)
+          .single();
+        
+        if (entryCheckError || !entryData) {
+          throw new Error('Failed to load entry details');
+        }
+
+        actualCompetitionId = entryData.competition_id;
+      }
+
+      // Use unified function to fetch competition details
+      const compData = await fetchCompetitionDetails(actualCompetitionId, supabase);
+      if (!compData) {
+        throw new Error('Failed to load competition');
+      }
       
-      // ========================================
-      // ARCHITECTURAL RULE: COMPETITION REGISTRATION IS INDEPENDENT OF TOURNAMENT STATUS
-      // 
-      // ONLY check competition.reg_close_at for registration validation
-      // NEVER check tournament.start_date or tournament.end_date
-      // 
-      // Rationale:
-      //   - Different competition types have different registration windows
-      //   - ONE 2 ONE: Open throughout entire tournament (closes at tournament end)
-      //   - THE WEEKENDER: Open until R3 starts (closes before R3)
-      //   - Final Strike: Open until R4 starts (closes before R4)
-      //   - Full Course/First Strike/Beat Cut: Close before R1
-      // 
-      // Users MUST be able to build teams if competition.reg_close_at hasn't passed,
-      // regardless of whether the tournament has started or is in progress
-      // ========================================
+      // Fetch tournament name separately
+      const { data: tournament } = await supabase
+        .from('tournaments')
+        .select('name')
+        .eq('id', compData.tournamentId)
+        .single();
+      
+      // Map UnifiedCompetition to Competition interface expected by component
+      const mappedCompetition: Competition = {
+        id: compData.id,
+        tournament_id: compData.tournamentId,
+        competition_type_name: compData.name,
+        tournament_name: tournament?.name || '',
+        entry_fee_pennies: compData.entryFeePennies,
+        entrants_cap: compData.entrantsCap || 0,
+        reg_open_at: compData.regOpenAt || null,
+        reg_close_at: compData.regCloseAt || null,
+        is_one_2_one: compData.type === 'one2one',
+      };
       
       // CRITICAL: Check if THIS COMPETITION's registration deadline has passed
-      // Each competition has its own reg_close_at time (e.g., One-2-One stays open during tournament)
-      if (compData.reg_close_at) {
+      if (mappedCompetition.reg_close_at) {
         const now = new Date();
-        const regClose = new Date(compData.reg_close_at);
-        if (now >= regClose) {
+        const regClose = new Date(mappedCompetition.reg_close_at);
+        if (now >= regClose && !isEditMode) { // Allow edits even after reg closes (if before tee-off)
           setError('Registration is closed - the deadline for this competition has passed.');
           setLoading(false);
-          setTimeout(() => {
-            router.push('/tournaments');
-          }, 3000);
+          setTimeout(() => router.push('/tournaments'), 3000);
           return;
         }
       }
 
-      // Check user's wallet balance
-      const balanceRes = await fetch('/api/user/balance');
-      let userBalanceAmount = 0;
-      
-      if (balanceRes.ok) {
-        const balanceData = await balanceRes.json();
-        userBalanceAmount = balanceData.balance_pennies || 0;
-        setUserBalance(userBalanceAmount);
-      }
+      // Check user's wallet balance (skip in edit mode - already paid)
+      if (!isEditMode) {
+        const balanceRes = await fetch('/api/user/balance');
+        let userBalanceAmount = 0;
+        
+        if (balanceRes.ok) {
+          const balanceData = await balanceRes.json();
+          userBalanceAmount = balanceData.balance_pennies || 0;
+          setUserBalance(userBalanceAmount);
+        }
 
-      // Check if user has enough balance
-      if (userBalanceAmount < compData.entry_fee_pennies) {
-        setInsufficientFunds(true);
-        setRequiredAmount(compData.entry_fee_pennies);
-        setShowInsufficientModal(true);
-        setError(`Insufficient funds. You need £${(compData.entry_fee_pennies / 100).toFixed(2)} but have £${(userBalanceAmount / 100).toFixed(2)} in your wallet.`);
-        setLoading(false);
-        return;
+        // Check if user has enough balance
+        if (userBalanceAmount < mappedCompetition.entry_fee_pennies) {
+          setInsufficientFunds(true);
+          setRequiredAmount(mappedCompetition.entry_fee_pennies);
+          setShowInsufficientModal(true);
+          setError(`Insufficient funds. You need £${(mappedCompetition.entry_fee_pennies / 100).toFixed(2)} but have £${(userBalanceAmount / 100).toFixed(2)} in your wallet.`);
+          setLoading(false);
+          return;
+        }
       }
       
       // Set competition data
-      setCompetition(compData);
+      setCompetition(mappedCompetition);
+      console.log('🎯 Competition data set:', mappedCompetition);
 
-      // Fetch available golfers for this competition
-      const golfersRes = await fetch(`/api/competitions/${competitionId}/golfers`);
-      if (!golfersRes.ok) throw new Error('Failed to load golfers');
-      const golfersData = await golfersRes.json();
-      console.log('Fetched golfers:', golfersData.length, golfersData);
-      setAvailableGolfers(golfersData);
+      // Use unified function to fetch available golfers (use actualCompetitionId for correct golfer lookup)
+      let golfersData: Golfer[] = [];
+      try {
+        golfersData = await fetchAvailableGolfers(actualCompetitionId, supabase);
+        setAvailableGolfers(golfersData);
+      } catch (golferErr: any) {
+        // Handle missing golfer group error
+        if (golferErr.message?.includes('No golfer group')) {
+          setError('This competition is not yet configured. No golfer group has been assigned by the administrator.');
+          setAvailableGolfers([]);
+          setLoading(false);
+          return;
+        }
+        throw golferErr; // Re-throw other errors
+      }
 
-      // Check if user has an existing entry
-      const entryRes = await fetch(`/api/competitions/${competitionId}/my-entry`);
-      if (entryRes.ok) {
-        const existingEntry: ExistingEntry = await entryRes.json();
-        if (existingEntry && existingEntry.status === 'draft') {
-          // Load existing draft entry
+      // EDIT MODE: Load existing entry
+      if (isEditMode && editEntryId) {
+        console.log('📝 Loading entry for edit:', editEntryId);
+        const { data: existingEntry, error: entryError } = await supabase
+          .from('competition_entries')
+          .select(`
+            id,
+            entry_name,
+            total_salary,
+            captain_golfer_id,
+            status,
+            picks:entry_picks(
+              golfer_id,
+              slot_position,
+              salary_at_selection
+            )
+          `)
+          .eq('id', editEntryId)
+          .single();
+        
+        console.log('📝 Entry query result:', { existingEntry, entryError });
+        
+        if (entryError) {
+          console.error('❌ Failed to load entry:', entryError);
+          throw new Error('Failed to load entry: ' + entryError.message);
+        }
+        if (existingEntry) {
+          console.log('✅ Loading entry into lineup:', existingEntry);
+          setError(''); // Clear any previous errors
           loadExistingEntry(existingEntry, golfersData);
+        }
+      } else {
+        // CREATE MODE: Check if user has an existing draft entry
+        const entryRes = await fetch(`/api/competitions/${competitionId}/my-entry`);
+        if (entryRes.ok) {
+          const existingEntry: ExistingEntry = await entryRes.json();
+          if (existingEntry && existingEntry.status === 'draft') {
+            loadExistingEntry(existingEntry, golfersData);
+          }
         }
       }
 
@@ -216,10 +293,10 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
     setLineup(newLineup);
   }
 
-  // Calculate budget stats
+  // Calculate budget stats (with null checks)
   const usedBudget = lineup.reduce((sum, slot) => sum + (slot.golfer?.salary || 0), 0);
-  const remainingBudget = totalBudget - usedBudget;
-  const budgetPercentage = (usedBudget / totalBudget) * 100;
+  const remainingBudget = competition ? (totalBudget - usedBudget) : 0;
+  const budgetPercentage = competition ? ((usedBudget / totalBudget) * 100) : 0;
   const playersSelected = lineup.filter(slot => slot.golfer !== null).length;
   const averageSalary = playersSelected > 0 ? usedBudget / playersSelected : 0;
   const captain = lineup.find(slot => slot.isCaptain);
@@ -459,7 +536,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
     }
   };
 
-  // Submit lineup - Navigate to confirmation page
+  // Submit lineup - Navigate to confirmation page OR directly update if editing
   const submitLineup = async () => {
     if (playersSelected < 6) {
       alert('Please complete your lineup by selecting 6 golfers.');
@@ -470,16 +547,12 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
       return;
     }
 
-    if (insufficientFunds) {
+    if (!isEditMode && insufficientFunds) {
       alert('Insufficient funds. Please add money to your wallet to continue.');
       return;
     }
 
     try {
-      // TEMPORARY: Skip activation for now due to 500 error
-      // TODO: Fix activation route
-      console.log('⏭️ Skipping activation temporarily');
-
       // Prepare lineup data
       const picks = lineup
         .filter(slot => slot.golfer !== null)
@@ -496,15 +569,55 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
         picks,
       };
 
+      // EDIT MODE: Update existing entry via PUT API
+      if (isEditMode && editEntryId) {
+        setSaving(true);
+        setError('');
+
+        const response = await fetch(`/api/entries/${editEntryId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(lineupData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update entry');
+        }
+
+        // Clear lineup to prevent beforeunload warning
+        setLineup([
+          { slotNumber: 1, golfer: null, isCaptain: false },
+          { slotNumber: 2, golfer: null, isCaptain: false },
+          { slotNumber: 3, golfer: null, isCaptain: false },
+          { slotNumber: 4, golfer: null, isCaptain: false },
+          { slotNumber: 5, golfer: null, isCaptain: false },
+          { slotNumber: 6, golfer: null, isCaptain: false },
+        ]);
+
+        alert('Entry updated successfully!');
+        router.push('/entries');
+        return;
+      }
+
+      // CREATE MODE: Store in sessionStorage and navigate to confirmation page
+      // TEMPORARY: Skip activation for now due to 500 error
+      // TODO: Fix activation route
+      console.log('⏭️ Skipping activation temporarily');
+
       // Store lineup in sessionStorage for confirmation page
       sessionStorage.setItem(`lineup_${competitionId}`, JSON.stringify(lineupData));
 
       // Navigate to confirmation page
       router.push(`/build-team/${competitionId}/confirm`);
     } catch (err: any) {
-      console.error('Navigation error:', err);
-      setError(err.message || 'Failed to proceed to confirmation');
-      alert(err.message || 'Failed to proceed to confirmation');
+      console.error(isEditMode ? 'Update error:' : 'Navigation error:', err);
+      setError(err.message || (isEditMode ? 'Failed to update entry' : 'Failed to proceed to confirmation'));
+      alert(err.message || (isEditMode ? 'Failed to update entry' : 'Failed to proceed to confirmation'));
+    } finally {
+      if (isEditMode) {
+        setSaving(false);
+      }
     }
   };
 
@@ -682,21 +795,21 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
               <div style={{ 
                 fontSize: '24px', 
                 fontWeight: 700,
-                color: budgetStatus.color,
+                color: budgetStatus?.color || '#10b981',
                 marginBottom: '8px'
               }}>
-                £{remainingBudget.toLocaleString()} left
+                £{((remainingBudget || 0) / 100).toLocaleString()} left
               </div>
               <div style={{
                 fontSize: '13px',
                 fontWeight: 600,
-                color: budgetStatus.color,
+                color: budgetStatus?.color || '#10b981',
                 marginBottom: '12px'
               }}>
                 {playersSelected === 6 ? 'Your Score Card Is Full' :
-                 budgetStatus.label === 'Over Budget' ? 'Over Budget!' : 
-                 budgetPercentage >= 80 ? 'Budget Getting Full' :
-                 budgetPercentage >= 50 ? 'Budget Half Used' :
+                 budgetStatus?.label === 'Over Budget' ? 'Over Budget!' : 
+                 (budgetPercentage || 0) >= 80 ? 'Budget Getting Full' :
+                 (budgetPercentage || 0) >= 50 ? 'Budget Half Used' :
                  'Budget Available'}
               </div>
               <div style={{ 
@@ -704,7 +817,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                 color: 'rgba(255,255,255,0.6)',
                 marginBottom: '8px'
               }}>
-                Used: £{usedBudget.toLocaleString()}
+                Used: £{((usedBudget || 0) / 100).toLocaleString()}
               </div>
 
               {/* Progress Bar with Player Count */}
@@ -722,10 +835,10 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                   overflow: 'hidden'
                 }}>
                   <div style={{
-                    width: `${Math.min(budgetPercentage, 100)}%`,
+                    width: `${Math.min(budgetPercentage || 0, 100)}%`,
                     height: '100%',
                     background: playersSelected === 6 ? '#10b981' : 
-                                playersSelected >= 3 ? budgetStatus.color : '#3b82f6',
+                                playersSelected >= 3 ? budgetStatus?.color || '#3b82f6' : '#3b82f6',
                     transition: 'width 0.3s ease, background 0.3s ease'
                   }}></div>
                 </div>
@@ -757,7 +870,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                 fontWeight: 600,
                 color: 'rgba(255,255,255,0.8)'
               }}>
-                {budgetPercentage.toFixed(0)}%
+                {(budgetPercentage || 0).toFixed(0)}%
               </div>
             </div>
 
@@ -776,14 +889,14 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                   color: '#ef4444',
                   marginBottom: '8px'
                 }}>
-                  Budget Almost Full ({budgetPercentage.toFixed(0)}%)
+                  Budget Almost Full ({(budgetPercentage || 0).toFixed(0)}%)
                 </div>
                 <div style={{
                   fontSize: '10px',
                   color: 'rgba(255,255,255,0.7)',
                   marginBottom: '8px'
                 }}>
-                  £{remainingBudget.toLocaleString()} remaining for {spotsLeft} player{spotsLeft !== 1 ? 's' : ''}
+                  £{(remainingBudget || 0).toLocaleString()} remaining for {spotsLeft} player{spotsLeft !== 1 ? 's' : ''}
                 </div>
                 <div style={{
                   fontSize: '10px',
@@ -820,17 +933,17 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                 <div style={{
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: budgetStatus.color,
+                  color: budgetStatus?.color || '#10b981',
                   marginBottom: '8px'
                 }}>
-                  💰 Budget {budgetPercentage >= 90 ? 'Almost Full' : budgetPercentage >= 70 ? 'Well Used' : 'Available'} ({budgetPercentage.toFixed(0)}%)
+                  💰 Budget {(budgetPercentage || 0) >= 90 ? 'Almost Full' : (budgetPercentage || 0) >= 70 ? 'Well Used' : 'Available'} ({(budgetPercentage || 0).toFixed(0)}%)
                 </div>
                 <div style={{
                   fontSize: '10px',
                   color: 'rgba(255,255,255,0.6)',
                   marginBottom: '14px'
                 }}>
-                  £{remainingBudget.toLocaleString()} remaining for {spotsLeft} player{spotsLeft !== 1 ? 's' : ''}
+                  £{(remainingBudget || 0).toLocaleString()} remaining for {spotsLeft} player{spotsLeft !== 1 ? 's' : ''}
                 </div>
 
                 {/* Top Tier Players (£10k-£12k) */}
@@ -947,7 +1060,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                         }}
                         onClick={() => addGolfer(golfer)}
                       >
-                        {golfer.full_name} (£{golfer.salary.toLocaleString()})
+                        {golfer.full_name} (£{golfer.salary?.toLocaleString() || '0'})
                       </div>
                     ))}
                   </div>
@@ -987,13 +1100,13 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Budget Used</span>
                   <span style={{ fontSize: '14px', fontWeight: 600, color: '#fbbf24' }}>
-                    £{usedBudget.toLocaleString()}
+                    £{((usedBudget || 0) / 100).toLocaleString()}
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Avg. Cost per Player</span>
                   <span style={{ fontSize: '14px', fontWeight: 600, color: '#6366f1' }}>
-                    £{playersSelected > 0 ? Math.round(averageSalary).toLocaleString() : '0'}
+                    £{playersSelected > 0 ? Math.round((averageSalary || 0) / 100).toLocaleString() : '0'}
                   </span>
                 </div>
                 {spotsLeft > 0 && (
@@ -1004,7 +1117,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                       fontWeight: 600, 
                       color: avgPerSpot < 5000 ? '#ef4444' : avgPerSpot < 7000 ? '#fbbf24' : '#10b981'
                     }}>
-                      £{Math.floor(avgPerSpot).toLocaleString()}
+                      £{Math.floor((avgPerSpot || 0) / 100).toLocaleString()}
                     </span>
                   </div>
                 )}
@@ -1053,7 +1166,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                     </div>
                     <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.15)' }}></div>
                     <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
-                      Max: <span style={{ fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>{competition.entrants_cap.toLocaleString()}</span> Entries
+                      Max: <span style={{ fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>{(competition.entrants_cap || 0).toLocaleString()}</span> Entries
                     </div>
                   </div>
                   <div style={{
@@ -1210,7 +1323,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                             color: '#fbbf24',
                             marginRight: '4px'
                           }}>
-                            £{golfer.salary.toLocaleString()}
+                            £{((golfer.salary || 0) / 100).toLocaleString()}
                           </div>
                           {isExpensive && !isSelected && (
                             <div style={{
@@ -1401,7 +1514,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                             color: '#fbbf24',
                             marginRight: '6px'
                           }}>
-                            £{slot.golfer.salary.toLocaleString()}
+                            £{((slot.golfer.salary || 0) / 100).toLocaleString()}
                           </div>
                           {!slot.isCaptain && (
                             <button
@@ -1550,6 +1663,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                 >
                   {saving ? 'Processing...' : 
                    isOverBudget ? 'Over Budget - Remove Players' :
+                   isEditMode ? 'Update Entry' :
                    'Purchase Scorecard'}
                 </button>
               )}

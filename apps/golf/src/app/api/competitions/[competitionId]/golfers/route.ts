@@ -90,46 +90,19 @@ export async function GET(
     const { competitionId } = await params;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Try tournament_competitions first (regular competitions)
+    // Fetch competition from tournament_competitions (supports both InPlay and ONE 2 ONE)
     const { data: competition, error: compError } = await supabase
       .from('tournament_competitions')
-      .select('tournament_id, assigned_golfer_group_id')
+      .select('tournament_id, assigned_golfer_group_id, competition_format')
       .eq('id', competitionId)
       .maybeSingle();
 
-    console.log('🔵 GOLFERS API - Competition data:', { competitionId, competition, compError });
-
-    let tournamentId = competition?.tournament_id;
-    let golferGroupId = competition?.assigned_golfer_group_id;
-
-    // If not found, try competition_instances (ONE 2 ONE)
-    if (!tournamentId) {
-      const { data: instance, error: instanceError } = await supabase
-        .from('competition_instances')
-        .select('tournament_id, template_id')
-        .eq('id', competitionId)
-        .maybeSingle();
-      
-      console.log('🔵 GOLFERS API - Instance data:', { instance, instanceError });
-      
-      tournamentId = instance?.tournament_id;
-      
-      // ONE 2 ONE instances inherit golfer group from their template competition
-      if (instance?.template_id) {
-        const { data: templateComp } = await supabase
-          .from('tournament_competitions')
-          .select('assigned_golfer_group_id')
-          .eq('id', instance.template_id)
-          .maybeSingle();
-        
-        golferGroupId = templateComp?.assigned_golfer_group_id;
-        console.log('🔵 GOLFERS API - Inherited golfer group from template:', golferGroupId);
-      }
-    }
-
-    if (!tournamentId) {
+    if (!competition?.tournament_id) {
       return NextResponse.json([]);
     }
+
+    const tournamentId = competition.tournament_id;
+    const golferGroupId = competition.assigned_golfer_group_id;
 
     // Get golfers for tournament
     let golfersQuery = supabase
@@ -158,8 +131,6 @@ export async function GET(
     // CRITICAL FIX: Filter by golfer group if competition has one assigned
     let filteredData = data || [];
     if (golferGroupId) {
-      console.log(`🎯 Filtering ${filteredData.length} golfers by group: ${golferGroupId}`);
-      
       // Get golfers in this group
       const { data: groupMembers, error: gmError } = await supabase
         .from('golfer_group_members')
@@ -171,24 +142,18 @@ export async function GET(
       } else if (groupMembers) {
         const groupGolferIds = new Set(groupMembers.map(m => m.golfer_id));
         filteredData = filteredData.filter(g => groupGolferIds.has(g.golfer_id));
-        console.log(`✅ Filtered to ${filteredData.length} golfers in group`);
       }
-    } else {
-      console.warn(`⚠️ No golfer group assigned to competition ${competitionId}, showing all ${filteredData.length} tournament golfers`);
     }
 
-    // Deduplicate golfers (safety check in case duplicates exist in database)
+    // Deduplicate golfers (safety check)
     const seenGolferIds = new Set<string>();
     const deduplicatedData = filteredData.filter((item: any) => {
       if (seenGolferIds.has(item.golfer_id)) {
-        console.warn(`⚠️ Duplicate golfer detected for tournament ${tournamentId}: ${item.golfer_id}`);
         return false;
       }
       seenGolferIds.add(item.golfer_id);
       return true;
     });
-
-    console.log(`📊 Golfers: ${data?.length || 0} total, ${filteredData.length} in group, ${deduplicatedData.length} unique`);
 
     // Try to get salaries from tournament_golfer_salaries if they exist
     const golferIds = deduplicatedData.map((m: any) => m.golfer_id).filter(Boolean);

@@ -45,6 +45,8 @@ export async function POST(request: NextRequest) {
       external_id,
       image_url,
       auto_manage_timing = true, // Default to auto-manage
+      autoCreateCompetitions = false,
+      defaultCompetitions = [],
     } = body;
 
     if (!name || !slug || !start_date || !end_date) {
@@ -95,7 +97,34 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    return NextResponse.json(data);
+    // Auto-create competitions if enabled
+    let createdCompetitionsCount = 0;
+    if (autoCreateCompetitions && defaultCompetitions.length > 0) {
+      const competitionsToInsert = defaultCompetitions.map((comp: any) => ({
+        tournament_id: data.id,
+        competition_type_id: comp.competition_type_id,
+        entry_fee_pennies: comp.entry_fee_pennies,
+        entrants_cap: comp.entrants_cap,
+        admin_fee_percent: comp.admin_fee_percent,
+        status: 'draft', // Start in draft, will be updated by lifecycle manager
+      }));
+
+      const { data: compsData, error: compsError } = await adminClient
+        .from('tournament_competitions')
+        .insert(competitionsToInsert)
+        .select();
+
+      if (compsError) {
+        console.error('Failed to create competitions:', compsError);
+      } else {
+        createdCompetitionsCount = compsData?.length || 0;
+      }
+    }
+
+    return NextResponse.json({ 
+      ...data, 
+      competitionsCreated: createdCompetitionsCount 
+    });
   } catch (error: any) {
     console.error('POST tournament error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

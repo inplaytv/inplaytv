@@ -160,7 +160,6 @@ export default function One2OnePage() {
     const tournamentId = tournamentIdFromChallenge || tournament?.id;
     
     if (!tournamentId) {
-      console.error('❌ No tournament selected');
       setError('Please select a tournament first');
       return;
     }
@@ -168,7 +167,6 @@ export default function One2OnePage() {
     setJoiningTemplate(templateOrInstanceId);
     
     try {
-      // Call API to find or create an instance
       const response = await fetch('/api/one-2-one/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -178,19 +176,15 @@ export default function One2OnePage() {
           entryFeePennies: entryFee
         })
       });
-
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('❌ Join API error:', errorData);
         throw new Error(errorData.error || 'Failed to join competition');
       }
 
       const data = await response.json();
-      
-      // Redirect to build-team page with the instance ID
       router.push(`/build-team/${data.instanceId}`);
     } catch (err) {
-      console.error('Error joining competition:', err);
       setError(err instanceof Error ? err.message : 'Failed to join competition');
       setJoiningTemplate(null);
     }
@@ -219,32 +213,33 @@ export default function One2OnePage() {
   }, [currentTime]);
 
   useEffect(() => {
-    console.log('🔵 [slug] page loading for slug:', slug);
-    
     async function fetchData() {
       try {
-        console.log('🔵 Fetching tournaments and templates...');
-        
         // Fetch all tournaments for the selector
         const allTournamentsResponse = await fetch('/api/tournaments?status=active');
         if (allTournamentsResponse.ok) {
           const allTournamentsData = await allTournamentsResponse.json();
           const tournaments = allTournamentsData.tournaments || [];
-          console.log('🔵 Loaded tournaments:', tournaments.length);
           setAllTournaments(tournaments);
         }
 
-        // Fetch tournament data for templates but DON'T auto-select it
+        // Fetch tournament data for templates
         const response = await fetch(`/api/tournaments/${slug}/one-2-one`);
         if (!response.ok) throw new Error('Failed to fetch ONE 2 ONE data');
         
         const data = await response.json();
-        console.log('🔵 Loaded templates:', data.templates?.length);
-        console.log('🔵 Tournament data:', data.tournament);
         
-        // Don't auto-select - let user choose tournament from selector
-        // setTournament(data.tournament);
-        setTemplates(data.templates || []);        // Initialize customEntryFees with template defaults
+        // Auto-select tournament from URL
+        setTournament(data.tournament);
+        setTemplates(data.templates || []);
+        
+        // If all templates are closed, show error message
+        if (data.allClosed && data.templates?.length > 0) {
+          setError(`Registration has closed for all rounds in ${data.tournament?.name || 'this tournament'}. Please select a different tournament.`);
+          return;
+        }
+        
+        // Initialize customEntryFees with template defaults
         const initialFees: Record<string, number> = {};
         (data.templates || []).forEach((template: One2OneTemplate) => {
           initialFees[template.id] = template.entry_fee_pennies;
@@ -354,53 +349,6 @@ export default function One2OnePage() {
           <span>ONE 2 ONE</span>
         </div>
 
-        {/* ONE 2 ONE Hub Card */}
-        <div className={styles.one2OneHubCard}>
-          <div className={styles.hubCardHeader}>
-            <div className={styles.hubCardIcon}>
-              <i className="fas fa-swords"></i>
-            </div>
-            <div className={styles.hubCardTitle}>
-              <h3>ONE 2 ONE MATCHMAKING</h3>
-              <p>Head-to-head battles • Winner takes all • Auto-matched opponents</p>
-            </div>
-            <div className={styles.hubCardCta}>
-              <span>View All ONE 2 ONE Competitions</span>
-              <i className="fas fa-arrow-right"></i>
-            </div>
-          </div>
-          
-          <div className={styles.hubCardStats}>
-            <div className={styles.hubStat}>
-              <div className={styles.hubStatIcon}>
-                <i className="fas fa-trophy"></i>
-              </div>
-              <div className={styles.hubStatContent}>
-                <span className={styles.hubStatLabel}>Winner Takes All</span>
-                <span className={styles.hubStatValue}>Beat your opponent and take home 90% of the combined entry fees</span>
-              </div>
-            </div>
-            <div className={styles.hubStat}>
-              <div className={styles.hubStatIcon}>
-                <i className="fas fa-sync-alt"></i>
-              </div>
-              <div className={styles.hubStatContent}>
-                <span className={styles.hubStatLabel}>Auto-Matching</span>
-                <span className={styles.hubStatValue}>First-come-first-served matching • No skill-based pairing</span>
-              </div>
-            </div>
-            <div className={styles.hubStat}>
-              <div className={styles.hubStatIcon}>
-                <i className="fas fa-shield-alt"></i>
-              </div>
-              <div className={styles.hubStatContent}>
-                <span className={styles.hubStatLabel}>Fair Play</span>
-                <span className={styles.hubStatValue}>If no opponent joins, you'll get a full refund automatically</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Modern Dropdown Navigation */}
         <div style={{ marginBottom: '2rem', position: 'relative', zIndex: 100 }}>
           {/* Menu Button */}
@@ -485,19 +433,21 @@ export default function One2OnePage() {
               
               {/* Dropdown Content */}
               <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 1rem - 475px)',
-                left: 0,
-                right: 0,
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '90%',
+                maxWidth: '1000px',
                 background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(31, 41, 55, 0.98))',
                 border: '2px solid rgba(16, 185, 129, 0.3)',
                 borderRadius: '20px',
-                padding: '2rem',
+                padding: 'clamp(1rem, 3vw, 2rem)',
                 zIndex: 100,
                 boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(16, 185, 129, 0.1)',
                 backdropFilter: 'blur(20px)',
                 animation: 'slideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                maxHeight: '80vh',
+                maxHeight: '85vh',
                 overflowY: 'auto'
               }}>
                 {/* Close Button */}
@@ -596,44 +546,72 @@ export default function One2OnePage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
                     {templates.map((template) => {
                       const isSelected = selectedTemplate?.id === template.id;
+                      const isClosed = !template.is_open;
                       
                       return (
                         <button
                           key={template.id}
                           onClick={() => {
-                            setSelectedTemplate(template);
-                            setIsConfirmed(false);
+                            if (!isClosed) {
+                              setSelectedTemplate(template);
+                              setIsConfirmed(false);
+                            }
                           }}
+                          disabled={isClosed}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             padding: '1rem',
-                            background: isSelected 
-                              ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2))' 
-                              : 'rgba(255,255,255,0.03)',
-                            border: isSelected 
-                              ? '2px solid #fbbf24' 
-                              : '1px solid rgba(255,255,255,0.08)',
+                            background: isClosed 
+                              ? 'rgba(255,255,255,0.02)'
+                              : isSelected 
+                                ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2))' 
+                                : 'rgba(255,255,255,0.03)',
+                            border: isClosed
+                              ? '1px solid rgba(255,255,255,0.05)'
+                              : isSelected 
+                                ? '2px solid #fbbf24' 
+                                : '1px solid rgba(255,255,255,0.08)',
                             borderRadius: '12px',
-                            cursor: 'pointer',
+                            cursor: isClosed ? 'not-allowed' : 'pointer',
                             transition: 'all 0.2s',
                             width: '100%',
-                            textAlign: 'left'
+                            textAlign: 'left',
+                            opacity: isClosed ? 0.5 : 1,
+                            position: 'relative'
                           }}
                           onMouseEnter={(e) => {
-                            if (!isSelected) {
+                            if (!isSelected && !isClosed) {
                               e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
                               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
                             }
                           }}
                           onMouseLeave={(e) => {
-                            if (!isSelected) {
+                            if (!isSelected && !isClosed) {
                               e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
                               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
                             }
                           }}
                         >
+                          {/* CLOSED Badge */}
+                          {isClosed && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '8px',
+                              right: '8px',
+                              background: '#ef4444',
+                              color: '#fff',
+                              fontSize: '0.65rem',
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              letterSpacing: '0.5px'
+                            }}>
+                              CLOSED
+                            </div>
+                          )}
+                          
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <div style={{
                               width: '40px',
@@ -672,7 +650,7 @@ export default function One2OnePage() {
                               </div>
                             </div>
                           </div>
-                          {isSelected && (
+                          {isSelected && !isClosed && (
                             <i className="fas fa-check-circle" style={{ 
                               color: '#fbbf24', 
                               fontSize: '1.2rem' 

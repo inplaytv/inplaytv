@@ -3,9 +3,18 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import RequireAuth from '@/components/RequireAuth';
+import { createClient } from '@/lib/supabaseClient';
+import { canEditEntry } from '@/lib/unified-competition';
+import { usePageBackground } from '@/hooks/usePageBackground';
 import styles from './entries.module.css';
 
 export const dynamic = 'force-dynamic';
+
+interface BackgroundSettings {
+  backgroundImage: string;
+  opacity: number;
+  overlay: number;
+}
 
 interface Entry {
   id: string;
@@ -15,7 +24,6 @@ interface Entry {
   entry_fee_pennies?: number; // For ONE 2 ONE
   admin_fee_percent?: number; // For ONE 2 ONE
   competition_id: string;
-  instance_id?: string; // For ONE 2 ONE competitions
   tournament_competitions: {
     id: string;
     start_date: string;
@@ -64,6 +72,7 @@ interface CompetitionEntrant {
     };
   }export default function EntriesPage() {
   const router = useRouter();
+  const supabase = createClient();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
@@ -77,9 +86,13 @@ interface CompetitionEntrant {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [filterType, setFilterType] = useState<string | null>(null);
+  const [editableEntries, setEditableEntries] = useState<Set<string>>(new Set());
   
   // Track if we've done the initial auto-selection
   const hasAutoSelectedRef = useRef(false);
+  
+  // Get background settings for this page
+  const backgroundSettings = usePageBackground('entries_page_background');
 
   useEffect(() => {
     // Check URL for filter parameter
@@ -116,7 +129,7 @@ interface CompetitionEntrant {
     if (selectedTournamentId && entries.length > 0) {
       const tournamentEntries = entries.filter(e => e.tournament_competitions?.tournaments?.name === selectedTournamentId);
       if (tournamentEntries.length > 0) {
-        const compId = tournamentEntries[0].competition_id || tournamentEntries[0].instance_id;
+        const compId = tournamentEntries[0].competition_id;
         if (compId) {
           fetchCompetitionEntrants(compId);
         }
@@ -132,11 +145,34 @@ interface CompetitionEntrant {
           'Cache-Control': 'no-cache',
         }
       });
-      if (!res.ok) throw new Error('Failed to fetch entries');
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('❌ Failed to fetch entries:', res.status, errorText);
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      
       const data = await res.json();
       const fetchedEntries = data.entries || [];
       
       setEntries(fetchedEntries);
+      
+      // Check which entries can be edited (async, don't block rendering)
+      Promise.all(
+        fetchedEntries.map(async (entry: Entry) => {
+          try {
+            const canEdit = await canEditEntry(entry.id, supabase);
+            return { entryId: entry.id, canEdit };
+          } catch {
+            return { entryId: entry.id, canEdit: false };
+          }
+        })
+      ).then(results => {
+        const editableSet = new Set(
+          results.filter(r => r.canEdit).map(r => r.entryId)
+        );
+        setEditableEntries(editableSet);
+      });
       
       // Only auto-select first tournament on the very first load
       // Never change selection during polling updates
@@ -221,6 +257,21 @@ interface CompetitionEntrant {
   function closeEntryPopup() {
     setSelectedEntryId(null);
     setEntryPicks([]);
+  }
+
+  function isEntryLive(entry: Entry): boolean {
+    if (!entry.tournament_competitions) return false;
+    const now = new Date();
+    const startDate = new Date(entry.tournament_competitions.start_date);
+    const endDate = new Date(entry.tournament_competitions.end_date);
+    return now >= startDate && now <= endDate;
+  }
+
+  function isEntryCompleted(entry: Entry): boolean {
+    if (!entry.tournament_competitions) return false;
+    const now = new Date();
+    const endDate = new Date(entry.tournament_competitions.end_date);
+    return now > endDate;
   }
 
   function getStatus(entry: Entry): 'live' | 'registration_open' | 'completed' {
@@ -323,12 +374,14 @@ interface CompetitionEntrant {
 
   return (
     <RequireAuth>
-      <main style={{ 
-        maxWidth: '1400px', 
-        margin: '0 auto', 
-        padding: '20px',
-        minHeight: '100vh'
-      }}>
+      <main 
+        className={styles.container}
+        style={{ 
+          '--bg-image': `url(${backgroundSettings.backgroundImage})`,
+          '--bg-opacity': backgroundSettings.opacity,
+          '--bg-overlay': backgroundSettings.overlay
+        } as React.CSSProperties}
+      >
         {loading ? (
           <div className={styles.loading}>
             <div className={styles.spinner}></div>
@@ -727,6 +780,41 @@ interface CompetitionEntrant {
                               }}>
                                 #{entry.id.split('-')[0].toUpperCase()}
                               </span>
+                              {/* Edit Button - Only show if entry is editable */}
+                              {editableEntries.has(entry.id) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent entry selection
+                                    const compId = entry.competition_id;
+                                    router.push(`/build-team/${compId}?entryId=${entry.id}`);
+                                  }}
+                                  style={{
+                                    background: 'rgba(59, 130, 246, 0.2)',
+                                    border: '1px solid rgba(59, 130, 246, 0.4)',
+                                    borderRadius: '6px',
+                                    padding: '4px 8px',
+                                    fontSize: '10px',
+                                    fontWeight: 600,
+                                    color: '#3b82f6',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)';
+                                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.6)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
+                                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+                                  }}
+                                >
+                                  <i className="fas fa-edit" style={{ fontSize: '9px' }}></i>
+                                  EDIT
+                                </button>
+                              )}
                             </div>
                             <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500 }}>
                               {entry.tournament_competitions?.competition_types?.name || 'Competition'}
@@ -907,12 +995,12 @@ interface CompetitionEntrant {
                                 const maxPlayers = selectedEntry.tournament_competitions.max_players ?? 2;
                                 const isFull = currentPlayers >= maxPlayers;
                                 
-                                if (isFull && selectedEntry.instance_id) {
+                                if (isFull && selectedEntry.competition_id) {
                                   return (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        router.push(`/one-2-one/challenge/${selectedEntry.instance_id}`);
+                                        router.push(`/one-2-one/challenge/${selectedEntry.competition_id}`);
                                       }}
                                       style={{
                                         fontSize: '12px',

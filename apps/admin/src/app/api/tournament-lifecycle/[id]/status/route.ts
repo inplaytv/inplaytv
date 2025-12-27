@@ -12,9 +12,10 @@ const VALID_STATUSES = ['upcoming', 'registration_open', 'in_progress', 'complet
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { status } = await request.json();
 
     // Validate status
@@ -25,14 +26,17 @@ export async function POST(
       );
     }
 
+    console.log(`🔄 Updating tournament ${id} status to: ${status}`);
+
     // Get tournament details first for validation
     const { data: tournament, error: fetchError } = await supabase
       .from('tournaments')
       .select('*, tournament_golfers(count)')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (fetchError || !tournament) {
+      console.error('❌ Tournament not found:', fetchError);
       return NextResponse.json(
         { error: 'Tournament not found' },
         { status: 404 }
@@ -51,11 +55,11 @@ export async function POST(
     }
 
     if (status === 'in_progress') {
-      // Check if we have competitions
+      // Check if we have competitions (FIXED: use tournament_competitions table)
       const { count: competitionCount } = await supabase
-        .from('competitions')
+        .from('tournament_competitions')
         .select('*', { count: 'exact', head: true })
-        .eq('tournament_id', params.id);
+        .eq('tournament_id', id);
 
       if (competitionCount === 0) {
         return NextResponse.json(
@@ -72,24 +76,26 @@ export async function POST(
         status,
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
     if (updateError) {
-      console.error('Error updating tournament status:', updateError);
+      console.error('❌ Error updating tournament status:', updateError);
       return NextResponse.json(
         { error: 'Failed to update tournament status' },
         { status: 500 }
       );
     }
 
+    console.log(`✅ Tournament status updated to: ${status}`);
+
     return NextResponse.json({ 
       success: true,
       tournament: updatedTournament 
     });
   } catch (error) {
-    console.error('Error in status update endpoint:', error);
+    console.error('❌ Error in status update endpoint:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

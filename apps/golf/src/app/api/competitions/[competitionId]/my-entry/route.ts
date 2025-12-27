@@ -19,11 +19,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's entry for this competition (check both competition_id and instance_id)
+    // Get user's entry for this competition
     const { data: entry, error: entryError } = await supabase
       .from('competition_entries')
       .select('*')
-      .or(`competition_id.eq.${competitionId},instance_id.eq.${competitionId}`)
+      .eq('competition_id', competitionId)
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -32,6 +32,7 @@ export async function GET(
         // No entry found - this is OK
         return NextResponse.json(null);
       }
+      console.error('GET my entry error:', entryError);
       throw entryError;
     }
 

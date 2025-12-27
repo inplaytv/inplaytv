@@ -1,45 +1,53 @@
 <svg width="600" height="250" viewBox="0 0 600 250" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1e3a8a;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a78bfa;stop-opacity:1" />
     </linearGradient>
   </defs>
   
   <!-- Background -->
-  <rect width="600" height="250" fill="url(#grad1)"/>
+  <rect width="600" height="250" fill="url(#grad3)"/>
   
-  <!-- Decorative Golf Course Pattern -->
-  <circle cx="50" cy="50" r="30" fill="rgba(255,255,255,0.1)"/>
-  <circle cx="550" cy="200" r="40" fill="rgba(255,255,255,0.1)"/>
-  <path d="M 0,180 Q 150,160 300,180 T 600,180" stroke="rgba(255,255,255,0.2)" stroke-width="2" fill="none"/>
+  <!-- Decorative Circles -->
+  <circle cx="100" cy="80" r="50" fill="rgba(255,255,255,0.08)"/>
+  <circle cx="500" cy="170" r="60" fill="rgba(255,255,255,0.08)"/>
+  <circle cx="550" cy="50" r="35" fill="rgba(255,255,255,0.08)"/>
   
-  <!-- Golf Ball Icon -->
-  <circle cx="120" cy="125" r="35" fill="white" opacity="0.95"/>
-  <circle cx="125" cy="120" r="3" fill="#1e3a8a"/>
-  <circle cx="135" cy="125" r="3" fill="#1e3a8a"/>
-  <circle cx="125" cy="135" r="3" fill="#1e3a8a"/>
-  <circle cx="115" cy="125" r="3" fill="#1e3a8a"/>
-  <circle cx="125" cy="115" r="3" fill="#1e3a8a"/>
+  <!-- Watch/Tech Icon -->
+  <rect x="80" y="110" width="50" height="55" rx="8" fill="rgba(255,255,255,0.95)" stroke="white" stroke-width="2"/>
+  <rect x="88" y="118" width="34" height="28" fill="#7c3aed"/>
+  <text x="105" y="137" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">GPS</text>
+  <line x1="85" y1="150" x2="95" y2="150" stroke="white" stroke-width="1"/>
+  <line x1="115" y1="150" x2="125" y2="150" stroke="white" stroke-width="1"/>
+  <rect x="95" y="95" width="20" height="15" rx="3" fill="rgba(255,255,255,0.95)"/>
   
   <!-- Main Text -->
-  <text x="300" y="100" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="white" text-anchor="middle">
-    PREMIUM GOLF GEAR
+  <text x="350" y="90" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="white" text-anchor="middle">
+    SMART GOLF TECH
   </text>
   
   <!-- Subtitle -->
-  <text x="300" y="135" font-family="Arial, sans-serif" font-size="18" fill="rgba(255,255,255,0.9)" text-anchor="middle">
-    Elevate Your Game with Professional Equipment
+  <text x="350" y="120" font-family="Arial, sans-serif" font-size="17" fill="rgba(255,255,255,0.9)" text-anchor="middle">
+    GPS Watches • Launch Monitors • Shot Trackers
+  </text>
+  
+  <!-- Feature Highlights -->
+  <rect x="270" y="140" width="160" height="30" rx="15" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+  <text x="350" y="161" font-family="Arial, sans-serif" font-size="13" font-weight="600" fill="white" text-anchor="middle">
+    TRACK EVERY SHOT
   </text>
   
   <!-- CTA Button -->
-  <rect x="225" y="160" width="150" height="45" rx="22.5" fill="#fbbf24"/>
-  <text x="300" y="190" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1e3a8a" text-anchor="middle">
-    SHOP NOW
+  <rect x="230" y="185" width="240" height="45" rx="22.5" fill="#fbbf24"/>
+  <text x="350" y="215" font-family="Arial, sans-serif" font-size="17" font-weight="bold" fill="#7c3aed" text-anchor="middle">
+    EXPLORE TECHNOLOGY
   </text>
   
-  <!-- Bottom Tag -->
-  <text x="300" y="230" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.7)" text-anchor="middle">
-    20% OFF YOUR FIRST ORDER
-  </text>
+  <!-- Icons at bottom -->
+  <circle cx="520" cy="215" r="15" fill="rgba(255,255,255,0.2)"/>
+  <text x="520" y="222" font-family="Arial, sans-serif" font-size="18" fill="white" text-anchor="middle">📊</text>
+  
+  <circle cx="560" cy="215" r="15" fill="rgba(255,255,255,0.2)"/>
+  <text x="560" y="222" font-family="Arial, sans-serif" font-size="18" fill="white" text-anchor="middle">⛳</text>
 </svg>

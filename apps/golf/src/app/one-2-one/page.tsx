@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import TournamentSelector from '@/components/TournamentSelector';
-import { formatPounds } from '@/lib/money';
+import { usePageBackground } from '@/hooks/usePageBackground';
 import styles from './one-2-one.module.css';
 
 interface Tournament {
@@ -19,69 +18,12 @@ interface Tournament {
   is_visible?: boolean;
 }
 
-interface OpenChallenge {
-  instanceId: string;
-  instanceNumber: number;
-  tournamentId: string;
-  tournamentName: string;
-  tournamentSlug: string;
-  templateName: string;
-  shortName: string;
-  roundsCovered: number[];
-  entryFeePennies: number;
-  adminFeePercent: number;
-  currentPlayers: number;
-  maxPlayers: number;
-  createdAt: string;
-  challenger: {
-    userId: string;
-    displayName: string;
-    entryName: string | null;
-  };
-}
-
-function formatCurrency(pennies: number): string {
-  return formatPounds(pennies);
-}
-
-function getRoundDescription(rounds: number[]): string {
-  if (!rounds || rounds.length === 0) return 'Unknown';
-  if (rounds.length === 1) return `Round ${rounds[0]}`;
-  if (rounds.length === 4) return 'All Rounds';
-  const sorted = [...rounds].sort((a, b) => a - b);
-  return `Rounds ${sorted[0]}-${sorted[sorted.length - 1]}`;
-}
-
-export default function One2OneUniversalPage() {
+export default function One2OneLobbyPage() {
   const router = useRouter();
-  
-  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
-  const [allTournaments, setAllTournaments] = useState<Tournament[]>([]);
-  const [openChallenges, setOpenChallenges] = useState<OpenChallenge[]>([]);
+  const backgroundSettings = usePageBackground('one2one_page_background');
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingChallenges, setLoadingChallenges] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<'all' | 'by-tournament'>('all');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createTournamentSlug, setCreateTournamentSlug] = useState<string | null>(null);
 
-  // Fetch current user
-  useEffect(() => {
-    async function getCurrentUser() {
-      try {
-        const response = await fetch('/api/auth/user');
-        if (response.ok) {
-          const data = await response.json();
-          setCurrentUserId(data.user?.id || null);
-        }
-      } catch (err) {
-        console.error('Failed to fetch current user:', err);
-      }
-    }
-    getCurrentUser();
-  }, []);
-
-  // Fetch all active tournaments
   useEffect(() => {
     async function fetchTournaments() {
       try {
@@ -100,10 +42,10 @@ export default function One2OneUniversalPage() {
             return today <= tournamentEnd;
           });
           
-          setAllTournaments(activeTournaments);
+          setTournaments(activeTournaments);
         }
       } catch (err) {
-        console.error('Failed to fetch tournaments:', err);
+        // Silent fail - user will see empty state
       } finally {
         setLoading(false);
       }
@@ -111,61 +53,41 @@ export default function One2OneUniversalPage() {
     fetchTournaments();
   }, []);
 
-  // Fetch all open challenges
-  const fetchOpenChallenges = useCallback(async () => {
-    setLoadingChallenges(true);
-    try {
-      const response = await fetch('/api/one-2-one/all-open-challenges');
-      if (response.ok) {
-        const data = await response.json();
-        setOpenChallenges(data.challenges || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch challenges:', err);
-    } finally {
-      setLoadingChallenges(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchOpenChallenges();
-    
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchOpenChallenges, 30000);
-    return () => clearInterval(interval);
-  }, [fetchOpenChallenges]);
-
-  // Filter challenges by selected tournament
-  const displayedChallenges = selectedTournament
-    ? openChallenges.filter(c => c.tournamentId === selectedTournament.id)
-    : openChallenges;
-
-  const handleJoinChallenge = async (instanceId: string) => {
-    router.push(`/one-2-one/challenge/${instanceId}`);
-  };
-
-  const handleCreateChallenge = (tournamentSlug: string) => {
-    console.log('🎯 Navigating to challenge creation for:', tournamentSlug);
-    router.push(`/one-2-one/${tournamentSlug}`);
+  const handleSelectTournament = (slug: string) => {
+    router.push(`/one-2-one/${slug}`);
   };
 
   if (loading) {
     return (
-      <div className={styles.container}>
+      <div 
+        className={styles.container}
+        style={{
+          '--bg-image': `url(${backgroundSettings.backgroundImage})`,
+          '--bg-opacity': backgroundSettings.opacity,
+          '--bg-overlay': backgroundSettings.overlay
+        } as React.CSSProperties}
+      >
         <div className={styles.loadingContainer}>
           <div className={styles.spinner}></div>
-          <p>Loading ONE 2 ONE Challenge Board...</p>
+          <p>Loading tournaments...</p>
         </div>
       </div>
     );
   }
 
-  if (allTournaments.length === 0) {
+  if (tournaments.length === 0) {
     return (
-      <div className={styles.container}>
+      <div 
+        className={styles.container}
+        style={{
+          '--bg-image': `url(${backgroundSettings.backgroundImage})`,
+          '--bg-opacity': backgroundSettings.opacity,
+          '--bg-overlay': backgroundSettings.overlay
+        } as React.CSSProperties}
+      >
         <div className={styles.header}>
           <h1 className={styles.title}>
-            <i className="fas fa-swords"></i> ONE 2 ONE Challenge Board
+            <i className="fas fa-swords"></i> ONE 2 ONE Matchmaker
           </h1>
         </div>
         
@@ -187,203 +109,253 @@ export default function One2OneUniversalPage() {
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <Link href="/" className={styles.backLink}>
-          <i className="fas fa-arrow-left"></i> Back
-        </Link>
-        
-        <h1 className={styles.title}>
-          <i className="fas fa-swords"></i> ONE 2 ONE Challenge Board
-        </h1>
-        
-        <p className={styles.subtitle}>
-          Head-to-head golf challenges across all active tournaments
-        </p>
-      </div>
-
-      {/* Tournament Filter */}
-      <div className={styles.filterSection}>
-        <div className={styles.filterHeader}>
-          <h3>Filter by Tournament</h3>
-          {selectedTournament && (
-            <button 
-              onClick={() => setSelectedTournament(null)}
-              className={styles.clearFilter}
-            >
-              <i className="fas fa-times"></i> Show All
-            </button>
-          )}
+    <div 
+      className={styles.container}
+      style={{
+        '--bg-image': `url(${backgroundSettings.backgroundImage})`,
+        '--bg-opacity': backgroundSettings.opacity,
+        '--bg-overlay': backgroundSettings.overlay
+      } as React.CSSProperties}
+    >
+      <div style={{
+        position: 'relative',
+        zIndex: 1,
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '2rem'
+      }}>
+        <div style={{ marginBottom: '3rem' }}>
+          {/* Header with inline Back to Lobby link */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '0.5rem'
+          }}>
+            <Link href="/" style={{
+              color: 'rgba(255,255,255,0.6)',
+              textDecoration: 'none',
+              fontSize: '0.9rem',
+              transition: 'color 0.2s ease',
+              whiteSpace: 'nowrap'
+            }}>
+              <i className="fas fa-arrow-left"></i> Back to Lobby
+            </Link>
+            
+            <h1 style={{
+              fontSize: 'clamp(1.8rem, 5vw, 2.5rem)',
+              fontWeight: 700,
+              flex: 1,
+              textAlign: 'center',
+              background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              margin: '0 1rem'
+            }}>
+              <i className="fas fa-swords"></i> ONE 2 ONE Matchmaker
+            </h1>
+            
+            {/* Empty spacer to balance the flex layout */}
+            <div style={{ width: '120px' }}></div>
+          </div>
+          
+          <p style={{
+            fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)',
+            color: 'rgba(255,255,255,0.7)',
+            textAlign: 'center',
+            marginBottom: '0',
+            padding: '0 1rem'
+          }}>
+            Head-to-head battles • Winner takes all • Auto-matched opponents
+          </p>
         </div>
-        
-        <div className={styles.tournamentGrid}>
-          {allTournaments.map(tournament => (
+
+        {/* Info Cards */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '1.5rem',
+          marginBottom: '3rem'
+        }}>
+          <div style={{
+            background: 'rgba(16, 185, 129, 0.05)',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              margin: '0 auto 1rem',
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              borderRadius: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.5rem',
+              color: '#fff'
+            }}>
+              <i className="fas fa-trophy"></i>
+            </div>
+            <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+              Winner Takes All
+            </h3>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
+              Beat your opponent and take home 90% of the combined entry fees
+            </p>
+          </div>
+
+          <div style={{
+            background: 'rgba(59, 130, 246, 0.05)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              margin: '0 auto 1rem',
+              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+              borderRadius: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.5rem',
+              color: '#fff'
+            }}>
+              <i className="fas fa-sync-alt"></i>
+            </div>
+            <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+              Auto-Matching
+            </h3>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
+              First-come-first-served matching • No skill-based pairing
+            </p>
+          </div>
+
+          <div style={{
+            background: 'rgba(245, 158, 11, 0.05)',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              margin: '0 auto 1rem',
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              borderRadius: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.5rem',
+              color: '#fff'
+            }}>
+              <i className="fas fa-shield-alt"></i>
+            </div>
+            <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+              Fair Play
+            </h3>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
+              If no opponent joins, you'll get a full refund automatically
+            </p>
+          </div>
+        </div>
+
+        <h2 style={{
+          fontSize: '1.8rem',
+          fontWeight: 700,
+          marginBottom: '1.5rem',
+          color: '#fff',
+          textAlign: 'center'
+        }}>
+          Select a Tournament
+        </h2>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: '1.5rem',
+          padding: '0 0.5rem'
+        }}>
+          {tournaments.map(tournament => (
             <button
               key={tournament.id}
-              onClick={() => setSelectedTournament(tournament)}
-              className={`${styles.tournamentCard} ${
-                selectedTournament?.id === tournament.id ? styles.selected : ''
-              }`}
+              onClick={() => handleSelectTournament(tournament.slug)}
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px',
+                padding: '1.5rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                textAlign: 'left',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                e.currentTarget.style.borderColor = '#fbbf24';
+                e.currentTarget.style.transform = 'translateY(-4px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
             >
               {tournament.image_url && (
-                <img 
-                  src={tournament.image_url} 
-                  alt={tournament.name}
-                  className={styles.tournamentImage}
-                />
-              )}
-              <div className={styles.tournamentInfo}>
-                <h4>{tournament.name}</h4>
-                <span className={styles.challengeCount}>
-                  {openChallenges.filter(c => c.tournamentId === tournament.id).length} open challenges
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Create Challenge Section */}
-      <div className={styles.createSection}>
-        <h3>
-          <i className="fas fa-plus-circle"></i> Create New Challenge
-        </h3>
-        <p>Select a tournament to create your own ONE 2 ONE challenge</p>
-        
-        <div className={styles.tournamentList}>
-          {allTournaments.map(tournament => (
-            <button
-              key={`create-${tournament.id}`}
-              onClick={() => handleCreateChallenge(tournament.slug)}
-              className={styles.createTournamentButton}
-            >
-              <div className={styles.createTournamentContent}>
-                {tournament.image_url && (
+                <div style={{
+                  width: '100%',
+                  height: '150px',
+                  marginBottom: '1rem',
+                  borderRadius: '12px',
+                  overflow: 'hidden'
+                }}>
                   <img 
                     src={tournament.image_url} 
                     alt={tournament.name}
-                    className={styles.smallTournamentImage}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
                   />
-                )}
-                <span>{tournament.name}</span>
+                </div>
+              )}
+              
+              <h3 style={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: '#fff',
+                marginBottom: '0.5rem'
+              }}>
+                {tournament.name}
+              </h3>
+              
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: '1rem'
+              }}>
+                <span style={{
+                  fontSize: '0.9rem',
+                  color: 'rgba(255,255,255,0.6)'
+                }}>
+                  Create or join challenges
+                </span>
+                <i className="fas fa-arrow-right" style={{
+                  color: '#fbbf24',
+                  fontSize: '1.2rem'
+                }}></i>
               </div>
-              <i className="fas fa-arrow-right"></i>
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Open Challenges */}
-      <div className={styles.challengesSection}>
-        <div className={styles.challengesHeader}>
-          <h3>
-            <i className="fas fa-fire"></i> Open Challenges
-          </h3>
-          <button 
-            onClick={fetchOpenChallenges}
-            className={styles.refreshButton}
-            disabled={loadingChallenges}
-          >
-            <i className={`fas fa-sync ${loadingChallenges ? styles.spinning : ''}`}></i>
-            Refresh
-          </button>
-        </div>
-
-        {loadingChallenges ? (
-          <div className={styles.loadingChallenges}>
-            <div className={styles.spinner}></div>
-            <p>Loading challenges...</p>
-          </div>
-        ) : displayedChallenges.length === 0 ? (
-          <div className={styles.emptyChallenges}>
-            <div className={styles.emptyIcon}>
-              <i className="fas fa-swords" style={{ fontSize: '80px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}></i>
-            </div>
-            <h2 className={styles.emptyTitle}>
-              {selectedTournament ? 'No Open Challenges for This Tournament' : 'No Open Challenges'}
-            </h2>
-            <p className={styles.emptyDescription}>
-              {selectedTournament 
-                ? `Be the first to create a ONE 2 ONE challenge for ${selectedTournament.name}!`
-                : 'Be the first to create a ONE 2 ONE challenge! Select a tournament above to get started.'
-              }
-            </p>
-            <div className={styles.ctaButtons}>
-              <button 
-                onClick={() => selectedTournament && handleCreateChallenge(selectedTournament.slug)}
-                className={styles.primaryCta}
-                disabled={!selectedTournament}
-              >
-                <i className="fas fa-plus-circle"></i> Create Challenge
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className={styles.challengesGrid}>
-            {displayedChallenges.map(challenge => {
-              const isMyChallenge = !!(currentUserId && challenge.challenger?.userId === currentUserId);
-              const tournament = allTournaments.find(t => t.id === challenge.tournamentId);
-              
-              return (
-                <div key={challenge.instanceId} className={styles.challengeCard}>
-                  <div className={styles.challengeHeader}>
-                    <div className={styles.tournamentBadge}>
-                      {tournament?.image_url && (
-                        <img 
-                          src={tournament.image_url} 
-                          alt={challenge.tournamentName}
-                          className={styles.badgeImage}
-                        />
-                      )}
-                      <span>{challenge.tournamentName}</span>
-                    </div>
-                  </div>
-                  
-                  <div className={styles.challengeBody}>
-                    <div className={styles.challengeInfo}>
-                      <div className={styles.infoRow}>
-                        <span className={styles.label}>Entry Fee:</span>
-                        <span className={styles.value}>{formatCurrency(challenge.entryFeePennies)}</span>
-                      </div>
-                      <div className={styles.infoRow}>
-                        <span className={styles.label}>Rounds:</span>
-                        <span className={styles.value}>{getRoundDescription(challenge.roundsCovered)}</span>
-                      </div>
-                      <div className={styles.infoRow}>
-                        <span className={styles.label}>Players:</span>
-                        <span className={styles.value}>{challenge.currentPlayers}/{challenge.maxPlayers}</span>
-                      </div>
-                      {challenge.challenger && (
-                        <div className={styles.infoRow}>
-                          <span className={styles.label}>Created by:</span>
-                          <span className={styles.value}>
-                            {isMyChallenge ? 'You' : challenge.challenger.displayName}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <button
-                      onClick={() => handleJoinChallenge(challenge.instanceId)}
-                      className={`${styles.joinButton} ${isMyChallenge ? styles.viewButton : ''}`}
-                      disabled={isMyChallenge}
-                    >
-                      {isMyChallenge ? (
-                        <>
-                          <i className="fas fa-eye"></i> View Challenge
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-bolt"></i> Join Challenge
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );

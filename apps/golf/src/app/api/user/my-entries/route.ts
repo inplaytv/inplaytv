@@ -29,7 +29,6 @@ export async function GET() {
     if (entries && entries.length > 0) {
       const entryIds = entries.map(e => e.id);
       const competitionIds = Array.from(new Set(entries.map(e => e.competition_id).filter(Boolean)));
-      const instanceIds = Array.from(new Set(entries.map(e => e.instance_id).filter(Boolean)));
       
       // Fetch entry picks
       const { data: allPicks } = await supabase
@@ -50,94 +49,42 @@ export async function GET() {
         throw golfersError;
       }
 
-      // Fetch tournament_competitions (regular competitions)
+      // Fetch ALL competition data (both InPlay and ONE 2 ONE now in one table)
       let competitions = null;
       if (competitionIds.length > 0) {
         const { data, error: competitionsError } = await supabase
           .from('tournament_competitions')
-          .select('id, tournament_id, competition_type_id, entry_fee_pennies, start_at, end_at')
+          .select(`
+            id,
+            tournament_id,
+            competition_type_id,
+            template_id,
+            entry_fee_pennies,
+            start_at,
+            end_at,
+            competition_format,
+            current_players,
+            max_players,
+            status,
+            competition_templates (
+              name,
+              admin_fee_percent
+            )
+          `)
           .in('id', competitionIds);
 
         if (competitionsError) {
           throw competitionsError;
         }
-        // Add is_one_2_one flag to regular competitions
-        competitions = data?.map(comp => ({ ...comp, is_one_2_one: false }));
+        competitions = data;
       }
 
-      // Fetch competition_instances (ONE 2 ONE)
-      let instances = null;
-      if (instanceIds.length > 0) {
-        const { data, error: instancesError } = await supabase
-          .from('competition_instances')
-          .select(`
-            id,
-            tournament_id,
-            template_id,
-            current_players,
-            max_players,
-            status,
-            start_at,
-            end_at,
-            entry_fee_pennies,
-            competition_templates!competition_instances_template_id_fkey (
-              name,
-              admin_fee_percent
-            )
-          `)
-          .in('id', instanceIds)
-          .in('status', ['pending', 'open', 'full', 'active', 'completed']);
-
-        if (instancesError) {
-          throw instancesError;
-        }
-        instances = data;
-
-        // For ONE 2 ONE instances, check if current user is the creator (first entry)
-        if (instances && instances.length > 0) {
-          const { data: allInstanceEntries, error: entriesError } = await supabase
-            .from('competition_entries')
-            .select('id, instance_id, user_id, created_at')
-            .in('instance_id', instanceIds)
-            .not('user_id', 'is', null)
-            .order('created_at', { ascending: true });
-
-          if (entriesError) {
-            console.error('Error fetching instance entries for creator check:', entriesError);
-          }
-
-          // Map of instance_id to creator's user_id
-          const creatorMap = new Map();
-          allInstanceEntries?.forEach(entry => {
-            if (!creatorMap.has(entry.instance_id) && entry.user_id) {
-              creatorMap.set(entry.instance_id, entry.user_id);
-            }
-          });
-
-          // Add is_creator flag to instances
-          instances = instances.map(inst => ({
-            ...inst,
-            creator_user_id: creatorMap.get(inst.id)
-          }));
-        }
-      }
-
-      // Filter out entries with deleted instances or competitions FIRST
+      // Filter out entries with deleted competitions FIRST
       const validCompetitionIds = new Set(competitions?.map(c => c.id) || []);
-      const validInstanceIds = new Set(instances?.map(i => i.id) || []);
       
-      const beforeFilter = entries.length;
       entries = entries.filter(entry => {
-        // If it has a competition_id, check if competition exists
-        if (entry.competition_id) {
-          return validCompetitionIds.has(entry.competition_id);
-        }
-        // If it has an instance_id, check if instance exists
-        if (entry.instance_id) {
-          return validInstanceIds.has(entry.instance_id);
-        }
-        // If neither, filter it out (orphaned entry)
-        return false;
+        // Entry must have valid competition_id
+        return entry.competition_id && validCompetitionIds.has(entry.competition_id);
       });
 
       // If no valid entries left, return empty array
@@ -145,29 +92,16 @@ export async function GET() {
         return NextResponse.json({ entries: [] });
       }
 
-      // Combine regular competitions and instances
-      const allCompetitions = [
-        ...(competitions || []).map(comp => ({
-          ...comp,
-          is_one_2_one: false,
-          competition_type_name: null // Will be filled from typeMap
-        })),
-        ...(instances || []).map((inst: any) => ({
-          id: inst.id,
-          tournament_id: inst.tournament_id,
-          competition_type_id: null, // ONE 2 ONE doesn't have type_id
-          entry_fee_pennies: inst.entry_fee_pennies || 0,
-          admin_fee_percent: inst.competition_templates?.admin_fee_percent || 10,
-          start_at: inst.start_at,
-          end_at: inst.end_at,
-          is_one_2_one: true,
-          match_status: inst.status,
-          current_players: inst.current_players,
-          max_players: inst.max_players,
-          creator_user_id: inst.creator_user_id,
-          competition_type_name: inst.competition_templates?.name || 'ONE 2 ONE'
-        }))
-      ];
+      // Map competitions for display (both formats in one table now)
+      const allCompetitions = (competitions || []).map(comp => ({
+        ...comp,
+        is_one_2_one: comp.competition_format === 'one2one',
+        competition_type_name: comp.competition_format === 'one2one' 
+          ? ((comp.competition_templates as any)?.name || 'ONE 2 ONE')
+          : null,
+        admin_fee_percent: (comp.competition_templates as any)?.admin_fee_percent || (comp.competition_format === 'one2one' ? 10 : 0),
+        match_status: comp.status
+      }));
 
       if (allCompetitions && allCompetitions.length > 0) {
         const tournamentIds = Array.from(new Set(allCompetitions.map(c => c.tournament_id)));
@@ -229,8 +163,7 @@ export async function GET() {
 
         // Attach all data to entries
         entries.forEach(entry => {
-          const compId = entry.competition_id || entry.instance_id;
-          entry.tournament_competitions = competitionMap.get(compId);
+          entry.tournament_competitions = competitionMap.get(entry.competition_id);
           entry.entry_picks = picksByEntry.get(entry.id) || [];
         });
       }

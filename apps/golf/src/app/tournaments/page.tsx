@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -350,6 +350,24 @@ function UpcomingTournamentCard({
 }
 
 export default function TournamentsPage() {
+  // Advertisement configuration
+  const advertisements = [
+    {
+      id: 'ad-1',
+      imageUrl: '/ads/ad-slot-1.svg',
+      clickUrl: 'https://inplaytv.com',
+      title: '',
+      description: ''
+    },
+    {
+      id: 'ad-2',
+      imageUrl: '/ads/ad-slot-2.png',
+      clickUrl: 'https://another-url.com',
+      title: 'InPlayTV for Golf Clubs',
+      description: 'Play Golf With Real Professionals'
+    }
+  ];
+
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -360,6 +378,7 @@ export default function TournamentsPage() {
   const [isHovering, setIsHovering] = useState(false);
   const [myEntries, setMyEntries] = useState(0);
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [showAllCompetitions, setShowAllCompetitions] = useState(false); // Toggle for minor competitions
   const [sortBy, setSortBy] = useState('prize_pool');
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [activeTournaments, setActiveTournaments] = useState(0);
@@ -373,17 +392,53 @@ export default function TournamentsPage() {
   const supabase = createClient();
   const router = useRouter();
 
-  // Auto-advance slider - only if there's more than 1 tournament
+  // Calculate total slides (tournaments + ads) for navigation
+  const totalSlides = useMemo(() => {
+    if (tournaments.length === 0) return 0;
+    
+    const filteredCount = tournaments.filter(tournament => {
+      const now = new Date();
+      // Show tournament if it has ANY competition open for registration
+      const hasOpenCompetition = tournament.competitions?.some(c => {
+        // Direct status check - show if reg_open
+        if (c.status === 'reg_open') {
+          // Verify registration is actually open by time
+          if (c.reg_open_at && c.reg_close_at) {
+            const regOpen = new Date(c.reg_open_at);
+            const regClose = new Date(c.reg_close_at);
+            return now >= regOpen && now < regClose;
+          }
+          return true; // Trust reg_open status even without times
+        }
+        
+        // For 'upcoming' status, check if registration window is open
+        if (c.status === 'upcoming' && c.reg_open_at && c.reg_close_at) {
+          const regOpen = new Date(c.reg_open_at);
+          const regClose = new Date(c.reg_close_at);
+          return now >= regOpen && now < regClose;
+        }
+        
+        return false;
+      });
+      
+      return hasOpenCompetition;
+    }).length;
+    
+    // With ads after each tournament: filteredCount tournaments + filteredCount ads
+    return advertisements.length > 0 ? filteredCount * 2 : filteredCount;
+  }, [tournaments]);
+
+  // Auto-advance slider - only if there's more than 1 slide
   useEffect(() => {
-    // Only auto-advance if there are multiple tournaments and not hovering
-    if (tournaments.length <= 1 || isHovering) return;
+    // Only auto-advance if there are multiple slides and not hovering
+    if (totalSlides <= 1 || isHovering) return;
     
     const interval = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % tournaments.length);
+      setCurrentSlide(prev => (prev + 1) % totalSlides);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [tournaments.length, isHovering]);
+  }, [totalSlides, isHovering]);
 
   useEffect(() => {
     fetchTournaments();
@@ -463,11 +518,35 @@ export default function TournamentsPage() {
     }
   }
 
-  // Get all competitions across all tournaments
+  // Get all competitions across all tournaments - ONLY with registration open
   const allCompetitions = Array.isArray(tournaments) 
     ? tournaments.flatMap(t => 
         Array.isArray(t.competitions) 
-          ? t.competitions.map(c => ({ ...c, tournament: t }))
+          ? t.competitions
+              .filter(c => {
+                // Filter by main/all competitions toggle
+                if (!showAllCompetitions) {
+                  // Only show main competitions when toggle is off
+                  const isMainCompetition = c.competition_types?.name === 'Full Course' || 
+                                           c.competition_types?.name === 'Beat The Cut' ||
+                                           c.competition_types?.name === 'THE WEEKENDER';
+                  if (!isMainCompetition) return false;
+                }
+                
+                // Only show competitions accepting registrations
+                const now = new Date();
+                if (c.status === 'reg_open' && c.reg_close_at) {
+                  const closeDate = new Date(c.reg_close_at);
+                  return now < closeDate;
+                }
+                if (c.status === 'upcoming' && c.reg_open_at && c.reg_close_at) {
+                  const openDate = new Date(c.reg_open_at);
+                  const closeDate = new Date(c.reg_close_at);
+                  return now >= openDate && now < closeDate;
+                }
+                return false;
+              })
+              .map(c => ({ ...c, tournament: t }))
           : []
       )
     : [];
@@ -745,20 +824,29 @@ export default function TournamentsPage() {
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
                       >
-                        {/* Dynamic Slides - Only Registration Open Tournaments */}
-                        {tournaments
-                          .filter(tournament => {
+                        {/* Dynamic Slides - Registration Open Tournaments + Ads */}
+                        {(() => {
+                          // Filter tournaments with main competitions open
+                          const filteredTournaments = tournaments.filter(tournament => {
                             // Show tournaments with Full Course OR Beat The Cut competitions where registration is actually open
                             // Exclude tournaments where only minor competitions (Third Round, Final Strike) are open
                             const now = new Date();
                             const hasMainCompetitionOpen = tournament.competitions?.some(c => {
-                              // Only consider major competitions (Full Course, Beat The Cut)
+                              // Only consider major competitions (Full Course, Beat The Cut, THE WEEKENDER)
                               const isMainCompetition = c.competition_types?.name === 'Full Course' || 
-                                                       c.competition_types?.name === 'Beat The Cut';
+                                                       c.competition_types?.name === 'Beat The Cut' ||
+                                                       c.competition_types?.name === 'THE WEEKENDER';
                               if (!isMainCompetition) return false;
                               
                               // Check if registration is open
-                              if (c.status === 'reg_open') return true;
+                              if (c.status === 'reg_open') {
+                                // Verify registration is actually open by time
+                                if (c.reg_close_at) {
+                                  const regClose = new Date(c.reg_close_at);
+                                  return now < regClose;
+                                }
+                                return true;
+                              }
                               if (c.status === 'live' || c.status === 'completed' || c.status === 'reg_closed') return false;
                               // For upcoming/draft, check if registration actually opened
                               if (c.reg_open_at && c.reg_close_at) {
@@ -769,8 +857,54 @@ export default function TournamentsPage() {
                               return false;
                             });
                             return hasMainCompetitionOpen;
-                          })
-                          .map((tournament, index) => {
+                          });
+                          
+                          // Intersperse ads with tournaments (every 1 tournament for testing)
+                          const slides: any[] = [];
+                          filteredTournaments.forEach((tournament, idx) => {
+                            slides.push({ type: 'tournament', data: tournament });
+                            // Add ad after each tournament (can adjust to every 2 or 3 for production)
+                            if (advertisements.length > 0) {
+                              const adIndex = idx % advertisements.length;
+                              slides.push({ type: 'ad', data: advertisements[adIndex] });
+                            }
+                          });
+                          
+                          return slides.map((slide, index) => {
+                            if (slide.type === 'ad') {
+                              const ad = slide.data;
+                              return (
+                                <div key={ad.id} className={styles.sliderSlide}>
+                                  <a 
+                                    href={ad.clickUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className={styles.adSlide}
+                                  >
+                                    <div className={styles.adBadge}>
+                                      <i className="fas fa-bullhorn"></i>
+                                      <span>SPONSORED</span>
+                                    </div>
+                                    <div className={styles.adContent}>
+                                      <img 
+                                        src={ad.imageUrl} 
+                                        alt={ad.title}
+                                        className={styles.adImage}
+                                      />
+                                      <div className={styles.adOverlay}>
+                                        <h3 className={styles.adTitle}>{ad.title}</h3>
+                                        <p className={styles.adDescription}>{ad.description}</p>
+                                        <button className={styles.adCta}>
+                                          Learn More <i className="fas fa-arrow-right"></i>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </a>
+                                </div>
+                              );
+                            }
+                            
+                            const tournament = slide.data;
                           // Find Full Course competition for featured display (prefer reg_open)
                           const now = new Date();
                           const isCompetitionOpen = (c: any) => {
@@ -785,9 +919,9 @@ export default function TournamentsPage() {
                             return false;
                           };
                           const fullCourseComp = tournament.competitions?.find(
-                            c => c.competition_types?.name === 'Full Course' && isCompetitionOpen(c)
+                            (c: any) => c.competition_types?.name === 'Full Course' && isCompetitionOpen(c)
                           );
-                          const featuredComp = tournament.featured_competition || fullCourseComp || tournament.competitions?.find(c => isCompetitionOpen(c));
+                          const featuredComp = tournament.featured_competition || fullCourseComp || tournament.competitions?.find((c: any) => isCompetitionOpen(c));
                           // Calculate prize pool
                           const prizePool = featuredComp
                             ? (featuredComp.guaranteed_prize_pool_pennies && featuredComp.guaranteed_prize_pool_pennies > 0
@@ -829,7 +963,10 @@ export default function TournamentsPage() {
                                 <div className={styles.featuredContent}>
                                   <div className={styles.featuredImage}>
                                     <img 
-                                      src={tournament.image_url || `https://images.unsplash.com/photo-${index === 0 ? '1593111774240-d529f12cf4bb' : '1592919505780-303950717480'}?w=600&h=300&fit=crop`}
+                                      src={tournament.image_url || '/images/tournaments/default.jpg'}
+                                      onError={(e) => {
+                                        e.currentTarget.src = `https://images.unsplash.com/photo-${index === 0 ? '1593111774240-d529f12cf4bb' : '1592919505780-303950717480'}?w=600&h=300&fit=crop`;
+                                      }}
                                       alt={tournament.name}
                                     />
                                   </div>
@@ -920,22 +1057,22 @@ export default function TournamentsPage() {
                               </div>
                             </div>
                           );
-                        })}
+                        })})()}
                       </div>
                     </div>
 
-                    {/* Only show controls if there are multiple tournaments */}
-                    {tournaments.length > 1 && (
+                    {/* Only show controls if there are multiple slides */}
+                    {totalSlides > 1 && (
                       <>
                         <div className={styles.sliderControls}>
                           <button 
                             className={styles.sliderArrow}
-                            onClick={() => setCurrentSlide(currentSlide === 0 ? tournaments.length - 1 : currentSlide - 1)}
+                            onClick={() => setCurrentSlide(currentSlide === 0 ? totalSlides - 1 : currentSlide - 1)}
                           >
                             <i className="fas fa-chevron-left"></i>
                           </button>
                           <div className={styles.sliderDots}>
-                            {tournaments.map((_, index) => (
+                            {Array.from({ length: totalSlides }).map((_, index) => (
                               <button
                                 key={index}
                                 className={`${styles.sliderDot} ${index === currentSlide ? styles.active : ''}`}
@@ -945,7 +1082,7 @@ export default function TournamentsPage() {
                           </div>
                           <button 
                             className={styles.sliderArrow}
-                            onClick={() => setCurrentSlide((currentSlide + 1) % tournaments.length)}
+                            onClick={() => setCurrentSlide((currentSlide + 1) % totalSlides)}
                           >
                             <i className="fas fa-chevron-right"></i>
                           </button>
@@ -954,7 +1091,7 @@ export default function TournamentsPage() {
                         <div className={styles.sliderProgress}>
                           <div
                             className={styles.progressBar}
-                            style={{ width: `${((currentSlide + 1) / tournaments.length) * 100}%` }}
+                            style={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` }}
                           />
                         </div>
                       </>
@@ -982,6 +1119,17 @@ export default function TournamentsPage() {
                     </div>
                     
                     <div className={styles.sortOptions}>
+                      <button
+                        className={`${styles.filterBtn} ${showAllCompetitions ? styles.active : ''}`}
+                        onClick={() => setShowAllCompetitions(!showAllCompetitions)}
+                        style={{ 
+                          marginRight: '1rem',
+                          background: showAllCompetitions ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255, 255, 255, 0.05)'
+                        }}
+                      >
+                        <i className={`fas ${showAllCompetitions ? 'fa-toggle-on' : 'fa-toggle-off'}`} style={{ marginRight: '0.5rem' }}></i>
+                        Show All Rounds
+                      </button>
                       <select 
                         className={styles.sortSelect}
                         value={sortBy}

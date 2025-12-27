@@ -1,48 +1,80 @@
-import { createServerClient } from '@/lib/supabaseServer';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
 /**
  * GET /api/settings/tournament-background
  * Fetches tournament page background settings from database
+ * Using anon key since site_settings has public read access
  */
 export async function GET() {
   try {
-    const supabase = await createServerClient();
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    console.log('🔍 Fetching tournament background from site_settings...');
     
     const { data, error } = await supabase
       .from('site_settings')
       .select('setting_value')
       .eq('setting_key', 'tournament_page_background')
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error('[Tournament Background API] Database error:', error);
       // Return default background if no setting exists
       return NextResponse.json({
-        backgroundImage: '/backgrounds/golf-course-green.jpg',
+        backgroundImage: '/backgrounds/golf-03.jpg',
+        backgroundUrl: '/backgrounds/golf-03.jpg',
         opacity: 0.15,
-        overlay: 0.4
+        overlay: 0.4,
+        source: 'error-fallback'
+      });
+    }
+    
+    if (!data) {
+      console.log('⚠️ No tournament_page_background setting found, using default');
+      return NextResponse.json({
+        backgroundImage: '/backgrounds/golf-03.jpg',
+        backgroundUrl: '/backgrounds/golf-03.jpg',
+        opacity: 0.15,
+        overlay: 0.4,
+        source: 'no-data-fallback'
       });
     }
     
     // Parse stored JSON settings
-    const settings = data?.setting_value ? JSON.parse(data.setting_value) : {
-      backgroundImage: '/backgrounds/golf-course-green.jpg',
-      opacity: 0.15,
-      overlay: 0.4
-    };
+    let settings;
+    try {
+      settings = JSON.parse(data.setting_value);
+      console.log('✅ Loaded background settings:', settings);
+    } catch {
+      settings = {
+        backgroundImage: '/backgrounds/golf-03.jpg',
+        backgroundUrl: '/backgrounds/golf-03.jpg',
+        opacity: 0.15,
+        overlay: 0.4
+      };
+      console.log('⚠️ Failed to parse settings, using default');
+    }
     
-    return NextResponse.json(settings);
+    return NextResponse.json({
+      ...settings,
+      source: 'database'
+    });
   } catch (error) {
     console.error('[Tournament Background API] Unexpected error:', error);
     return NextResponse.json(
       { 
         error: 'Failed to fetch background settings',
-        backgroundImage: '/backgrounds/golf-course-green.jpg',
+        backgroundImage: '/backgrounds/golf-03.jpg',
+        backgroundUrl: '/backgrounds/golf-03.jpg',
         opacity: 0.15,
-        overlay: 0.4
+        overlay: 0.4,
+        source: 'catch-fallback'
       },
       { status: 500 }
     );

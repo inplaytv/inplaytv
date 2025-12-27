@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 export default function ChallengeView({ data }: any) {
-  const { entries, currentUserId, tournament, instance } = data;
+  const { entries, currentUserId, tournament, competition } = data;
   const [selectedGolferId, setSelectedGolferId] = useState<string | null>(null);
   
   if (!entries || entries.length !== 2) {
@@ -31,7 +31,7 @@ export default function ChallengeView({ data }: any) {
     if (myScore < oppScore) { status = 'winning'; diff = Math.abs(oppScore - myScore); }
     else if (myScore > oppScore) { status = 'losing'; diff = Math.abs(myScore - oppScore); }
   }
-  const isLive = (tournament?.status || instance?.status) === 'in-play';
+  const isLive = (tournament?.status || competition?.status) === 'in-play';
   const tStatus = tournament?.status;
   
   return (
@@ -105,14 +105,14 @@ export default function ChallengeView({ data }: any) {
                 <span style={{fontSize:'0.9rem'}}>🎯</span> Status
               </div>
               <div style={{fontWeight:'500',color:'#fff'}}>
-                {instance.status === 'completed' ? '✓ Finished' : instance.status === 'in-play' ? '● Active' : instance.status === 'open' ? '🔓 Open' : '⏱ Pending'}
+                {competition.status === 'completed' ? '✓ Finished' : competition.status === 'in-play' ? '● Active' : competition.status === 'open' ? '🔓 Open' : '⏱ Pending'}
               </div>
             </div>
             <div>
               <div style={{color:'rgba(255,255,255,0.7)',marginBottom:'0.25rem',display:'flex',alignItems:'center',gap:'0.5rem'}}>
                 <span style={{fontSize:'0.9rem'}}>💷</span> Entry Fee
               </div>
-              <div style={{fontWeight:'500',color:'#fff'}}>£{((instance.entry_fee_pennies || 0) / 100).toFixed(2)}</div>
+              <div style={{fontWeight:'500',color:'#fff'}}>£{((competition.entry_fee_pennies || 0) / 100).toFixed(2)}</div>
             </div>
             {status !== 'tied' && (
               <div style={{

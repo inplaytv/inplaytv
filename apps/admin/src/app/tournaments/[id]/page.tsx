@@ -1036,7 +1036,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
               Image URL
             </label>
             <input
-              type="url"
+              type="text"
               value={formData.image_url}
               onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
               style={{
@@ -1047,6 +1047,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                 borderRadius: '4px',
                 color: '#fff',
               }}
+              placeholder="/images/tournaments/golf-bg-01.jpg or https://example.com/image.jpg"
             />
           </div>
 

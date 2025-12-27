@@ -15,20 +15,23 @@ export default function TournamentBackgrounds() {
   const [currentBackground, setCurrentBackground] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'tournaments' | 'general' | 'heroes'>('tournaments');
+  const [activeTab, setActiveTab] = useState<'tournaments' | 'lobby' | 'entries' | 'leaderboards' | 'one2one'>('tournaments');
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+  const [pageBackgrounds, setPageBackgrounds] = useState<Record<string, string>>({});
+  const [opacity, setOpacity] = useState<number>(0.15);
+  const [overlay, setOverlay] = useState<number>(0.4);
 
   const tabs = [
-    { id: 'tournaments' as const, label: 'Tournament Page', description: 'Backgrounds for tournament listing page' },
-    { id: 'general' as const, label: 'General', description: 'General purpose background images' },
-    { id: 'heroes' as const, label: 'Hero Sections', description: 'Large hero/banner images' }
+    { id: 'tournaments' as const, label: 'Tournaments Page', description: 'Background for /tournaments page', pageKey: 'tournament_page_background' },
+    { id: 'lobby' as const, label: 'Lobby/Home Page', description: 'Background for main lobby', pageKey: 'lobby_page_background' },
+    { id: 'entries' as const, label: 'My Entries Page', description: 'Background for /entries page', pageKey: 'entries_page_background' },
+    { id: 'leaderboards' as const, label: 'Leaderboards Page', description: 'Background for /leaderboards', pageKey: 'leaderboards_page_background' },
+    { id: 'one2one' as const, label: 'ONE 2 ONE Page', description: 'Background for /one-2-one', pageKey: 'one2one_page_background' }
   ];
 
   useEffect(() => {
     fetchBackgrounds();
-    if (activeTab === 'tournaments') {
-      fetchCurrentBackground();
-    }
+    fetchCurrentBackground();
   }, [activeTab]);
 
   const fetchBackgrounds = async () => {
@@ -43,9 +46,15 @@ export default function TournamentBackgrounds() {
 
   const fetchCurrentBackground = async () => {
     try {
-      const response = await fetch('/api/settings/tournament-background');
+      const pageKey = tabs.find(t => t.id === activeTab)?.pageKey;
+      if (!pageKey) return;
+      
+      const response = await fetch(`/api/settings/page-background?page=${pageKey}`);
       const data = await response.json();
-      setCurrentBackground(data.backgroundUrl);
+      setCurrentBackground(data.backgroundUrl || '');
+      setPageBackgrounds(prev => ({ ...prev, [pageKey]: data.backgroundUrl || '' }));
+      setOpacity(data.opacity ?? 0.15);
+      setOverlay(data.overlay ?? 0.4);
     } catch (error) {
       console.error('Error fetching current background:', error);
     } finally {
@@ -54,8 +63,9 @@ export default function TournamentBackgrounds() {
   };
 
   const updateBackground = async (backgroundUrl: string) => {
-    if (activeTab !== 'tournaments') {
-      setNotification({ message: 'Background selection is only available for tournament page', type: 'error' });
+    const pageKey = tabs.find(t => t.id === activeTab)?.pageKey;
+    if (!pageKey) {
+      setNotification({ message: 'Invalid page selection', type: 'error' });
       return;
     }
 
@@ -68,19 +78,25 @@ export default function TournamentBackgrounds() {
       // Convert to golf app path
       const golfBackgroundUrl = `/backgrounds/${filename}`;
       
-      const response = await fetch('/api/settings/tournament-background', {
+      const response = await fetch('/api/settings/page-background', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ backgroundUrl: golfBackgroundUrl }),
+        body: JSON.stringify({ 
+          pageKey,
+          backgroundUrl: golfBackgroundUrl,
+          opacity,
+          overlay
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
         setCurrentBackground(golfBackgroundUrl);
-        setNotification({ message: 'Background updated successfully!', type: 'success' });
+        setPageBackgrounds(prev => ({ ...prev, [pageKey]: golfBackgroundUrl }));
+        setNotification({ message: `${tabs.find(t => t.id === activeTab)?.label} background updated!`, type: 'success' });
       } else {
         setNotification({ message: data.error || 'Failed to update background', type: 'error' });
       }
@@ -134,30 +150,81 @@ export default function TournamentBackgrounds() {
         {tabs.find(tab => tab.id === activeTab)?.description}
       </div>
 
-      {/* Current Background - Only show for tournaments */}
-      {activeTab === 'tournaments' && (
-        <div className={styles.currentBackground}>
-          <h3>Current Tournament Background</h3>
-          <div className={styles.currentPreview}>
-            <img 
-              src={currentBackground && currentBackground.startsWith('http') ? currentBackground : `http://localhost:3000${currentBackground || '/backgrounds/golf-course-green.jpg'}`} 
-              alt="Current background"
-              className={styles.currentImage}
-            />
-            <div className={styles.currentInfo}>
-              <p><strong>URL:</strong> {currentBackground}</p>
-            </div>
-          </div>
+      {/* Overlay Controls */}
+      <div className={styles.controls}>
+        <div className={styles.controlGroup}>
+          <label>Background Opacity: {(opacity * 100).toFixed(0)}%</label>
+          <input 
+            type="range" 
+            min="0" 
+            max="1" 
+            step="0.05"
+            value={opacity}
+            onChange={(e) => setOpacity(parseFloat(e.target.value))}
+            className={styles.slider}
+          />
         </div>
-      )}
+        <div className={styles.controlGroup}>
+          <label>Dark Overlay: {(overlay * 100).toFixed(0)}%</label>
+          <input 
+            type="range" 
+            min="0" 
+            max="1" 
+            step="0.05"
+            value={overlay}
+            onChange={(e) => setOverlay(parseFloat(e.target.value))}
+            className={styles.slider}
+          />
+        </div>
+        <button
+          className={styles.applyButton}
+          onClick={() => updateBackground(currentBackground)}
+          disabled={saving}
+        >
+          {saving ? 'Applying...' : 'Apply Changes'}
+        </button>
+        <button
+          className={styles.removeButton}
+          onClick={() => updateBackground('none')}
+          disabled={saving || currentBackground === 'none'}
+        >
+          {currentBackground === 'none' ? '✓ No Background' : 'Remove Background'}
+        </button>
+      </div>
+
+      {/* Current Background */}
+      {
+        <div className={styles.currentBackground}>
+          <h3>Current {tabs.find(tab => tab.id === activeTab)?.label} Background</h3>
+          {currentBackground === 'none' ? (
+            <div className={styles.noBackground}>
+              <i className="fas fa-ban" style={{ fontSize: '48px', opacity: 0.3 }}></i>
+              <p>No background image</p>
+            </div>
+          ) : (
+            <div className={styles.currentPreview}>
+              <img 
+                src={currentBackground && currentBackground.startsWith('http') ? currentBackground : `http://localhost:3000${currentBackground || '/backgrounds/golf-course-green.jpg'}`} 
+                alt="Current background"
+                className={styles.currentImage}
+                style={{ opacity: opacity }}
+              />
+              <div className={styles.overlay} style={{ opacity: overlay }}></div>
+              <div className={styles.currentInfo}>
+                <p><strong>URL:</strong> {currentBackground}</p>
+                <p><strong>Opacity:</strong> {(opacity * 100).toFixed(0)}% | <strong>Overlay:</strong> {(overlay * 100).toFixed(0)}%</p>
+              </div>
+            </div>
+          )}
+        </div>
+      }
 
       <div className={styles.backgroundGrid}>
         <h3>Available {tabs.find(tab => tab.id === activeTab)?.label} Images ({backgrounds.length})</h3>
         <div className={styles.grid}>
           {backgrounds.map((bg) => {
-            // For tournaments, bg.url is already /backgrounds/filename.jpg
-            // For other categories, bg.url is /api/images/category/filename.jpg
-            const isCurrentBackground = activeTab === 'tournaments' && currentBackground === bg.url;
+            // bg.url is already /backgrounds/filename.jpg
+            const isCurrentBackground = currentBackground === bg.url;
             
             return (
               <div 
@@ -184,20 +251,14 @@ export default function TournamentBackgrounds() {
                     {(bg.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                   
-                  {activeTab === 'tournaments' ? (
-                    <button
-                      className={`${styles.selectButton} ${isCurrentBackground ? styles.current : ''}`}
-                      onClick={() => updateBackground(bg.url)}
-                      disabled={saving || isCurrentBackground}
-                    >
-                      {saving ? 'Updating...' : 
-                       isCurrentBackground ? 'Current' : 'Select'}
-                    </button>
-                  ) : (
-                    <button className={styles.previewButton}>
-                      Preview
-                    </button>
-                  )}
+                  <button
+                    className={`${styles.selectButton} ${isCurrentBackground ? styles.current : ''}`}
+                    onClick={() => updateBackground(bg.url)}
+                    disabled={saving || isCurrentBackground}
+                  >
+                    {saving ? 'Updating...' : 
+                     isCurrentBackground ? 'Current' : 'Select'}
+                  </button>
                 </div>
               </div>
             );

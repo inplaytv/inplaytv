@@ -145,7 +145,6 @@ export interface InPlayEntry {
 export interface One2OneEntry {
   id: string;
   user_id: string;
-  instance_id: string;
   tournament_id: string;
   golfer_ids: string[];
   captain_id: string | null;
@@ -247,7 +246,7 @@ export function isInPlayEntry(entry: Entry): entry is InPlayEntry {
  * Type guard: Check if entry is ONE 2 ONE
  */
 export function isOne2OneEntry(entry: Entry): entry is One2OneEntry {
-  return 'instance_id' in entry;
+  return (entry as any).tournament_competitions?.competition_format === 'one2one';
 }
 
 // ============================================================================

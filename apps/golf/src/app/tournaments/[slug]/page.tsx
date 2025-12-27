@@ -463,8 +463,31 @@ export default function TournamentDetailPage() {
   
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [one2OneTemplates, setOne2OneTemplates] = useState<One2OneTemplate[]>([]);
+  const [allTournaments, setAllTournaments] = useState<{id: string; name: string; slug: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchTournamentData();
+    fetchAllTournaments();
+    fetchOne2OneTemplates();
+  }, [slug]);
+
+  const fetchAllTournaments = async () => {
+    try {
+      const res = await fetch('/api/tournaments', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const tournaments = Array.isArray(data.tournaments) ? data.tournaments : Array.isArray(data) ? data : [];
+        setAllTournaments(tournaments.map((t: any) => ({ id: t.id, name: t.name, slug: t.slug })));
+      }
+    } catch (err) {
+      console.error('Error fetching tournaments:', err);
+    }
+  };
 
   useEffect(() => {
     fetchTournamentData();
@@ -749,6 +772,43 @@ export default function TournamentDetailPage() {
         </div>
         
         <div className={styles.heroContent}>
+          {/* Tournament Selector Dropdown */}
+          {allTournaments.length > 1 && (
+            <div style={{ 
+              position: 'absolute', 
+              top: '1rem', 
+              left: '1rem',
+              zIndex: 10
+            }}>
+              <select
+                value={slug}
+                onChange={(e) => router.push(`/tournaments/${e.target.value}`)}
+                style={{
+                  padding: '0.5rem 2rem 0.5rem 1rem',
+                  background: 'rgba(0, 0, 0, 0.4)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  outline: 'none',
+                  appearance: 'none',
+                  backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23fff\' d=\'M6 9L1 4h10z\'/%3E%3C/svg%3E")',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 0.75rem center'
+                }}
+              >
+                {allTournaments.map(t => (
+                  <option key={t.slug} value={t.slug} style={{ background: '#1e293b', color: '#fff' }}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          
           <div className={styles.heroTitle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: '1.5rem', marginBottom: '4px' }}>{tournament.name}</h1>

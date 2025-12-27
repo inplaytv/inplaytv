@@ -1,8 +1,16 @@
 /**
  * Competition Type Guards and Utilities
  * Distinguishes between InPlay Competitions and ONE 2 ONE Challenges
+ * 
+ * IMPORTANT: This file now re-exports the unified utilities.
+ * For new code, prefer importing directly from './unified-competition'
  */
 
+// Re-export all unified utilities
+export * from './unified-competition';
+import { isInPlayCompetition as isInPlayComp, isOne2OneCompetition } from './unified-competition';
+
+// Legacy interfaces (kept for backward compatibility)
 export interface InPlayCompetition {
   id: string;
   competition_type_id: string;  // ✅ MUST have this
@@ -33,19 +41,8 @@ export interface One2OneInstance {
 }
 
 /**
- * Type guard: Check if this is an InPlay competition
- */
-export function isInPlayCompetition(item: any): item is InPlayCompetition {
-  return (
-    item &&
-    item.competition_type_id !== null &&
-    item.competition_type_id !== undefined &&
-    (item.rounds_covered === null || item.rounds_covered === undefined)
-  );
-}
-
-/**
  * Type guard: Check if this is a ONE 2 ONE template
+ * Note: For competition detection, use isInPlayCompetition/isOne2OneCompetition from unified-competition
  */
 export function isOne2OneTemplate(item: any): item is One2OneTemplate {
   return (
@@ -72,7 +69,7 @@ export function isOne2OneInstance(item: any): item is One2OneInstance {
  * Filter array to only InPlay competitions
  */
 export function filterInPlayCompetitions<T>(items: T[]): T[] {
-  return items.filter(isInPlayCompetition);
+  return items.filter(isInPlayComp as any);
 }
 
 /**
@@ -86,7 +83,7 @@ export function filterOne2OneTemplates<T>(items: T[]): T[] {
  * Get competition type name
  */
 export function getCompetitionTypeName(item: any): string {
-  if (isInPlayCompetition(item)) {
+  if (isInPlayComp(item)) {
     return 'InPlay Competition';
   }
   if (isOne2OneTemplate(item)) {
@@ -103,7 +100,7 @@ export function getCompetitionTypeName(item: any): string {
  * Throws error if it's something else
  */
 export function assertInPlayCompetition(item: any): asserts item is InPlayCompetition {
-  if (!isInPlayCompetition(item)) {
+  if (!isInPlayComp(item)) {
     throw new Error(
       `Expected InPlay competition but got ${getCompetitionTypeName(item)}. ` +
       `Check that competition_type_id is set and rounds_covered is null.`

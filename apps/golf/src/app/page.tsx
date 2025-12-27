@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import RequireAuth from '@/components/RequireAuth';
 import { createClient } from '@/lib/supabaseClient';
+import { usePageBackground } from '@/hooks/usePageBackground';
 import styles from './lobby.module.css';
 
 // Force dynamic rendering (requires auth)
@@ -41,6 +42,7 @@ export default function LobbyPage() {
   });
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const backgroundSettings = usePageBackground('lobby_page_background');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -137,7 +139,14 @@ export default function LobbyPage() {
   if (loading) {
     return (
       <RequireAuth>
-        <div className={styles.container}>
+        <div 
+          className={styles.container}
+          style={{
+            '--bg-image': `url(${backgroundSettings.backgroundImage})`,
+            '--bg-opacity': backgroundSettings.opacity,
+            '--bg-overlay': backgroundSettings.overlay
+          } as React.CSSProperties}
+        >
           <div className={styles.loading}>
             <i className="fas fa-spinner fa-spin"></i>
             <p>Loading your dashboard...</p>
@@ -149,7 +158,14 @@ export default function LobbyPage() {
 
   return (
     <RequireAuth>
-      <div className={styles.container}>
+      <div 
+        className={styles.container}
+        style={{
+          '--bg-image': `url(${backgroundSettings.backgroundImage})`,
+          '--bg-opacity': backgroundSettings.opacity,
+          '--bg-overlay': backgroundSettings.overlay
+        } as React.CSSProperties}
+      >
         {/* Hero Section with Stats */}
         <div className={styles.hero}>
           <div className={styles.heroContent}>

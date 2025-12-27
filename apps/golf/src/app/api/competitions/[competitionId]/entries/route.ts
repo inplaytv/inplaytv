@@ -23,7 +23,7 @@ export async function POST(
     const body = await request.json();
     const { entry_name, total_salary, captain_golfer_id, status, picks } = body;
 
-    console.log('[Entries] 📝 Creating new entry for user:', user.id, 'competition:', competitionId);
+    // Creating new entry
 
     // Validate required fields
     if (total_salary === undefined || total_salary === null) {
@@ -51,6 +51,7 @@ export async function POST(
       .select(`
         entry_fee_pennies,
         reg_close_at,
+        competition_format,
         tournaments!tournament_competitions_tournament_id_fkey (
           start_date
         )
@@ -61,7 +62,7 @@ export async function POST(
     if (compData) {
       competition = compData;
       isInstance = false;
-      console.log('[Entries] 🎯 Regular Competition - Multiple entries allowed');
+      // Regular Competition - Multiple entries allowed
     } else {
       // Try competition_instances (ONE 2 ONE - limit 1 entry per user)
       isInstance = true;
@@ -92,16 +93,16 @@ export async function POST(
         });
 
         // ⚠️ ONE 2 ONE PROTECTION: Check if user already has an entry for THIS instance
-        // ONE 2 ONE allows max 1 entry per user per instance
+        // ONE 2 ONE allows max 1 entry per user per competition
         const { data: existingEntry, error: existingError } = await supabase
           .from('competition_entries')
           .select('id')
           .eq('user_id', user.id)
-          .eq('instance_id', competitionId)
+          .eq('competition_id', competitionId)
           .maybeSingle();
 
         if (existingEntry) {
-          console.log('[Entries] ❌ ONE 2 ONE DUPLICATE BLOCKED - User already has entry for this instance');
+          console.log('[Entries] ❌ ONE 2 ONE DUPLICATE BLOCKED - User already has entry for this competition');
           return NextResponse.json(
             { error: 'You have already entered this ONE 2 ONE competition' },
             { status: 400 }
@@ -140,8 +141,7 @@ export async function POST(
 
     // If status is submitted, deduct from wallet FIRST before creating entry
     if (status === 'submitted') {
-      console.log('💰 Processing payment for submitted entry...');
-      console.log('💳 Entry fee:', competition.entry_fee_pennies);
+      // Processing payment for submitted entry
       
       // CRITICAL FIX: Use atomic SQL to prevent race conditions
       // This single UPDATE both checks balance AND deducts in one atomic operation
@@ -165,19 +165,15 @@ export async function POST(
         throw new Error('Insufficient funds');
       }
 
-      console.log('✅ Wallet updated successfully. New balance:', walletResult.new_balance);
+      // Wallet updated successfully
     }
 
     // NOW create the entry (only after payment succeeds)
-    console.log('📝 Creating competition entry...');
-    
-    console.log('[Entries] Competition type:', isInstance ? 'ONE 2 ONE Instance' : 'Regular Competition');
-    console.log('[Entries] Competition ID:', competitionId);
+// Creating competition entry
     
     const entryData: any = {
       user_id: user.id,
-      competition_id: isInstance ? null : competitionId, // NULL for instances
-      instance_id: isInstance ? competitionId : null, // Set instance_id for ONE 2 ONE
+      competition_id: competitionId, // All entries use competition_id in unified schema
       entry_name,
       total_salary,
       entry_fee_paid: status === 'submitted' ? competition.entry_fee_pennies : 0,
@@ -186,7 +182,7 @@ export async function POST(
       ...(status === 'submitted' && { submitted_at: new Date().toISOString() }),
     };
     
-    console.log('📝 Entry data:', JSON.stringify(entryData, null, 2));
+    // Entry data prepared
     
     const { data: newEntry, error: insertError } = await supabase
       .from('competition_entries')
@@ -206,71 +202,65 @@ export async function POST(
       throw new Error('Entry creation failed - no ID returned');
     }
 
-    console.log('✅ Entry created:', newEntry.id);
+    // Entry created
 
-    // If ONE 2 ONE instance and submitted, manage current_players count
-    if (isInstance && status === 'submitted') {
-      console.log('[Entries] Managing ONE 2 ONE instance players for:', competitionId);
+    // For ONE 2 ONE competitions, update status to match player count
+    if (competition.competition_format === 'one2one' && status === 'submitted') {
+      console.log('🎯 ONE 2 ONE competition detected, checking player count...');
       
-      // Check how many SUBMITTED entries exist for this instance (including the one just created)
+      // Check how many SUBMITTED entries exist for this competition (including the one just created)
       const { data: allEntries, error: countError } = await supabase
         .from('competition_entries')
         .select('id, user_id, created_at')
-        .eq('instance_id', competitionId)
+        .eq('competition_id', competitionId)
         .eq('status', 'submitted')
         .order('created_at', { ascending: true });
 
-      if (countError) {
-        console.error('[Entries] Error fetching entries:', countError);
-      } else if (allEntries) {
+      if (!countError && allEntries) {
         const entryCount = allEntries.length;
-        console.log('[Entries] Total submitted entries:', entryCount);
-        console.log('[Entries] Entry details:', allEntries.map(e => ({ user_id: e.user_id, created_at: e.created_at })));
+        console.log(`📊 Total submitted entries for competition ${competitionId}: ${entryCount}`);
+
+        // Use service role to bypass RLS for competition status update
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
 
         if (entryCount === 1) {
-          // First entry - activate the instance to 'open' with 1 player
-          console.log('[Entries] First player submission - activating instance to open');
-          const { error: activateError } = await supabase
-            .from('competition_instances')
+          // First entry - activate the competition to 'open' with 1 player
+          console.log('✅ First player joined - updating to OPEN');
+          const { error: updateError } = await supabaseAdmin
+            .from('tournament_competitions')
             .update({ 
               status: 'open',
               current_players: 1,
             })
             .eq('id', competitionId);
           
-          if (activateError) {
-            console.error('[Entries] ❌ Failed to activate instance:', activateError);
+          if (updateError) {
+            console.error('❌ Failed to update competition to open:', updateError);
           } else {
-            console.log('[Entries] ✅ Instance activated to open with 1 player');
+            console.log('✅ Competition status updated to OPEN');
           }
-        } else if (entryCount === 2) {
-          // Second entry - mark instance as 'full' with 2 players
-          console.log('[Entries] Second player submission - marking instance as full');
-          
-          // Use service role to bypass RLS for instance status update
-          const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-          );
-          
-          const { data: updateResult, error: updateError } = await supabaseAdmin
-            .from('competition_instances')
+        } else if (entryCount >= 2) {
+          // Second entry - mark competition as 'full' with 2 players
+          console.log('🎉 Second player joined - updating to FULL');
+          const { error: updateError } = await supabaseAdmin
+            .from('tournament_competitions')
             .update({ 
               status: 'full',
               current_players: 2,
             })
-            .eq('id', competitionId)
-            .select();
+            .eq('id', competitionId);
           
           if (updateError) {
-            console.error('[Entries] ❌ Failed to mark instance as full:', updateError);
+            console.error('❌ Failed to update competition to full:', updateError);
           } else {
-            console.log('[Entries] ✅ Instance update result:', updateResult);
-            console.log('[Entries] ✅ Rows updated:', updateResult?.length);
+            console.log('✅ Competition status updated to FULL');
           }
-        } else {
-          console.warn('[Entries] ⚠️ Unexpected entry count:', entryCount, '(expected 1 or 2)');
         }
+      } else if (countError) {
+        console.error('❌ Error counting entries:', countError);
       }
     }
 

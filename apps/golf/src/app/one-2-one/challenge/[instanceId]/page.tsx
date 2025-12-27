@@ -11,41 +11,37 @@ interface PageProps {
 }
 
 async function getChallengeData(instanceId: string) {
-  console.log('🔍 Fetching challenge data for instanceId:', instanceId);
   const supabase = await createServerClient();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    console.error('❌ No authenticated user');
     return null;
   }
-  console.log('✅ User authenticated:', user.id);
 
-  // Get competition instance
-  const { data: instance, error: instanceError } = await supabase
-    .from('competition_instances')
+  // Get competition from unified table
+  const { data: competition, error: competitionError } = await supabase
+    .from('tournament_competitions')
     .select('*')
     .eq('id', instanceId)
+    .eq('competition_format', 'one2one')
     .single();
 
-  if (instanceError || !instance) {
-    console.error('Failed to fetch challenge instance:', { instanceId, error: instanceError });
+  if (competitionError || !competition) {
+    console.error('Failed to fetch challenge competition:', { instanceId, error: competitionError });
     return null;
   }
 
-  console.log('✅ Instance found:', { instance, tournamentId: instance.tournament_id });
-
-  // Get tournament details directly (no competition table)
+  // Get tournament details
   const { data: tournament, error: tournamentError } = await supabase
     .from('tournaments')
     .select('id, name, status, start_date, end_date')
-    .eq('id', instance.tournament_id)
+    .eq('id', competition.tournament_id)
     .single();
 
   if (!tournament) {
     console.error('Failed to fetch tournament:', { 
-      tournamentId: instance.tournament_id, 
+      tournamentId: competition.tournament_id, 
       error: tournamentError 
     });
     return null;
@@ -55,28 +51,10 @@ async function getChallengeData(instanceId: string) {
   const { data: entries } = await supabase
     .from('competition_entries')
     .select('*')
-    .eq('instance_id', instanceId)
+    .eq('competition_id', instanceId)
     .order('created_at', { ascending: true });
 
-  console.log('📝 Entries found:', { 
-    instanceId, 
-    entriesFound: entries?.length,
-    entries: entries?.map(e => ({ 
-      id: e.id, 
-      userId: e.user_id, 
-      golferId: e.golfer_id,
-      captainGolferId: e.captain_golfer_id,
-      allFields: Object.keys(e),
-      createdAt: e.created_at 
-    }))
-  });
-
   if (!entries || entries.length < 1) {
-    console.error('Challenge entries check failed - no entries found:', { 
-      instanceId, 
-      entriesFound: entries?.length,
-      entries 
-    });
     return null;
   }
 
@@ -132,8 +110,6 @@ async function getChallengeData(instanceId: string) {
     .eq('tournament_id', tournament.id)
     .in('golfer_id', allPickedGolferIds);
 
-  console.log('📊 All Pick Scores from database:', JSON.stringify(allPickScores?.slice(0, 3), null, 2));
-
   // Map data together
   const enrichedEntries = entries.map(entry => {
     const profile = profiles?.find(p => p.id === entry.user_id);
@@ -147,7 +123,6 @@ async function getChallengeData(instanceId: string) {
 
     // Get picks for this entry (6 golfers per user)
     const entryPicks = picks?.filter(p => p.entry_id === entry.id) || [];
-    console.log(`📊 Entry ${entry.id}: Captain captain_golfer_id = ${entry.captain_golfer_id}, Picks count = ${entryPicks.length}`);
     const enrichedPicks = entryPicks.map(pick => {
       const pickScore = allPickScores?.find(s => s.golfer_id === pick.golfer_id) || {
         total_score: null,
@@ -177,7 +152,6 @@ async function getChallengeData(instanceId: string) {
       };
       // Determine if this golfer is the captain (using captain_golfer_id field)
       const isCaptain = pick.golfer_id === entry.captain_golfer_id;
-      console.log(`  🏌️ Pick ${pick.golfer_id} - Is Captain: ${isCaptain} (${pick.golfer_id} === ${entry.captain_golfer_id})`);
       return {
         ...pick,
         score: scoreWithRounds,
@@ -195,7 +169,7 @@ async function getChallengeData(instanceId: string) {
   });
 
   return {
-    instance,
+    competition,
     entries: enrichedEntries,
     currentUserId: user.id,
     tournament

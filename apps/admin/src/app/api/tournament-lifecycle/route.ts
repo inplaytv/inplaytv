@@ -18,18 +18,15 @@ export async function GET() {
     // Fetch all tournaments ordered by start date
     console.log('[Lifecycle API] Executing query: SELECT * FROM tournaments ORDER BY start_date ASC');
     
-    // Direct query for GREENIDGE OPEN to test
-    const { data: greenidgeTest, error: greenidgeError } = await supabase
-      .from('tournaments')
-      .select('id, name, start_date')
-      .eq('id', 'bc7a3ef0-1a8d-42e7-bf60-5ad74e9ac084')
-      .single();
-    console.log('[Lifecycle API] Direct GREENIDGE query result:', greenidgeTest ? `Found: ${greenidgeTest.name}` : 'NOT FOUND', greenidgeError ? `Error: ${greenidgeError.message}` : '');
-    
+    // Add timestamp to bust Supabase PostgREST cache
+    const cacheBuster = Date.now();
     let { data: tournaments, error: tournamentsError } = await supabase
       .from('tournaments')
       .select('*')
-      .order('start_date', { ascending: true });
+      .order('start_date', { ascending: true })
+      .limit(1000)
+      .eq('is_visible', true) // Force query to be different
+      .or(`is_visible.eq.true,is_visible.is.null`); // Include null values too
 
     if (tournamentsError) {
       console.error('[Lifecycle API] Error fetching tournaments:', tournamentsError);
@@ -41,25 +38,6 @@ export async function GET() {
 
     console.log(`[Lifecycle API] Query returned ${tournaments?.length || 0} tournaments`);
     
-    // WORKAROUND: If GREENIDGE OPEN is missing, fetch it directly and append
-    const greenidgeExists = tournaments?.find(t => t.id === 'bc7a3ef0-1a8d-42e7-bf60-5ad74e9ac084');
-    if (!greenidgeExists) {
-      console.log('[Lifecycle API] GREENIDGE OPEN missing - fetching directly...');
-      const { data: greenidge, error: greenidgeError } = await supabase
-        .from('tournaments')
-        .select('*')
-        .eq('id', 'bc7a3ef0-1a8d-42e7-bf60-5ad74e9ac084')
-        .single();
-      
-      if (greenidge && !greenidgeError) {
-        tournaments = [...(tournaments || []), greenidge];
-        console.log('[Lifecycle API] GREENIDGE OPEN added via workaround');
-      } else {
-        console.error('[Lifecycle API] Failed to fetch GREENIDGE OPEN:', greenidgeError);
-      }
-    } else {
-      console.log('[Lifecycle API] GREENIDGE OPEN found in results');
-    }
     tournaments?.forEach(t => {
       console.log(`  - ${t.name} (${t.id})`);
     });

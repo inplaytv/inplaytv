@@ -79,13 +79,14 @@ export async function GET(
         // If no close date is set, registration is open. Otherwise check if we're before the close date.
         const isOpen = closeDate ? now < closeDate : true;
 
-        // Get available instance count
+        // Get available competition count (ONE 2 ONE competitions with open spots)
         const { count, error: countError } = await supabase
-          .from('competition_instances')
+          .from('tournament_competitions')
           .select('id', { count: 'exact', head: true })
           .eq('template_id', template.id)
           .eq('tournament_id', tournament.id)
-          .eq('status', 'open')
+          .eq('competition_format', 'one2one')
+          .in('status', ['open', 'pending'])
           .lt('current_players', 2);
 
         return {
@@ -98,9 +99,14 @@ export async function GET(
       })
     );
 
+    // Return ALL templates (let frontend handle closed/open display)
+    // Also indicate if ALL templates are closed for this tournament
+    const allClosed = templatesWithAvailability.every(t => !t.is_open);
+    
     return NextResponse.json({
       tournament: tournament,
-      templates: templatesWithAvailability
+      templates: templatesWithAvailability,
+      allClosed: allClosed
     });
 
   } catch (error) {

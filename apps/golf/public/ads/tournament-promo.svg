@@ -1,0 +1,44 @@
+<svg width="1200" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#334155;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="glowGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#667eea;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="600" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative Glow Effects (avoiding top-left corner for SPONSORED badge) -->
+  <circle cx="900" cy="200" r="250" fill="url(#glowGradient)"/>
+  <circle cx="300" cy="450" r="200" fill="url(#glowGradient)"/>
+  
+  <!-- Golf Ball Icon - Centered -->
+  <circle cx="600" cy="220" r="100" fill="#ffffff" opacity="0.08"/>
+  <circle cx="600" cy="220" r="85" fill="none" stroke="#667eea" stroke-width="4" opacity="0.6"/>
+  <circle cx="585" cy="195" r="6" fill="#667eea" opacity="0.6"/>
+  <circle cx="618" cy="202" r="6" fill="#667eea" opacity="0.6"/>
+  <circle cx="590" cy="228" r="6" fill="#667eea" opacity="0.6"/>
+  <circle cx="610" cy="238" r="6" fill="#667eea" opacity="0.6"/>
+  
+  <!-- Large InPlayTV Logo Text - Centered (clear of top-left badge area) -->
+  <text x="600" y="360" font-family="Arial, sans-serif" font-size="82" font-weight="bold" fill="#ffffff" text-anchor="middle" opacity="0.15">
+    InPlayTV
+  </text>
+  
+  <!-- Accent Lines -->
+  <rect x="400" y="420" width="400" height="3" fill="url(#accentGradient)" opacity="0.3"/>
+  <rect x="450" y="430" width="300" height="2" fill="url(#accentGradient)" opacity="0.3"/>
+  
+  <!-- Note: Text overlay (title, description, CTA) will be added via HTML/CSS -->
+  <!-- The top-left corner (0-250px x 0-100px) is reserved for the "SPONSORED" badge -->
+</svg>
