@@ -109,12 +109,22 @@ export async function middleware(request: NextRequest) {
 
   // Check if user is logged in and is admin - try multiple cookie names
   const allCookies = request.cookies.getAll();
-  console.log('[Golf Middleware] All cookies:', allCookies.map(c => c.name));
+  console.log('[Golf Middleware] All cookies:', allCookies.map(c => `${c.name}=${c.value.substring(0, 20)}...`));
   
-  const token = request.cookies.get('sb-access-token')?.value || 
+  // Look for ANY cookie that might contain auth token
+  const authCookie = allCookies.find(c => 
+    c.name.includes('supabase') || 
+    c.name.includes('auth') || 
+    c.name.includes('sb-') ||
+    c.name.startsWith('sb')
+  );
+  
+  console.log('[Golf Middleware] Found auth cookie:', authCookie?.name);
+  
+  const token = authCookie?.value ||
+                request.cookies.get('sb-access-token')?.value || 
                 request.cookies.get('supabase-auth-token')?.value ||
-                request.cookies.get('sb-auth-token')?.value ||
-                allCookies.find(c => c.name.includes('auth-token'))?.value;
+                request.cookies.get('sb-auth-token')?.value;
   
   console.log('[Golf Middleware] Token found:', !!token);
   
