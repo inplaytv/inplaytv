@@ -95,6 +95,7 @@ export async function middleware(request: NextRequest) {
 
   // Get maintenance mode (only for production domains)
   const mode = await getMaintenanceMode();
+  console.log('[Golf Middleware] Mode:', mode, 'for path:', pathname);
   
   // If site is live, allow everything
   if (mode === 'live') {
@@ -102,9 +103,16 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check if user is logged in and is admin - try multiple cookie names
+  const allCookies = request.cookies.getAll();
+  console.log('[Golf Middleware] All cookies:', allCookies.map(c => c.name));
+  
   const token = request.cookies.get('sb-access-token')?.value || 
                 request.cookies.get('supabase-auth-token')?.value ||
-                request.cookies.get('sb-auth-token')?.value;
+                request.cookies.get('sb-auth-token')?.value ||
+                allCookies.find(c => c.name.includes('auth-token'))?.value;
+  
+  console.log('[Golf Middleware] Token found:', !!token);
+  
   let userId: string | null = null;
 
   if (token) {
@@ -113,8 +121,10 @@ export async function middleware(request: NextRequest) {
       if (parts.length === 3 && parts[1]) {
         const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
         userId = payload.sub;
+        console.log('[Golf Middleware] User ID from token:', userId);
       }
-    } catch {
+    } catch (err) {
+      console.log('[Golf Middleware] Token decode error:', err);
       userId = null;
     }
   }
@@ -123,6 +133,9 @@ export async function middleware(request: NextRequest) {
   let userIsAdmin = false;
   if (userId) {
     userIsAdmin = await isAdmin(userId);
+    console.log('[Golf Middleware] User is admin:', userIsAdmin);
+  } else {
+    console.log('[Golf Middleware] No user ID, skipping admin check');
   }
 
   // Admins can always access
