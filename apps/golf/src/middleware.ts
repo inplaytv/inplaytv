@@ -124,7 +124,17 @@ export async function middleware(request: NextRequest) {
   // For non-admins in coming-soon or maintenance mode, redirect to main web app
   // The web app will show the appropriate page
   if (mode === 'coming-soon' || mode === 'maintenance') {
-    return NextResponse.redirect(new URL(`/${mode}`, 'http://localhost:3000'));
+    const hostname = request.nextUrl.hostname;
+    let webUrl;
+    
+    // Handle localhost differently
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      webUrl = 'http://localhost:3000';
+    } else {
+      webUrl = process.env.NEXT_PUBLIC_WEB_URL || `https://www.${hostname.replace('golf.', '')}`;
+    }
+    
+    return NextResponse.redirect(new URL(`/${mode}`, webUrl));
   }
 
   return NextResponse.next();
