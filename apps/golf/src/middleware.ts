@@ -94,8 +94,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check if user is logged in and is admin
-  const token = request.cookies.get('sb-access-token')?.value;
+  // Check if user is logged in and is admin - try multiple cookie names
+  const token = request.cookies.get('sb-access-token')?.value || 
+                request.cookies.get('supabase-auth-token')?.value ||
+                request.cookies.get('sb-auth-token')?.value;
   let userId: string | null = null;
 
   if (token) {
