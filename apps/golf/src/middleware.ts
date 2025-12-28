@@ -82,7 +82,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // Always allow login, signup, and maintenance pages
-  if (pathname === '/login' || pathname === '/signup' || pathname === '/maintenance' || pathname === '/coming-soon') {
+  if (
+    pathname === '/login' || 
+    pathname === '/signup' || 
+    pathname === '/maintenance' || 
+    pathname === '/coming-soon' ||
+    pathname.startsWith('/login') ||  // Catch any login routes
+    pathname.startsWith('/signup')    // Catch any signup routes
+  ) {
     return NextResponse.next();
   }
 
