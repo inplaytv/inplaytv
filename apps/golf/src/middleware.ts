@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 
 // Cache for maintenance mode (reduces database queries)
 let maintenanceModeCache: { mode: string; timestamp: number } | null = null;
@@ -9,9 +9,15 @@ const CACHE_TTL = 30000; // 30 seconds
 // Check if user is admin
 async function isAdmin(userId: string): Promise<boolean> {
   try {
-    const supabase = createClient(
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+          getAll: () => [],
+          setAll: () => {},
+        }
+      }
     );
 
     const { data, error } = await supabase
@@ -35,9 +41,15 @@ async function getMaintenanceMode(): Promise<string> {
   }
 
   try {
-    const supabase = createClient(
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+          getAll: () => [],
+          setAll: () => {},
+        }
+      }
     );
 
     const { data, error } = await supabase
@@ -107,47 +119,34 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check if user is logged in and is admin - try multiple cookie names
-  const allCookies = request.cookies.getAll();
-  console.log('[Golf Middleware] All cookies:', allCookies.map(c => `${c.name}=${c.value.substring(0, 20)}...`));
+  // Check if user is logged in using proper Supabase SSR
+  let response = NextResponse.next();
   
-  // Look for ANY cookie that might contain auth token
-  const authCookie = allCookies.find(c => 
-    c.name.includes('supabase') || 
-    c.name.includes('auth') || 
-    c.name.includes('sb-') ||
-    c.name.startsWith('sb')
-  );
-  
-  console.log('[Golf Middleware] Found auth cookie:', authCookie?.name);
-  
-  const token = authCookie?.value ||
-                request.cookies.get('sb-access-token')?.value || 
-                request.cookies.get('supabase-auth-token')?.value ||
-                request.cookies.get('sb-auth-token')?.value;
-  
-  console.log('[Golf Middleware] Token found:', !!token);
-  
-  let userId: string | null = null;
-
-  if (token) {
-    try {
-      const parts = token.split('.');
-      if (parts.length === 3 && parts[1]) {
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-        userId = payload.sub;
-        console.log('[Golf Middleware] User ID from token:', userId);
-      }
-    } catch (err) {
-      console.log('[Golf Middleware] Token decode error:', err);
-      userId = null;
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
     }
-  }
+  );
+
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
+  console.log('[Golf Middleware] User from auth:', user?.id, 'Error:', error?.message);
 
   // Check if user is admin
   let userIsAdmin = false;
-  if (userId) {
-    userIsAdmin = await isAdmin(userId);
+  if (user) {
+    userIsAdmin = await isAdmin(user.id);
     console.log('[Golf Middleware] User is admin:', userIsAdmin);
   } else {
     console.log('[Golf Middleware] No user ID, skipping admin check');
