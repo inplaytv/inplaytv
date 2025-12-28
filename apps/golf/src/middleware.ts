@@ -81,6 +81,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Always allow login, signup, and maintenance pages
+  if (pathname === '/login' || pathname === '/signup' || pathname === '/maintenance' || pathname === '/coming-soon') {
+    return NextResponse.next();
+  }
+
   // Get maintenance mode (only for production domains)
   const mode = await getMaintenanceMode();
   
