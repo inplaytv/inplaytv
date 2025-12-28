@@ -107,8 +107,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Always allow maintenance and coming-soon pages
-  if (pathname === '/maintenance' || pathname === '/coming-soon') {
+  // Always allow maintenance, coming-soon, and login pages
+  if (pathname === '/maintenance' || pathname === '/coming-soon' || pathname === '/login' || pathname === '/signup') {
     return NextResponse.next();
   }
 
