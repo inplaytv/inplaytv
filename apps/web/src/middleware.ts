@@ -102,6 +102,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/images') ||
     pathname.startsWith('/fonts') ||
+    pathname.startsWith('/api') ||
     pathname === '/favicon.ico'
   ) {
     return NextResponse.next();
@@ -120,8 +121,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check if user is logged in
-  const token = request.cookies.get('sb-access-token')?.value;
+  // Check if user is logged in - try multiple cookie names
+  const token = request.cookies.get('sb-access-token')?.value || 
+                request.cookies.get('supabase-auth-token')?.value ||
+                request.cookies.get('sb-auth-token')?.value;
+  
+  console.log('[Middleware] Checking auth - has token:', !!token);
+  
   let userId: string | null = null;
 
   if (token) {
@@ -131,9 +137,11 @@ export async function middleware(request: NextRequest) {
       if (parts.length === 3 && parts[1]) {
         const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
         userId = payload.sub;
+        console.log('[Middleware] User ID from token:', userId);
       }
     } catch {
       userId = null;
+      console.log('[Middleware] Failed to decode token');
     }
   }
 
@@ -141,6 +149,7 @@ export async function middleware(request: NextRequest) {
   let userIsAdmin = false;
   if (userId) {
     userIsAdmin = await isAdmin(userId);
+    console.log('[Middleware] User is admin:', userIsAdmin);
   }
 
   // Admins can always access everything
