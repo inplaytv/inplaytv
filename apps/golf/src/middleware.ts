@@ -59,14 +59,17 @@ async function getMaintenanceMode(): Promise<string> {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const hostname = request.nextUrl.hostname;
+  
+  console.log('[Golf Middleware START] Path:', pathname, 'Host:', hostname);
   
   // REMOVED: Don't redirect one-2-one tournament pages - they're needed for challenge creation
   // The /one-2-one/[slug] pages are still used for creating new challenges
   
   // ALWAYS allow localhost/127.0.0.1 - no maintenance checks in development
   // This ensures local development is never blocked regardless of database state
-  const hostname = request.nextUrl.hostname;
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log('[Golf Middleware] Localhost bypass');
     return NextResponse.next();
   }
   
@@ -78,6 +81,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/favicon.ico' ||
     pathname.startsWith('/api')
   ) {
+    console.log('[Golf Middleware] Allowing static/API:', pathname);
     return NextResponse.next();
   }
 
@@ -90,6 +94,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/login') ||  // Catch any login routes
     pathname.startsWith('/signup')    // Catch any signup routes
   ) {
+    console.log('[Golf Middleware] Allowing auth page:', pathname);
     return NextResponse.next();
   }
 
@@ -140,11 +145,13 @@ export async function middleware(request: NextRequest) {
 
   // Admins can always access
   if (userIsAdmin) {
+    console.log('[Golf Middleware] Admin access granted');
     return NextResponse.next();
   }
 
   // For non-admins in coming-soon or maintenance mode, redirect to main web app
   // The web app will show the appropriate page
+  console.log('[Golf Middleware] Redirecting to web app, mode:', mode);
   if (mode === 'coming-soon' || mode === 'maintenance') {
     const hostname = request.nextUrl.hostname;
     let webUrl;
@@ -156,6 +163,7 @@ export async function middleware(request: NextRequest) {
       webUrl = process.env.NEXT_PUBLIC_WEB_URL || `https://www.${hostname.replace('golf.', '')}`;
     }
     
+    console.log('[Golf Middleware] Redirecting to:', `${webUrl}/${mode}`);
     return NextResponse.redirect(new URL(`/${mode}`, webUrl));
   }
 
