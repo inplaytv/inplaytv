@@ -223,10 +223,8 @@ export default function TournamentBackgrounds() {
         <h3>Available {tabs.find(tab => tab.id === activeTab)?.label} Images ({backgrounds.length})</h3>
         <div className={styles.grid}>
           {backgrounds.map((bg) => {
-            // Compare filenames since bg.url is /api/images/tournaments/X and currentBackground is /backgrounds/X
-            const currentFilename = currentBackground.split('/').pop();
-            const bgFilename = bg.url.split('/').pop();
-            const isCurrentBackground = currentFilename === bgFilename;
+            // bg.url is already /backgrounds/filename.jpg
+            const isCurrentBackground = currentBackground === bg.url;
             
             return (
               <div 
