@@ -148,14 +148,20 @@ export async function middleware(request: NextRequest) {
   // Check if user is admin
   let userIsAdmin = false;
   if (userId) {
+    console.log('[Middleware] Checking if user is admin, userId:', userId);
     userIsAdmin = await isAdmin(userId);
     console.log('[Middleware] User is admin:', userIsAdmin);
+  } else {
+    console.log('[Middleware] No userId found from token');
   }
 
   // Admins can always access everything
   if (userIsAdmin) {
+    console.log('[Middleware] Admin access granted, allowing through');
     return NextResponse.next();
   }
+  
+  console.log('[Middleware] Not admin, mode:', mode, 'will show maintenance page');
 
   // If coming-soon mode, show coming-soon page for all routes (URL stays the same)
   if (mode === 'coming-soon') {

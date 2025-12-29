@@ -26,7 +26,13 @@ export default function WaitlistPage() {
   const fetchWaitlist = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/waitlist');
+      const response = await fetch(`/api/waitlist?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       if (response.ok) {
         const { entries: data } = await response.json();
         setEntries(data || []);
@@ -99,10 +105,13 @@ export default function WaitlistPage() {
       if (response.ok) {
         alert('✅ Entry deleted!');
         fetchWaitlist();
+      } else {
+        const errorData = await response.json();
+        alert(`❌ Failed to delete: ${errorData.error || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Error deleting entry:', err);
-      alert('❌ Failed to delete entry');
+      alert(`❌ Failed to delete entry: ${err}`);
     }
   };
 

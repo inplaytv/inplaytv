@@ -10,7 +10,7 @@
 
 export type CompetitionStatus = 'upcoming' | 'reg_open' | 'live' | 'completed' | 'cancelled';
 export type ChallengeStatus = 'pending' | 'open' | 'in-play' | 'completed' | 'cancelled';
-export type TournamentStatus = 'upcoming' | 'registration_open' | 'in_progress' | 'completed' | 'cancelled';
+export type TournamentStatus = 'upcoming' | 'registration_open' | 'live' | 'completed' | 'cancelled';
 
 // ============================================================================
 // COMPETITION DISCRIMINATED UNION

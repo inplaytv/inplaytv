@@ -44,20 +44,36 @@ export default function NewTournamentPage() {
       const res = await fetch('/api/competition-types');
       if (res.ok) {
         const data = await res.json();
-        // Get first 6 main competitions (Full Course, Beat The Cut, The Weekender, Round 1-3)
-        const mainComps = data.competitionTypes?.filter((ct: any) => 
-          ['full-course', 'beat-the-cut', 'the-weekender', 'round-1', 'round-2', 'round-3'].includes(ct.slug)
-        ).slice(0, 6);
+        console.log('📊 Fetched competition types:', data);
         
-        if (mainComps) {
+        // Get the 6 main competitions by exact slug match
+        const mainSlugs = [
+          'full-course-all-4-rounds',
+          'beat-the-cut',
+          'the-weekender',
+          'be-the-first-to-strike',
+          'second-round',
+          'third-round'
+        ];
+        
+        // API returns array directly, not wrapped in competitionTypes
+        const mainComps = data?.filter((ct: any) => 
+          mainSlugs.includes(ct.slug)
+        );
+        
+        console.log('✅ Filtered main competitions:', mainComps?.length || 0);
+        
+        if (mainComps && mainComps.length > 0) {
           setDefaultCompetitions(mainComps.map((ct: any) => ({
             competition_type_id: ct.id,
             name: ct.name,
             enabled: true,
             entry_fee_pennies: ct.default_entry_fee_pennies || 1000, // £10 default
-            entrants_cap: ct.default_entrants_cap || 10,
+            entrants_cap: ct.default_entrants_cap || 100,
             admin_fee_percent: ct.default_admin_fee_percent || 10,
           })));
+        } else {
+          console.error('❌ No main competitions found in data');
         }
       }
     } catch (err) {
@@ -120,6 +136,11 @@ export default function NewTournamentPage() {
 
       if (res.ok) {
         const data = await res.json();
+        const statusReminder = formData.status === 'draft' 
+          ? ' ⚠️ Tournament is in DRAFT status - use Lifecycle Manager to make it visible to players.'
+          : '';
+        setError(''); // Clear any errors
+        alert(`✅ Tournament created successfully! ${autoCreateComps ? `Auto-created ${defaultCompetitions.filter(c => c.enabled).length} competitions.` : ''}${statusReminder}`);
         router.push(`/tournaments/${data.id}`);
       } else {
         const data = await res.json();
@@ -410,6 +431,30 @@ export default function NewTournamentPage() {
           marginBottom: '1.5rem',
         }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem' }}>Settings</h2>
+
+          {/* Status Warning Notice */}
+          {formData.status === 'draft' && (
+            <div style={{
+              background: 'rgba(234, 179, 8, 0.15)',
+              border: '1px solid rgba(234, 179, 8, 0.3)',
+              borderRadius: '6px',
+              padding: '1rem',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'start',
+              gap: '0.75rem',
+            }}>
+              <i className="fas fa-exclamation-triangle" style={{ color: '#eab308', fontSize: '1.25rem', marginTop: '0.125rem' }}></i>
+              <div>
+                <div style={{ color: '#fbbf24', fontWeight: 600, marginBottom: '0.25rem', fontSize: '0.9375rem' }}>
+                  Draft Status Notice
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem', lineHeight: '1.5' }}>
+                  <strong>Tournaments in "Draft" status will NOT appear on the player-facing website</strong> unless the current time falls within the competition registration window (reg_open_at to reg_close_at). To make this tournament visible to players, change status to "Registration Open" after creation using the <strong>Tournament Lifecycle Manager</strong>.
+                </div>
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
             <div>

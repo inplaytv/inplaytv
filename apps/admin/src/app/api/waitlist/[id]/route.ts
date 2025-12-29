@@ -15,15 +15,20 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    
+    console.log('[DELETE Waitlist] Attempting to delete ID:', id);
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('waitlist')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
+    
+    console.log('[DELETE Waitlist] Result:', { data, error });
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, deleted: data });
   } catch (error: any) {
     console.error('DELETE waitlist entry error:', error);
     return NextResponse.json(

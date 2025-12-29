@@ -27,7 +27,7 @@ export default function One2OneLobbyPage() {
   useEffect(() => {
     async function fetchTournaments() {
       try {
-        const response = await fetch('/api/tournaments?status=active');
+        const response = await fetch('/api/tournaments');
         if (response.ok) {
           const data = await response.json();
           

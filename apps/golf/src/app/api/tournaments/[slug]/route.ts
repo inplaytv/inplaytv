@@ -29,14 +29,6 @@ export async function GET(
     }
 
     // Fetch competitions for this tournament
-    // First, let's see ALL competitions to debug
-    const { data: allComps } = await supabase
-      .from('tournament_competitions')
-      .select('id, status, competition_type_id, entry_fee_pennies')
-      .eq('tournament_id', tournament.id);
-    
-    console.log(`🔍 All competitions for ${tournament.name}:`, allComps);
-
     const { data: competitions, error: competitionsError } = await supabase
       .from('tournament_competitions')
       .select(`
@@ -49,21 +41,9 @@ export async function GET(
         )
       `)
       .eq('tournament_id', tournament.id)
+      .eq('competition_format', 'inplay')
       .in('status', ['upcoming', 'reg_open', 'reg_closed', 'live'])
       .order('entry_fee_pennies', { ascending: false });
-
-    console.log(`✅ Filtered competitions (${competitions?.length || 0}):`, competitions?.map(c => ({ 
-      name: c.competition_types?.name, 
-      status: c.status,
-      type_id: c.competition_type_id,
-      fee: c.entry_fee_pennies,
-      entrants_cap: c.entrants_cap,
-      guaranteed_prize: c.guaranteed_prize_pool_pennies,
-      first_place_prize: c.first_place_prize_pennies,
-      admin_fee: c.admin_fee_percent,
-      reg_open_at: c.reg_open_at,
-      reg_close_at: c.reg_close_at
-    })));
 
     if (competitionsError) {
       console.error('Error fetching competitions:', competitionsError);

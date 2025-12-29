@@ -219,7 +219,7 @@ export const LEADERBOARD_RULES = {
   /**
    * Show tournament leaderboard when tournament is in these statuses
    */
-  SHOW_TOURNAMENT_LEADERBOARD_FOR_STATUS: ['in_progress', 'completed'],
+  SHOW_TOURNAMENT_LEADERBOARD_FOR_STATUS: ['live', 'completed'],
 
   /**
    * Number of entries to show initially (pagination)

@@ -79,24 +79,24 @@ const menuCategories: MenuCategory[] = [
     ]
   },
   {
-    id: 'football',
-    label: 'Football',
-    icon: 'fa-futbol',
-    color: '#3b82f6',
-    gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+    id: 'clubhouse',
+    label: 'Clubhouse',
+    icon: 'fa-users',
+    color: '#8b5cf6',
+    gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
     items: [
       { 
         label: 'Coming Soon', 
         href: '#', 
         icon: 'fa-clock',
-        description: 'Football competitions launching soon'
+        description: 'Social features launching soon'
       }
     ]
   },
   {
-    id: 'horse-racing',
-    label: 'Horse Racing',
-    icon: 'fa-horse-head',
+    id: 'prize-room',
+    label: 'Prize Room',
+    icon: 'fa-trophy',
     color: '#f59e0b',
     gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
     items: [
@@ -104,7 +104,7 @@ const menuCategories: MenuCategory[] = [
         label: 'Coming Soon', 
         href: '#', 
         icon: 'fa-clock',
-        description: 'Horse racing competitions launching soon'
+        description: 'Prizes and rewards launching soon'
       }
     ]
   }

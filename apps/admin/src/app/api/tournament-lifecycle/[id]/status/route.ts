@@ -8,7 +8,7 @@ const supabase = createClient(
 
 export const dynamic = 'force-dynamic';
 
-const VALID_STATUSES = ['upcoming', 'registration_open', 'in_progress', 'completed', 'cancelled'];
+const VALID_STATUSES = ['upcoming', 'registration_open', 'live', 'completed', 'cancelled'];
 
 export async function POST(
   request: Request,
@@ -54,7 +54,7 @@ export async function POST(
       }
     }
 
-    if (status === 'in_progress') {
+    if (status === 'live') {
       // Check if we have competitions (FIXED: use tournament_competitions table)
       const { count: competitionCount } = await supabase
         .from('tournament_competitions')

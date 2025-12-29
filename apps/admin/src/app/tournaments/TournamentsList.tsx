@@ -40,7 +40,6 @@ const STATUS_COLORS: Record<string, string> = {
   reg_open: '#10b981',
   reg_closed: '#f59e0b',
   live: '#ef4444',
-  in_progress: '#f59e0b',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -54,7 +53,6 @@ const STATUS_LABELS: Record<string, string> = {
   reg_open: '✅ Reg Open',
   reg_closed: '⚠️ Reg Closed',
   live: '🏌️ Live',
-  in_progress: '🏌️ In Progress',
 };
 
 // Calculate dynamic status based on tournament dates

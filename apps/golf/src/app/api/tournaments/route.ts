@@ -119,6 +119,7 @@ export async function GET(request: NextRequest) {
             )
           `)
           .eq('tournament_id', tournament.id)
+          .eq('competition_format', 'inplay')
           .order('entry_fee_pennies', { ascending: false });
 
         if (compError) {

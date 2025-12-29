@@ -42,6 +42,8 @@ interface TournamentCompetition {
   id: string;
   tournament_id: string;
   competition_type_id: string;
+  competition_format?: 'inplay' | 'one2one';  // Added for format detection
+  rounds_covered?: number[];  // Added for ONE 2 ONE challenges
   entry_fee_pennies: number;
   entrants_cap: number;
   admin_fee_percent: number;
@@ -1877,7 +1879,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                       <span style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.5)' }}>
                         {isExpanded ? '▼' : '▶'}
                       </span>
-                      {comp.competition_types.name}
+                      {comp.competition_types?.name || (comp.rounds_covered ? `ONE 2 ONE (${comp.rounds_covered.length} rounds)` : 'Unknown Competition')}
                       {(() => {
                         // Calculate status badge
                         const now = new Date();
@@ -2132,7 +2134,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDeleteCompetition(comp.id, comp.competition_types.name)}
+                      onClick={() => handleDeleteCompetition(comp.id, comp.competition_types?.name || comp.rounds_covered ? `ONE 2 ONE (${comp.rounds_covered})` : 'Unknown')}
                       style={{
                         padding: '0.375rem 0.75rem',
                         background: 'rgba(239, 68, 68, 0.2)',
@@ -2347,7 +2349,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
             return (
               <div key={comp.id} style={{ marginBottom: '1.5rem' }}>
                 <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.75rem', color: '#60a5fa' }}>
-                  {comp.competition_types.name} — {formatPennies(comp.entry_fee_pennies)} entry
+                  {comp.competition_types?.name || (comp.rounds_covered ? `ONE 2 ONE (${comp.rounds_covered} rounds)` : 'Unknown')} — {formatPennies(comp.entry_fee_pennies)} entry
                   {entrantsCap > 0 && ` • Max: ${entrantsCap} entrants`}
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>

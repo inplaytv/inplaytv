@@ -687,8 +687,8 @@ export default function LeaderboardsPage() {
     
     // If tournament has explicit status field from database, use it
     if (tournament.status) {
-      if (tournament.status === 'live' || tournament.status === 'in_progress') {
-        return { status: 'in-progress', display: '🔴 Live', color: '#ef4444' };
+      if (tournament.status === 'live') {
+        return { status: 'live', display: '🔴 Live', color: '#ef4444' };
       }
       if (tournament.status === 'completed') {
         return { status: 'completed', display: '✅ Completed', color: '#10b981' };
@@ -733,7 +733,7 @@ export default function LeaderboardsPage() {
         else if (round2TeeTime && now >= round2TeeTime) currentRound = 2;
         
         return { 
-          status: 'in-progress', 
+          status: 'live', 
           display: `🔴 Live - Round ${currentRound}`, 
           color: '#ef4444' 
         };

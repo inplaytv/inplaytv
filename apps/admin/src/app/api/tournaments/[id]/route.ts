@@ -64,26 +64,34 @@ export async function PUT(
     }
 
     const adminClient = createAdminClient();
+    
+    // Preserve existing status if not provided (don't default to 'draft')
+    let updateData: any = {
+      name,
+      slug,
+      description: description || null,
+      location: location || null,
+      timezone: timezone || 'Europe/London',
+      start_date,
+      end_date,
+      admin_fee_percent: parseFloat(admin_fee_percent) || 10.0,
+      external_id: external_id || null,
+      image_url: image_url || null,
+      featured_competition_id: featured_competition_id || null,
+      round_1_start: round1_tee_time || null,
+      round_2_start: round2_tee_time || null,
+      round_3_start: round3_tee_time || null,
+      round_4_start: round4_tee_time || null,
+    };
+    
+    // Only update status if explicitly provided (lifecycle manager controls this)
+    if (status) {
+      updateData.status = status;
+    }
+    
     const { data, error } = await adminClient
       .from('tournaments')
-      .update({
-        name,
-        slug,
-        description: description || null,
-        location: location || null,
-        timezone: timezone || 'Europe/London',
-        start_date,
-        end_date,
-        status: status || 'draft',
-        admin_fee_percent: parseFloat(admin_fee_percent) || 10.0,
-        external_id: external_id || null,
-        image_url: image_url || null,
-        featured_competition_id: featured_competition_id || null,
-        round_1_start: round1_tee_time || null,
-        round_2_start: round2_tee_time || null,
-        round_3_start: round3_tee_time || null,
-        round_4_start: round4_tee_time || null,
-      })
+      .update(updateData)
       .eq('id', params.id)
       .select()
       .single();

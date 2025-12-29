@@ -5,28 +5,45 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // Create Supabase client inside the function to ensure fresh env vars
+    // Create NEW Supabase client with cache busting
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        db: { 
+          schema: 'public',
+        },
+        auth: { 
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+        global: {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'X-Request-ID': `lifecycle-${Date.now()}`, // Force unique request
+          }
+        },
+        // Disable any client-side caching
+        realtime: {
+          params: {
+            eventsPerSecond: 10
+          }
+        }
+      }
     );
 
     console.log('[Lifecycle API] Starting tournament fetch...');
-    console.log('[Lifecycle API] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log('[Lifecycle API] Using service role key:', process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 20) + '...');
-
-    // Fetch all tournaments ordered by start date
-    console.log('[Lifecycle API] Executing query: SELECT * FROM tournaments ORDER BY start_date ASC');
     
-    // Add timestamp to bust Supabase PostgREST cache
-    const cacheBuster = Date.now();
+    // Fetch all tournaments ordered by start date - FORCE FRESH READ
+    // Add timestamp to bust any caching
+    const timestamp = Date.now();
     let { data: tournaments, error: tournamentsError } = await supabase
       .from('tournaments')
       .select('*')
       .order('start_date', { ascending: true })
-      .limit(1000)
-      .eq('is_visible', true) // Force query to be different
-      .or(`is_visible.eq.true,is_visible.is.null`); // Include null values too
+      .limit(1000);
 
     if (tournamentsError) {
       console.error('[Lifecycle API] Error fetching tournaments:', tournamentsError);
@@ -40,6 +57,8 @@ export async function GET() {
     
     tournaments?.forEach(t => {
       console.log(`  - ${t.name} (${t.id})`);
+      console.log(`    RAW STATUS FROM DB: "${t.status}"`);
+      console.log(`    RAW tournament object keys:`, Object.keys(t));
     });
 
     // For each tournament, fetch counts
@@ -47,6 +66,8 @@ export async function GET() {
       (tournaments || []).map(async (tournament) => {
         try {
           console.log(`[Lifecycle API] Fetching stats for ${tournament.name}...`);
+          console.log(`[Lifecycle API] Tournament RAW status: "${tournament.status}"`);
+          console.log(`[Lifecycle API] Tournament RAW data:`, JSON.stringify(tournament, null, 2));
           
           // Get golfer count
           const { count: golferCount, error: golferError } = await supabase
@@ -58,12 +79,13 @@ export async function GET() {
             console.error(`[Lifecycle API] Error fetching golfer count for ${tournament.name}:`, golferError);
           }
 
-          // Get competition count
+          // Get competition count (InPlay only, not ONE 2 ONE challenges)
           let competitionCount = 0;
           const { count, error: compError } = await supabase
             .from('tournament_competitions')
             .select('*', { count: 'exact', head: true })
-            .eq('tournament_id', tournament.id);
+            .eq('tournament_id', tournament.id)
+            .eq('competition_format', 'inplay');
           
           if (compError) {
             console.error(`[Lifecycle API] Error fetching competition count for ${tournament.name}:`, compError);
@@ -82,13 +104,10 @@ export async function GET() {
             console.error(`[Lifecycle API] Error fetching entry count for ${tournament.name}:`, entryError);
           }
 
-          // Normalize status values to match Lifecycle Manager expectations
-          let normalizedStatus = tournament.status || 'upcoming';
-          if (normalizedStatus === 'live') {
-            normalizedStatus = 'in_progress';
-          }
+          // Use status as-is from database
+          const normalizedStatus = tournament.status || 'upcoming';
 
-          return {
+          const result = {
             ...tournament,
             golfer_count: golferCount || 0,
             competition_count: competitionCount,
@@ -99,6 +118,14 @@ export async function GET() {
             registration_opens_at: tournament.registration_opens_at || null,
             registration_closes_at: tournament.registration_closes_at || null,
           };
+
+          // DEBUG: Log what we're returning
+          console.log(`[Lifecycle API] Returning for ${tournament.name}:`, {
+            status: result.status,
+            golfer_count: result.golfer_count
+          });
+
+          return result;
         } catch (err) {
           console.error(`[Lifecycle API] Error processing tournament ${tournament.name}:`, err);
           // Return tournament with default stats if there's an error

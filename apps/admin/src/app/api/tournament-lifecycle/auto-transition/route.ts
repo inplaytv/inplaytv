@@ -23,9 +23,9 @@ interface TransitionLog {
  * 
  * This endpoint checks all tournaments and automatically transitions their status based on:
  * - registration_opens_at: upcoming → registration_open
- * - registration_closes_at: registration_open → registration_closed (then to in_progress if tournament started)
- * - start_date: → in_progress
- * - end_date: in_progress → completed
+ * - registration_closes_at: registration_open → registration_closed (then to live if tournament started)
+ * - start_date: → live
+ * - end_date: live → completed
  * 
  * Call this from a cron job every 1-5 minutes for reliable automation.
  * 
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const { data: tournaments, error: fetchError } = await supabase
       .from('tournaments')
       .select('*')
-      .in('status', ['upcoming', 'registration_open', 'in_progress'])
+      .in('status', ['upcoming', 'registration_open', 'live'])
       .order('start_date', { ascending: true });
 
     if (fetchError) {
@@ -104,14 +104,14 @@ export async function POST(request: Request) {
       else if (tournament.status === 'registration_open' && regClosesAt && now >= regClosesAt) {
         // Check if tournament should start immediately or wait
         if (now >= startDate) {
-          // Tournament has already started, go directly to in_progress
+          // Tournament has already started, go directly to live
           const { count: competitionCount } = await supabase
             .from('tournament_competitions')
             .select('*', { count: 'exact', head: true })
             .eq('tournament_id', tournament.id);
 
           if (competitionCount && competitionCount > 0) {
-            newStatus = 'in_progress';
+            newStatus = 'live';
             reason = 'Registration closed and tournament started';
           } else {
             console.warn(`[Auto-Transition] ${tournament.name}: Cannot start tournament - no competitions created`);
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
               tournamentId: tournament.id,
               tournamentName: tournament.name,
               fromStatus: tournament.status,
-              toStatus: 'in_progress',
+              toStatus: 'live',
               reason: 'Tournament start time reached',
               success: false,
               error: 'No competitions created for tournament'
@@ -140,7 +140,7 @@ export async function POST(request: Request) {
           .eq('tournament_id', tournament.id);
 
         if (competitionCount && competitionCount > 0) {
-          newStatus = 'in_progress';
+          newStatus = 'live';
           reason = 'Tournament start time reached';
         } else {
           console.warn(`[Auto-Transition] ${tournament.name}: Cannot start tournament - no competitions created`);
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
             tournamentId: tournament.id,
             tournamentName: tournament.name,
             fromStatus: tournament.status,
-            toStatus: 'in_progress',
+            toStatus: 'live',
             reason: 'Tournament start time reached',
             success: false,
             error: 'No competitions created for tournament'
@@ -156,7 +156,7 @@ export async function POST(request: Request) {
           continue;
         }
       }
-      else if (tournament.status === 'in_progress' && now >= endDate) {
+      else if (tournament.status === 'live' && now >= endDate) {
         // Tournament end time reached - should be completed
         // NOTE: In production, you might want to wait for final scores to be synced
         // For now, we'll auto-complete but this could be manual
@@ -250,8 +250,8 @@ export async function GET() {
     transitions: {
       upcoming_to_registration_open: 'When registration_opens_at is reached',
       registration_open_to_upcoming: 'When registration_closes_at is reached (if tournament not started)',
-      any_to_in_progress: 'When start_date is reached',
-      in_progress_to_completed: 'When end_date is reached (disabled by default for safety)'
+      any_to_live: 'When start_date is reached',
+      live_to_completed: 'When end_date is reached (disabled by default for safety)'
     }
   });
 }

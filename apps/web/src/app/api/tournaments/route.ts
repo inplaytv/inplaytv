@@ -70,8 +70,9 @@ export async function GET(request: NextRequest) {
             )
           `)
           .eq('tournament_id', tournament.id)
+          .eq('competition_format', 'inplay')
           .in('status', ['upcoming', 'reg_open', 'reg_closed', 'live'])
-          .order('entry_fee_pennies', { ascending: false });
+          .order('entry_fee_pennies', { ascending: false});
 
         return {
           ...tournament,

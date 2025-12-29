@@ -64,7 +64,8 @@ async function getTournaments(): Promise<Tournament[]> {
           const { count } = await adminClient
             .from('tournament_competitions')
             .select('*', { count: 'exact', head: true })
-            .eq('tournament_id', t.id);
+            .eq('tournament_id', t.id)
+            .eq('competition_format', 'inplay');
           
           return {
             ...t,

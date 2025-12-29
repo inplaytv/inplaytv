@@ -484,19 +484,19 @@ export default function TournamentGolfersPage({ params }: { params: { id: string
 
       {/* Assigned Groups */}
       <div style={{
-        backgroundColor: 'white',
-        border: '1px solid #ddd',
+        backgroundColor: 'rgba(30, 30, 35, 0.95)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
         borderRadius: '8px',
         overflow: 'hidden',
       }}>
-        <div style={{ padding: '20px', borderBottom: '2px solid #eee' }}>
-          <h2 style={{ margin: 0, fontSize: '20px' }}>
+        <div style={{ padding: '20px', borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
+          <h2 style={{ margin: 0, fontSize: '20px', color: '#fff' }}>
             Assigned Golfer Groups ({tournamentGroups.length})
           </h2>
         </div>
 
         {tournamentGroups.length === 0 ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#999' }}>
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
             <p style={{ fontSize: '16px', marginBottom: '10px' }}>
               No golfer groups assigned yet
             </p>
@@ -512,7 +512,7 @@ export default function TournamentGolfersPage({ params }: { params: { id: string
               <div
                 key={group.id}
                 style={{
-                  backgroundColor: '#f9f9f9',
+                  backgroundColor: 'rgba(0,0,0,0.3)',
                   border: `2px solid ${group.color}`,
                   borderRadius: '8px',
                   padding: '20px',
@@ -532,7 +532,7 @@ export default function TournamentGolfersPage({ params }: { params: { id: string
                         cursor: 'pointer',
                         fontSize: '18px',
                         padding: '0 5px',
-                        color: '#333',
+                        color: '#fff',
                       }}
                     >
                       {expandedGroups.has(group.id) ? '▼' : '▶'}
@@ -545,9 +545,9 @@ export default function TournamentGolfersPage({ params }: { params: { id: string
                         backgroundColor: group.color,
                       }}
                     />
-                    <h3 style={{ margin: 0, fontSize: '20px' }}>{group.name}</h3>
+                    <h3 style={{ margin: 0, fontSize: '20px', color: '#fff' }}>{group.name}</h3>
                   </div>
-                  <div style={{ color: '#666', fontSize: '14px', marginBottom: '5px' }}>
+                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', marginBottom: '5px' }}>
                     <strong>{group.member_count}</strong> golfer{group.member_count !== 1 ? 's' : ''}
                   </div>
                   {group.description && (
@@ -579,9 +579,9 @@ export default function TournamentGolfersPage({ params }: { params: { id: string
                                 fontSize: '14px',
                               }}
                             >
-                              <div style={{ fontWeight: 600 }}>{golfer.full_name}</div>
+                              <div style={{ fontWeight: 600, color: '#fff' }}>{golfer.full_name}</div>
                               {golfer.external_id && (
-                                <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+                                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
                                   OWGR: {golfer.external_id}
                                 </div>
                               )}
@@ -589,7 +589,7 @@ export default function TournamentGolfersPage({ params }: { params: { id: string
                           ))}
                         </div>
                       ) : (
-                        <div style={{ color: '#999', fontSize: '14px' }}>No golfers in this group</div>
+                        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>No golfers in this group</div>
                       )}
                     </div>
                   )}

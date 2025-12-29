@@ -75,6 +75,8 @@ export async function POST(
     }
 
     const adminClient = createAdminClient();
+    
+    // 1. Add group to tournament
     const { data, error } = await adminClient
       .from('tournament_golfer_groups')
       .insert({
@@ -91,7 +93,67 @@ export async function POST(
       throw error;
     }
 
-    return NextResponse.json(data);
+    // 2. Get all golfers from this group
+    const { data: groupMembers, error: membersError } = await adminClient
+      .from('golfer_group_members')
+      .select('golfer_id')
+      .eq('group_id', group_id);
+
+    if (membersError) {
+      console.error('Error fetching group members:', membersError);
+      throw membersError;
+    }
+
+    // 3. Copy golfers to tournament_golfers (only if they don't already exist)
+    if (groupMembers && groupMembers.length > 0) {
+      const golfersToAdd = groupMembers.map(m => ({
+        tournament_id: params.id,
+        golfer_id: m.golfer_id,
+        status: 'confirmed'
+      }));
+
+      const { error: insertError } = await adminClient
+        .from('tournament_golfers')
+        .upsert(golfersToAdd, { 
+          onConflict: 'tournament_id,golfer_id',
+          ignoreDuplicates: true 
+        });
+
+      if (insertError) {
+        console.error('Error adding golfers to tournament:', insertError);
+        // Don't throw - group is added, just log the error
+      }
+    }
+
+    // 4. Assign this golfer group to ALL InPlay competitions in this tournament
+    // This ensures both manual and automatic workflows work consistently
+    const { data: competitions, error: compsError } = await adminClient
+      .from('tournament_competitions')
+      .select('id')
+      .eq('tournament_id', params.id)
+      .eq('competition_format', 'inplay');
+
+    if (compsError) {
+      console.error('Error fetching competitions:', compsError);
+    } else if (competitions && competitions.length > 0) {
+      const { error: updateError } = await adminClient
+        .from('tournament_competitions')
+        .update({ assigned_golfer_group_id: group_id })
+        .eq('tournament_id', params.id)
+        .eq('competition_format', 'inplay');
+
+      if (updateError) {
+        console.error('Error assigning group to competitions:', updateError);
+      } else {
+        console.log(`✅ Assigned golfer group to ${competitions.length} competitions`);
+      }
+    }
+
+    return NextResponse.json({ 
+      ...data, 
+      golfers_added: groupMembers?.length || 0,
+      competitions_updated: competitions?.length || 0
+    });
   } catch (error: any) {
     console.error('POST tournament group error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

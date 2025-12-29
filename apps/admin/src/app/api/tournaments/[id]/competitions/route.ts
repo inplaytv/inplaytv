@@ -25,14 +25,10 @@ export async function GET(
         )
       `)
       .eq('tournament_id', params.id)
+      .eq('competition_format', 'inplay')
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-
-    console.log(`🔍 Tournament ${params.id} competitions:`, data?.length);
-    data?.forEach((c: any) => {
-      console.log(`  - ${c.competition_types?.name} (${c.status}) - Created: ${c.created_at}`);
-    });
 
     return NextResponse.json(data || [], {
       headers: {
@@ -105,6 +101,7 @@ export async function POST(
       .insert({
         tournament_id: params.id,
         competition_type_id,
+        competition_format: 'inplay', // CRITICAL: Explicitly set format for InPlay competitions
         entry_fee_pennies: parseInt(entry_fee_pennies) || 0,
         entrants_cap: parseInt(entrants_cap) || 0,
         admin_fee_percent: parseFloat(admin_fee_percent) || 10.00,
@@ -405,11 +402,27 @@ export async function DELETE(
     }
 
     const adminClient = createAdminClient();
+    
+    // SAFETY CHECK: Only allow deletion of InPlay competitions, not ONE 2 ONE challenges
+    const { data: comp } = await adminClient
+      .from('tournament_competitions')
+      .select('competition_format')
+      .eq('id', competitionId)
+      .single();
+    
+    if (comp?.competition_format === 'one2one') {
+      return NextResponse.json(
+        { error: 'Cannot delete ONE 2 ONE challenges from this endpoint. Use ONE 2 ONE Templates page.' },
+        { status: 403 }
+      );
+    }
+    
     const { error } = await adminClient
       .from('tournament_competitions')
       .delete()
       .eq('id', competitionId)
-      .eq('tournament_id', params.id);
+      .eq('tournament_id', params.id)
+      .eq('competition_format', 'inplay');
 
     if (error) throw error;
 

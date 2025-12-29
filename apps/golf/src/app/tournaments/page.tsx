@@ -828,8 +828,7 @@ export default function TournamentsPage() {
                         {(() => {
                           // Filter tournaments with main competitions open
                           const filteredTournaments = tournaments.filter(tournament => {
-                            // Show tournaments with Full Course OR Beat The Cut competitions where registration is actually open
-                            // Exclude tournaments where only minor competitions (Third Round, Final Strike) are open
+                            // Show tournaments with Full Course OR Beat The Cut competitions where registration is open OR tournament is live
                             const now = new Date();
                             const hasMainCompetitionOpen = tournament.competitions?.some(c => {
                               // Only consider major competitions (Full Course, Beat The Cut, THE WEEKENDER)
@@ -838,16 +837,16 @@ export default function TournamentsPage() {
                                                        c.competition_types?.name === 'THE WEEKENDER';
                               if (!isMainCompetition) return false;
                               
-                              // Check if registration is open
-                              if (c.status === 'reg_open') {
-                                // Verify registration is actually open by time
-                                if (c.reg_close_at) {
+                              // Show if registration open OR currently live
+                              if (c.status === 'reg_open' || c.status === 'live') {
+                                // Verify registration is actually open by time (if reg_open)
+                                if (c.status === 'reg_open' && c.reg_close_at) {
                                   const regClose = new Date(c.reg_close_at);
                                   return now < regClose;
                                 }
                                 return true;
                               }
-                              if (c.status === 'live' || c.status === 'completed' || c.status === 'reg_closed') return false;
+                              if (c.status === 'completed' || c.status === 'reg_closed') return false;
                               // For upcoming/draft, check if registration actually opened
                               if (c.reg_open_at && c.reg_close_at) {
                                 const regOpen = new Date(c.reg_open_at);
@@ -1145,212 +1144,15 @@ export default function TournamentsPage() {
 
                   {/* Competitions List */}
                   {sortedCompetitions.length === 0 ? (
-                    <>
-                      {/* Large Featured Cards */}
-                      <div className={styles.featuredCardsGrid}>
-                        <div className={`${styles.featuredCompetitionCard} ${styles.glass}`}>
-                          <div className={styles.featuredTop}>
-                            <div className={styles.featuredCourseInfo}>
-                              <div className={styles.featuredCourseTitle}>THE FULL COURSE</div>
-                              <div className={styles.featuredCourseSubtitle}>The Complete Competition</div>
-                            </div>
-                            <div className={styles.featuredBadge}>
-                              <i className="fas fa-crown"></i>
-                              FULL COURSE
-                            </div>
-                          </div>
-                          
-                          <div className={styles.featuredContent}>
-                            <div className={styles.featuredImage}>
-                              <img 
-                                src="https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=300&h=180&fit=crop" 
-                                alt="Tournament"
-                              />
-                            </div>
-                            <div className={styles.featuredInfo}>
-                              <h3 className={styles.featuredName}>Masters Tournament 2025</h3>
-                              <p className={styles.featuredLocation}>
-                                <i className="fas fa-map-marker-alt"></i>
-                                Augusta National Golf Club
-                              </p>
-                              <p className={styles.featuredDates}>
-                                <i className="fas fa-calendar"></i>
-                                April 10-13, 2025
-                              </p>
-                            </div>
-                            <div className={styles.featuredBadgeRight}>
-                              <i className="fas fa-star"></i>
-                              <span>FEATURED</span>
-                            </div>
-                          </div>
-                          
-                          <div className={styles.featuredStats}>
-                            <div className={styles.featuredStatBox}>
-                              <i className="fas fa-trophy"></i>
-                              <div>
-                                <div className={styles.featuredStatValue}>£2.5M</div>
-                                <div className={styles.featuredStatLabel}>Prize Pool</div>
-                              </div>
-                            </div>
-                            <div className={styles.featuredStatBox}>
-                              <i className="fas fa-users"></i>
-                              <div>
-                                <div className={styles.featuredStatValue}>12,847</div>
-                                <div className={styles.featuredStatLabel}>Entries</div>
-                              </div>
-                            </div>
-                            <div className={styles.featuredStatBox}>
-                              <i className="fas fa-ticket-alt"></i>
-                              <div>
-                                <div className={styles.featuredStatValue}>£25</div>
-                                <div className={styles.featuredStatLabel}>Entry Fee</div>
-                              </div>
-                            </div>
-                            <div className={styles.featuredStatBox}>
-                              <i className="fas fa-medal"></i>
-                              <div>
-                                <div className={styles.featuredStatValue}>£500K</div>
-                                <div className={styles.featuredStatLabel}>1st Place</div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className={styles.featuredActions}>
-                            <button className={styles.btnPrimary}>
-                              <i className="fas fa-users"></i>
-                              Build Your Team
-                            </button>
-                            <button className={styles.btnSecondary}>
-                              <i className="fas fa-list-ol"></i>
-                              Leaderboard List
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Smaller Empty State Cards */}
-                      <div className={styles.emptyStateGrid}>
-                        <div className={`${styles.smallCompetitionCard} ${styles.glass}`}>
-                          <div className={styles.smallTop}>
-                            <div className={styles.smallBadge}>
-                              <i className="fas fa-clock"></i>
-                              COMING SOON
-                            </div>
-                          </div>
-                          
-                          <div className={styles.smallContent}>
-                            <div className={styles.smallImage}>
-                              <img 
-                                src="https://images.unsplash.com/photo-1592919505780-303950717480?w=300&h=180&fit=crop" 
-                                alt="Tournament"
-                              />
-                            </div>
-                            <h4 className={styles.smallName}>US Open Championship</h4>
-                            <p className={styles.smallLocation}>
-                              <i className="fas fa-map-marker-alt"></i>
-                              Pebble Beach Golf Links
-                            </p>
-                          </div>
-                          
-                          <div className={styles.smallStats}>
-                            <div className={styles.smallStat}>
-                              <i className="fas fa-trophy"></i>
-                              <div>
-                                <div className={styles.smallStatValue}>£1.8M</div>
-                                <div className={styles.smallStatLabel}>Prize Pool</div>
-                              </div>
-                            </div>
-                            <div className={styles.smallStat}>
-                              <i className="fas fa-users"></i>
-                              <div>
-                                <div className={styles.smallStatValue}>8,234</div>
-                                <div className={styles.smallStatLabel}>Entries</div>
-                              </div>
-                            </div>
-                            <div className={styles.smallStat}>
-                              <i className="fas fa-ticket-alt"></i>
-                              <div>
-                                <div className={styles.smallStatValue}>£15</div>
-                                <div className={styles.smallStatLabel}>Entry Fee</div>
-                              </div>
-                            </div>
-                            <div className={styles.smallStat}>
-                              <i className="fas fa-medal"></i>
-                              <div>
-                                <div className={styles.smallStatValue}>£350K</div>
-                                <div className={styles.smallStatLabel}>1st Place</div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className={styles.smallActions}>
-                            <button className={styles.btnGlass}>
-                              Coming Soon
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className={`${styles.smallCompetitionCard} ${styles.glass}`}>
-                          <div className={styles.smallTop}>
-                            <div className={`${styles.smallBadge} ${styles.badgeRound2}`}>
-                              <i className="fas fa-clock"></i>
-                              COMING SOON
-                            </div>
-                          </div>
-                          
-                          <div className={styles.smallContent}>
-                            <div className={styles.smallImage}>
-                              <img 
-                                src="https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=300&h=180&fit=crop" 
-                                alt="Tournament"
-                              />
-                            </div>
-                            <h4 className={styles.smallName}>The Open Championship</h4>
-                            <p className={styles.smallLocation}>
-                              <i className="fas fa-map-marker-alt"></i>
-                              St Andrews Links
-                            </p>
-                          </div>
-                          
-                          <div className={styles.smallStats}>
-                            <div className={styles.smallStat}>
-                              <i className="fas fa-trophy"></i>
-                              <div>
-                                <div className={styles.smallStatValue}>£2.1M</div>
-                                <div className={styles.smallStatLabel}>Prize Pool</div>
-                              </div>
-                            </div>
-                            <div className={styles.smallStat}>
-                              <i className="fas fa-users"></i>
-                              <div>
-                                <div className={styles.smallStatValue}>15,621</div>
-                                <div className={styles.smallStatLabel}>Entries</div>
-                              </div>
-                            </div>
-                            <div className={styles.smallStat}>
-                              <i className="fas fa-ticket-alt"></i>
-                              <div>
-                                <div className={styles.smallStatValue}>£20</div>
-                                <div className={styles.smallStatLabel}>Entry Fee</div>
-                              </div>
-                            </div>
-                            <div className={styles.smallStat}>
-                              <i className="fas fa-medal"></i>
-                              <div>
-                                <div className={styles.smallStatValue}>£425K</div>
-                                <div className={styles.smallStatLabel}>1st Place</div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className={styles.smallActions}>
-                            <button className={styles.btnGlass}>
-                              Coming Soon
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </>
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '4rem 2rem',
+                      color: 'rgba(255,255,255,0.6)'
+                    }}>
+                      <i className="fas fa-info-circle" style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}></i>
+                      <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.8)' }}>No Competitions Available</h3>
+                      <p style={{ fontSize: '1rem' }}>Check back soon for upcoming tournaments and competitions.</p>
+                    </div>
                   ) : (
                     <div className={styles.competitionsGrid}>
                       {sortedCompetitions.map(competition => {

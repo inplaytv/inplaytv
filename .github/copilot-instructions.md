@@ -27,6 +27,35 @@ pnpm restart:golf         # Kill ports + restart golf app
 
 ## Database Architecture
 
+### 🚨 CRITICAL: UNIFIED COMPETITION SYSTEM 🚨
+**READ THIS FIRST - DO NOT SKIP**
+
+**ONE TABLE FOR EVERYTHING**: Both InPlay and ONE 2 ONE use the SAME table: `tournament_competitions`
+
+**There is NO `competition_instances` table. There is NO `instance_id` column. Everything uses `competition_id`.**
+
+```typescript
+tournament_competitions {
+  competition_format: 'inplay' | 'one2one'  // ONLY way to distinguish types
+  competition_type_id: UUID | NULL          // NOT NULL for InPlay, NULL for ONE 2 ONE
+  rounds_covered: INTEGER[] | NULL          // NULL/optional for InPlay, REQUIRED for ONE 2 ONE
+  status: 'draft' | 'reg_open' | 'live' | 'completed' | 'cancelled'  // SAME statuses for both
+}
+```
+
+**InPlay** = Pre-created by admins (Full Course, Beat The Cut)
+- `competition_format = 'inplay'`
+- `competition_type_id IS NOT NULL`
+- High player caps (50-1000)
+
+**ONE 2 ONE** = User-created head-to-head challenges
+- `competition_format = 'one2one'`
+- `competition_type_id IS NULL`
+- `rounds_covered` MUST be set (e.g., `[1]` for Round 1)
+- Always exactly 2 players
+
+**Entries for BOTH types**: `competition_entries.competition_id` → `tournament_competitions.id`
+
 ### Critical Tables & Relationships
 - **`tournaments`** → **`tournament_golfers`** (junction) ← **`golfers`**
   - Only golfers in `tournament_golfers` are valid for that tournament
@@ -35,11 +64,9 @@ pnpm restart:golf         # Kill ports + restart golf app
 - **`golfer_groups`** + **`golfer_group_members`** → Restrict available golfers per competition
   - `tournament_competitions.assigned_golfer_group_id` defines which golfers are valid
 
-- **InPlay Competitions**: `tournament_competitions` (Full Course, Beat The Cut, etc.)
+- **ALL Competitions**: `tournament_competitions` (InPlay AND ONE 2 ONE)
   - Linked via `competition_entries.competition_id`
-  
-- **ONE 2 ONE Challenges**: `tournament_instances` (head-to-head matches)
-  - Linked via `competition_entries.instance_id`
+  - Distinguished by `competition_format` field ONLY
 
 - **Entries**: `competition_entries` → `competition_entry_picks` (6 golfers, 1 captain)
 

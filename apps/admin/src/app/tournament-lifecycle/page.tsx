@@ -85,10 +85,10 @@ export default function TournamentLifecyclePage() {
         } else if ((tournament.status === 'upcoming' || tournament.status === 'registration_open') && nowTime < startTime) {
           diff = startTime - nowTime;
           countdownText = formatCountdown(diff, '🏌️ Tournament Starts in: ');
-        } else if (tournament.status === 'in_progress' && nowTime < endTime) {
+        } else if (tournament.status === 'live' && nowTime < endTime) {
           diff = endTime - nowTime;
           countdownText = formatCountdown(diff, '🏁 Tournament Ends in: ', true);
-        } else if (tournament.status === 'in_progress' && nowTime >= endTime) {
+        } else if (tournament.status === 'live' && nowTime >= endTime) {
           countdownText = '⚠️ Should be Completed';
         } else if (tournament.status === 'completed') {
           countdownText = '✅ Completed';
@@ -141,7 +141,7 @@ export default function TournamentLifecyclePage() {
         const sorted = sortTournamentsByPriority(data.tournaments);
         setTournaments(sorted);
         
-        console.log('[Lifecycle UI] Active tournaments:', sorted.filter(t => ['draft', 'in_progress', 'registration_open', 'reg_open', 'upcoming'].includes(t.status)).length);
+        console.log('[Lifecycle UI] Active tournaments:', sorted.filter(t => ['draft', 'live', 'registration_open', 'reg_open', 'upcoming'].includes(t.status)).length);
         console.log('[Lifecycle UI] Completed tournaments:', sorted.filter(t => ['completed', 'cancelled'].includes(t.status)).length);
       } else {
         console.error('[Lifecycle UI] Failed to fetch tournaments:', res.status, res.statusText);
@@ -154,9 +154,9 @@ export default function TournamentLifecyclePage() {
   }
 
   function sortTournamentsByPriority(tournaments: Tournament[]): Tournament[] {
-    // Status priority: in_progress > registration_open > upcoming > completed > cancelled
+    // Status priority: live > registration_open > upcoming > completed > cancelled
     const statusPriority: { [key: string]: number } = {
-      'in_progress': 1,
+      'live': 1,
       'registration_open': 2,
       'upcoming': 3,
       'completed': 4,
@@ -184,9 +184,10 @@ export default function TournamentLifecyclePage() {
 
   function getStatusColor(status: string): string {
     switch (status) {
-      case 'upcoming': return '#6b7280';
+      case 'draft': return '#6b7280';
+      case 'upcoming': return '#9ca3af';
       case 'registration_open': return '#10b981';
-      case 'in_progress': return '#3b82f6';
+      case 'live': return '#3b82f6';
       case 'completed': return '#8b5cf6';
       case 'cancelled': return '#ef4444';
       default: return '#6b7280';
@@ -195,9 +196,10 @@ export default function TournamentLifecyclePage() {
 
   function getStatusIcon(status: string): string {
     switch (status) {
+      case 'draft': return '📝';
       case 'upcoming': return '🔜';
-      case 'registration_open': return '📝';
-      case 'in_progress': return '⛳';
+      case 'registration_open': return '✅';
+      case 'live': return '⛳';
       case 'completed': return '🏆';
       case 'cancelled': return '❌';
       default: return '📌';
@@ -266,12 +268,12 @@ export default function TournamentLifecyclePage() {
       return 'Cancelled';
     }
     
-    // If tournament is in progress
-    if (tournament.status === 'in_progress') {
+    // If tournament is live
+    if (tournament.status === 'live') {
       if (daysUntilEnd >= 0) {
-        return `In Progress (${daysUntilEnd}d left)`;
+        return `Live (${daysUntilEnd}d left)`;
       }
-      return 'In Progress';
+      return 'Live Now';
     }
     
     // For upcoming and registration_open tournaments
@@ -338,7 +340,7 @@ export default function TournamentLifecyclePage() {
       ) : (
         <>
           {/* Active Tournaments Section */}
-          {tournaments.some(t => ['draft', 'in_progress', 'registration_open', 'reg_open', 'upcoming'].includes(t.status)) && (
+          {tournaments.some(t => ['draft', 'live', 'registration_open', 'reg_open', 'upcoming'].includes(t.status)) && (
             <>
               <div style={{ 
                 marginBottom: '16px', 
@@ -356,7 +358,7 @@ export default function TournamentLifecyclePage() {
               </div>
               <div className={styles.grid}>
                 {tournaments
-                  .filter(t => ['draft', 'in_progress', 'registration_open', 'reg_open', 'upcoming'].includes(t.status))
+                  .filter(t => ['draft', 'live', 'registration_open', 'reg_open', 'upcoming'].includes(t.status))
                   .map((tournament) => (
                     <TournamentCard 
                       key={tournament.id} 
@@ -475,15 +477,17 @@ function TournamentCard({
   onStatusChange: () => void;
   onRegistrationChange: () => void;
 }) {
+  // Check if tournament needs attention
   const needsGolfers = tournament.golfer_count === 0;
   const needsCompetitions = tournament.competition_count === 0;
   const hasIssues = needsGolfers || needsCompetitions;
 
   function getStatusColor(status: string): string {
     switch (status) {
-      case 'upcoming': return '#6b7280';
+      case 'draft': return '#6b7280';
+      case 'upcoming': return '#9ca3af';
       case 'registration_open': return '#10b981';
-      case 'in_progress': return '#3b82f6';
+      case 'live': return '#3b82f6';
       case 'completed': return '#8b5cf6';
       case 'cancelled': return '#ef4444';
       default: return '#6b7280';
@@ -492,9 +496,10 @@ function TournamentCard({
 
   function getStatusIcon(status: string): string {
     switch (status) {
+      case 'draft': return '📝';
       case 'upcoming': return '🔜';
-      case 'registration_open': return '📝';
-      case 'in_progress': return '⛳';
+      case 'registration_open': return '✅';
+      case 'live': return '⛳';
       case 'completed': return '🏆';
       case 'cancelled': return '❌';
       default: return '📌';
@@ -549,9 +554,9 @@ function TournamentCard({
     if (tournament.status === 'completed') return 'Finished';
     if (tournament.status === 'cancelled') return 'Cancelled';
     
-    if (tournament.status === 'in_progress') {
-      if (daysUntilEnd >= 0) return `In Progress (${daysUntilEnd}d left)`;
-      return 'In Progress';
+    if (tournament.status === 'live') {
+      if (daysUntilEnd >= 0) return `Live (${daysUntilEnd}d left)`;
+      return 'Live Now';
     }
     
     if (daysUntilStart > 0) return `${daysUntilStart}d away`;
@@ -580,7 +585,7 @@ function TournamentCard({
           className={styles.statusBadge}
           style={{ background: getStatusColor(tournament.status) }}
         >
-          {tournament.status.replace('_', ' ')}
+          {tournament.status.replace('_', ' ').toUpperCase()}
         </div>
       </div>
 
@@ -589,12 +594,12 @@ function TournamentCard({
         <div 
           className={styles.countdown}
           style={{
-            background: tournament.status === 'in_progress' ? 'rgba(59, 130, 246, 0.1)' :
+            background: tournament.status === 'live' ? 'rgba(59, 130, 246, 0.1)' :
                        tournament.status === 'registration_open' ? 'rgba(16, 185, 129, 0.1)' :
                        tournament.status === 'completed' ? 'rgba(139, 92, 246, 0.1)' :
                        tournament.status === 'cancelled' ? 'rgba(239, 68, 68, 0.1)' :
                        'rgba(107, 114, 128, 0.1)',
-            border: `1px solid ${tournament.status === 'in_progress' ? 'rgba(59, 130, 246, 0.3)' :
+            border: `1px solid ${tournament.status === 'live' ? 'rgba(59, 130, 246, 0.3)' :
                                 tournament.status === 'registration_open' ? 'rgba(16, 185, 129, 0.3)' :
                                 tournament.status === 'completed' ? 'rgba(139, 92, 246, 0.3)' :
                                 tournament.status === 'cancelled' ? 'rgba(239, 68, 68, 0.3)' :
@@ -761,7 +766,7 @@ function StatusChangeModal({ tournament, onClose, onSuccess }: {
   const statuses = [
     { value: 'upcoming', label: 'Upcoming', description: 'Tournament created, registration not yet open' },
     { value: 'registration_open', label: 'Registration Open', description: 'Users can register and build teams' },
-    { value: 'in_progress', label: 'In Progress', description: 'Tournament has started, no new entries' },
+    { value: 'live', label: 'Live', description: 'Tournament has started, no new entries' },
     { value: 'completed', label: 'Completed', description: 'Tournament finished, results finalized' },
     { value: 'cancelled', label: 'Cancelled', description: 'Tournament cancelled, entries refunded' },
   ];
