@@ -43,14 +43,12 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   draft: '📝 Draft',
   upcoming: '📅 Upcoming',
-  registration_open: '✅ Registration Open',
-  registration_closed: '⚠️ Registration Closed',
-  live_inplay: '🏌️ Live In-Play',
-  completed: '🏆 Completed',
-  cancelled: '❌ Cancelled',
   registration_open: '✅ Reg Open',
   registration_closed: '⚠️ Reg Closed',
+  live_inplay: '🏌️ Live In-Play',
   live: '🏌️ Live',
+  completed: '🏆 Completed',
+  cancelled: '❌ Cancelled',
 };
 
 // Calculate dynamic status based on tournament dates
@@ -58,14 +56,12 @@ function getStatusBadge(status: string) {
   const styles: Record<string, { bg: string; border: string; color: string; label: string }> = {
     draft: { bg: 'rgba(100, 100, 100, 0.2)', border: 'rgba(100, 100, 100, 0.4)', color: '#9ca3af', label: 'Draft' },
     upcoming: { bg: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.4)', color: '#60a5fa', label: 'Upcoming' },
-    registration_open: { bg: 'rgba(16, 185, 129, 0.2)', border: 'rgba(16, 185, 129, 0.4)', color: '#10b981', label: 'Registration Open' },
-    registration_closed: { bg: 'rgba(245, 158, 11, 0.2)', border: 'rgba(245, 158, 11, 0.4)', color: '#fbbf24', label: 'Registration Closed' },
-    live_inplay: { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.4)', color: '#f87171', label: 'Live In-Play' },
-    completed: { bg: 'rgba(139, 92, 246, 0.2)', border: 'rgba(139, 92, 246, 0.4)', color: '#a78bfa', label: 'Completed' },
-    cancelled: { bg: 'rgba(75, 85, 99, 0.2)', border: 'rgba(75, 85, 99, 0.4)', color: '#6b7280', label: 'Cancelled' },
     registration_open: { bg: 'rgba(16, 185, 129, 0.2)', border: 'rgba(16, 185, 129, 0.4)', color: '#10b981', label: 'Reg Open' },
     registration_closed: { bg: 'rgba(245, 158, 11, 0.2)', border: 'rgba(245, 158, 11, 0.4)', color: '#fbbf24', label: 'Reg Closed' },
+    live_inplay: { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.4)', color: '#f87171', label: 'Live In-Play' },
     live: { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.4)', color: '#f87171', label: 'Live' },
+    completed: { bg: 'rgba(139, 92, 246, 0.2)', border: 'rgba(139, 92, 246, 0.4)', color: '#a78bfa', label: 'Completed' },
+    cancelled: { bg: 'rgba(75, 85, 99, 0.2)', border: 'rgba(75, 85, 99, 0.4)', color: '#6b7280', label: 'Cancelled' },
   };
 
   const style = styles[status] || styles.draft;
