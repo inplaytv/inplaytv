@@ -92,7 +92,10 @@ export default function ClubTeamBuilderPage() {
       if (competitionData) {
         setCompetition({
           ...competitionData,
-          credits_required: Math.floor(competitionData.entry_fee_pennies / 100) // Convert pennies to credits
+          credits_required: Math.floor(competitionData.entry_fee_pennies / 100), // Convert pennies to credits
+          competition_types: Array.isArray(competitionData.competition_types) 
+            ? competitionData.competition_types[0] 
+            : competitionData.competition_types
         });
       }
 

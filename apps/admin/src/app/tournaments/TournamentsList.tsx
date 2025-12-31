@@ -35,11 +35,9 @@ const STATUS_COLORS: Record<string, string> = {
   registration_open: '#10b981',
   registration_closed: '#f59e0b',
   live_inplay: '#ef4444',
+  live: '#ef4444',
   completed: '#8b5cf6',
   cancelled: '#6b7280',
-  registration_open: '#10b981',
-  registration_closed: '#f59e0b',
-  live: '#ef4444',
 };
 
 const STATUS_LABELS: Record<string, string> = {
