@@ -227,7 +227,7 @@ export async function GET(request: NextRequest) {
     // CHECK 3: Frontend Filter Compatibility
     // ============================================
     // Ensure competitions have statuses that frontend can handle
-    const validStatuses = ['upcoming', 'reg_open', 'reg_closed', 'live', 'completed'];
+    const validStatuses = ['upcoming', 'registration_open', 'registration_closed', 'live', 'completed'];
     
     for (const comp of competitions || []) {
       const tournament = Array.isArray(comp.tournament) ? comp.tournament[0] : comp.tournament;

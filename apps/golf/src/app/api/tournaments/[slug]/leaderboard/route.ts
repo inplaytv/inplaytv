@@ -18,7 +18,7 @@ export async function GET(
     // Fetch tournament details by slug or ID
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('id, name, status, start_date, end_date, reg_close_at, timezone, round1_tee_time, round2_tee_time, round3_tee_time, round4_tee_time')
+      .select('id, name, status, start_date, end_date, reg_close_at, timezone, round_1_start, round_2_start, round_3_start, round_4_start')
       .or(`slug.eq.${slug},id.eq.${slug}`)
       .single();
 
@@ -106,10 +106,10 @@ export async function GET(
         endDate: tournament.end_date,
         reg_close_at: tournament.reg_close_at,
         timezone: tournament.timezone,
-        round1_tee_time: tournament.round1_tee_time,
-        round2_tee_time: tournament.round2_tee_time,
-        round3_tee_time: tournament.round3_tee_time,
-        round4_tee_time: tournament.round4_tee_time
+        round1_tee_time: tournament.round_1_start,
+        round2_tee_time: tournament.round_2_start,
+        round3_tee_time: tournament.round_3_start,
+        round4_tee_time: tournament.round_4_start
       },
       leaderboard,
       lastUpdated: new Date().toISOString()

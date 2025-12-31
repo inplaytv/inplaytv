@@ -141,7 +141,7 @@ export default function TournamentLifecyclePage() {
         const sorted = sortTournamentsByPriority(data.tournaments);
         setTournaments(sorted);
         
-        console.log('[Lifecycle UI] Active tournaments:', sorted.filter(t => ['draft', 'live', 'registration_open', 'reg_open', 'upcoming'].includes(t.status)).length);
+        console.log('[Lifecycle UI] Active tournaments:', sorted.filter(t => ['draft', 'live', 'registration_open', 'registration_open', 'upcoming'].includes(t.status)).length);
         console.log('[Lifecycle UI] Completed tournaments:', sorted.filter(t => ['completed', 'cancelled'].includes(t.status)).length);
       } else {
         console.error('[Lifecycle UI] Failed to fetch tournaments:', res.status, res.statusText);
@@ -340,7 +340,7 @@ export default function TournamentLifecyclePage() {
       ) : (
         <>
           {/* Active Tournaments Section */}
-          {tournaments.some(t => ['draft', 'live', 'registration_open', 'reg_open', 'upcoming'].includes(t.status)) && (
+          {tournaments.some(t => ['draft', 'live', 'registration_open', 'registration_open', 'upcoming'].includes(t.status)) && (
             <>
               <div style={{ 
                 marginBottom: '16px', 
@@ -358,7 +358,7 @@ export default function TournamentLifecyclePage() {
               </div>
               <div className={styles.grid}>
                 {tournaments
-                  .filter(t => ['draft', 'live', 'registration_open', 'reg_open', 'upcoming'].includes(t.status))
+                  .filter(t => ['draft', 'live', 'registration_open', 'registration_open', 'upcoming'].includes(t.status))
                   .map((tournament) => (
                     <TournamentCard 
                       key={tournament.id} 

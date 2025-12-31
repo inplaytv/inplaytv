@@ -76,25 +76,51 @@ export async function POST(
 
     const adminClient = createAdminClient();
 
-    // Fetch tournament to get registration_opens_at for auto-population
+    // 🎯 CRITICAL: Auto-calculate from lifecycle manager to prevent wrong dates
+    // Get competition type to determine which round tee time to use
+    const { data: compType } = await adminClient
+      .from('competition_types')
+      .select('round_start')
+      .eq('id', competition_type_id)
+      .single();
+
+    // Fetch tournament with ALL round tee times
     const { data: tournament } = await adminClient
       .from('tournaments')
-      .select('registration_opens_at, registration_closes_at')
+      .select('registration_opens_at, registration_closes_at, round_1_start, round_2_start, round_3_start, round_4_start, end_date')
       .eq('id', params.id)
       .single();
+
+    // Auto-calculate start_at from lifecycle manager (tournament round tee times)
+    let finalStartAt = start_at;
+    if (compType?.round_start && tournament) {
+      const roundField = `round_${compType.round_start}_start` as keyof typeof tournament;
+      const teeTime = tournament[roundField];
+      if (teeTime) {
+        finalStartAt = teeTime; // ALWAYS use lifecycle manager value
+        console.log(`✅ Auto-calculated start_at from lifecycle manager (Round ${compType.round_start}): ${finalStartAt}`);
+      }
+    }
 
     // Auto-populate reg_open_at from tournament if not provided
     const finalRegOpenAt = reg_open_at || tournament?.registration_opens_at || null;
     
-    // Auto-calculate reg_close_at: 15 minutes before start_at (or use tournament reg close as fallback)
-    let finalRegCloseAt = reg_close_at;
-    if (!finalRegCloseAt && start_at) {
-      const startTime = new Date(start_at);
+    // 🎯 FORCE: Always calculate reg_close_at from lifecycle manager (15 mins before start_at)
+    // IGNORE whatever the frontend sends - lifecycle manager is source of truth
+    let finalRegCloseAt;
+    if (finalStartAt) {
+      const startTime = new Date(finalStartAt);
       const closeTime = new Date(startTime.getTime() - 15 * 60000); // 15 mins before
       finalRegCloseAt = closeTime.toISOString();
-    } else if (!finalRegCloseAt && tournament?.registration_closes_at) {
+      console.log(`✅ FORCED reg_close_at from lifecycle: ${finalRegCloseAt}`);
+    } else if (tournament?.registration_closes_at) {
       finalRegCloseAt = tournament.registration_closes_at;
+    } else {
+      finalRegCloseAt = null;
     }
+
+    // Auto-calculate end_at from tournament end date
+    const finalEndAt = end_at || tournament?.end_date || null;
 
     const { data, error } = await adminClient
       .from('tournament_competitions')
@@ -109,8 +135,8 @@ export async function POST(
         first_place_prize_pennies: first_place_prize_pennies || null,
         reg_open_at: finalRegOpenAt,
         reg_close_at: finalRegCloseAt, // Auto-calculated: 15 mins before start_at
-        start_at: start_at || null,
-        end_at: end_at || null,
+        start_at: finalStartAt || null, // Auto-calculated from lifecycle manager
+        end_at: finalEndAt || null,
         status: status || 'draft',
         assigned_golfer_group_id: assigned_golfer_group_id || null,
       })
@@ -204,25 +230,57 @@ export async function PUT(
 
     const adminClient = createAdminClient();
 
-    // Fetch tournament to get registration_opens_at for auto-population
+    // 🎯 CRITICAL: Get competition to find its type (for round_start lookup)
+    const { data: existingComp } = await adminClient
+      .from('tournament_competitions')
+      .select('competition_type_id')
+      .eq('id', competitionId)
+      .single();
+
+    // Get competition type to determine which round tee time to use
+    const { data: compType } = await adminClient
+      .from('competition_types')
+      .select('round_start')
+      .eq('id', existingComp?.competition_type_id)
+      .single();
+
+    // Fetch tournament with ALL round tee times
     const { data: tournament } = await adminClient
       .from('tournaments')
-      .select('registration_opens_at, registration_closes_at')
+      .select('registration_opens_at, registration_closes_at, round_1_start, round_2_start, round_3_start, round_4_start, end_date')
       .eq('id', params.id)
       .single();
+
+    // Auto-calculate start_at from lifecycle manager (tournament round tee times)
+    let finalStartAt = start_at;
+    if (compType?.round_start && tournament) {
+      const roundField = `round_${compType.round_start}_start` as keyof typeof tournament;
+      const teeTime = tournament[roundField];
+      if (teeTime) {
+        finalStartAt = teeTime; // ALWAYS use lifecycle manager value
+        console.log(`✅ Auto-recalculated start_at from lifecycle manager (Round ${compType.round_start}): ${finalStartAt}`);
+      }
+    }
 
     // Auto-populate reg_open_at from tournament if not provided
     const finalRegOpenAt = reg_open_at || tournament?.registration_opens_at || null;
     
-    // Auto-calculate reg_close_at: 15 minutes before start_at (or use manual override)
-    let finalRegCloseAt = reg_close_at;
-    if (!finalRegCloseAt && start_at) {
-      const startTime = new Date(start_at);
+    // 🎯 FORCE: Always calculate reg_close_at from lifecycle manager (15 mins before start_at)
+    // IGNORE whatever the frontend sends - lifecycle manager is source of truth
+    let finalRegCloseAt;
+    if (finalStartAt) {
+      const startTime = new Date(finalStartAt);
       const closeTime = new Date(startTime.getTime() - 15 * 60000); // 15 mins before
       finalRegCloseAt = closeTime.toISOString();
-    } else if (!finalRegCloseAt && tournament?.registration_closes_at) {
+      console.log(`✅ FORCED reg_close_at from lifecycle: ${finalRegCloseAt}`);
+    } else if (tournament?.registration_closes_at) {
       finalRegCloseAt = tournament.registration_closes_at;
+    } else {
+      finalRegCloseAt = null;
     }
+
+    // Auto-calculate end_at from tournament end date
+    const finalEndAt = end_at || tournament?.end_date || null;
 
     const { data, error} = await adminClient
       .from('tournament_competitions')
@@ -234,8 +292,8 @@ export async function PUT(
         first_place_prize_pennies: first_place_prize_pennies || null,
         reg_open_at: finalRegOpenAt,
         reg_close_at: finalRegCloseAt, // Auto-calculated: 15 mins before start_at
-        start_at: start_at || null,
-        end_at: end_at || null,
+        start_at: finalStartAt || null, // Auto-recalculated from lifecycle manager
+        end_at: finalEndAt || null,
         status: status || 'draft',
         assigned_golfer_group_id: assigned_golfer_group_id || null,
       })

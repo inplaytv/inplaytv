@@ -90,3 +90,43 @@ export async function assertAdminOrRedirect() {
     throw error;
   }
 }
+
+/**
+ * Check if current user is an authenticated admin (for API routes)
+ * Returns user if admin, null otherwise - does NOT redirect
+ */
+export async function getAdminUser() {
+  try {
+    console.log('[getAdminUser] Starting auth check...');
+    const user = await getCurrentUser();
+    
+    console.log('[getAdminUser] getCurrentUser result:', user ? `User ${user.id} (${user.email})` : 'No user');
+    
+    if (!user) {
+      console.log('[getAdminUser] No user found, returning null');
+      return null;
+    }
+    
+    // Check if user is actually an admin in the database
+    console.log('[getAdminUser] Checking admins table for user:', user.id);
+    const adminClient = createAdminClient();
+    const { data: adminRecord, error: adminError } = await adminClient
+      .from('admins')
+      .select('user_id, is_super_admin')
+      .eq('user_id', user.id)
+      .single();
+    
+    console.log('[getAdminUser] Admin query result:', { hasRecord: !!adminRecord, error: adminError?.message });
+    
+    if (adminError || !adminRecord) {
+      console.error('[getAdminUser] User not in admins table:', user?.email, user?.id, adminError?.message);
+      return null;
+    }
+    
+    console.log('[getAdminUser] Admin verified successfully');
+    return user;
+  } catch (error: any) {
+    console.error('[getAdminUser] Error:', error);
+    return null;
+  }
+}

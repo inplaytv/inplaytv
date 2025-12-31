@@ -82,14 +82,26 @@ const menuCategories: MenuCategory[] = [
     id: 'clubhouse',
     label: 'Clubhouse',
     icon: 'fa-users',
-    color: '#8b5cf6',
-    gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+    color: '#cda45e',
+    gradient: 'linear-gradient(135deg, #cda45e, #b8935a)',
     items: [
       { 
-        label: 'Coming Soon', 
-        href: '#', 
-        icon: 'fa-clock',
-        description: 'Social features launching soon'
+        label: 'Clubhouse', 
+        href: '/clubhouse', 
+        icon: 'fa-shield-alt',
+        description: 'Club competitions & credits'
+      },
+      { 
+        label: 'My Credits', 
+        href: '/clubhouse/credits', 
+        icon: 'fa-coins',
+        description: 'View your club credits'
+      },
+      { 
+        label: 'Pro Shops', 
+        href: '/clubhouse/pro-shops', 
+        icon: 'fa-store',
+        description: 'Redeem credits'
       }
     ]
   },

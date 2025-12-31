@@ -693,8 +693,8 @@ export default function LeaderboardsPage() {
       if (tournament.status === 'completed') {
         return { status: 'completed', display: '✅ Completed', color: '#10b981' };
       }
-      if (tournament.status === 'registration_open' || tournament.status === 'reg_open') {
-        return { status: 'reg_open', display: '📝 Registration Open', color: '#667eea' };
+      if (tournament.status === 'registration_open' || tournament.status === 'registration_open') {
+        return { status: 'registration_open', display: '📝 Registration Open', color: '#667eea' };
       }
     }
     
@@ -745,12 +745,12 @@ export default function LeaderboardsPage() {
     
     // Check if registration is still open
     if (regCloseDate && now < regCloseDate) {
-      return { status: 'reg_open', display: '📝 Registration Open', color: '#667eea' };
+      return { status: 'registration_open', display: '📝 Registration Open', color: '#667eea' };
     }
     
     // Registration closed but not started yet
     if (firstTeeTime && now < firstTeeTime) {
-      return { status: 'reg_closed', display: '⏳ Starting Soon', color: '#f59e0b' };
+      return { status: 'registration_closed', display: '⏳ Starting Soon', color: '#f59e0b' };
     }
     
     return { status: 'upcoming', display: '📅 Upcoming', color: '#9ca3af' };

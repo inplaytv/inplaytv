@@ -35,10 +35,10 @@ export async function POST(request: Request) {
         id,
         name,
         slug,
-        round1_tee_time,
-        round2_tee_time,
-        round3_tee_time,
-        round4_tee_time,
+        round_1_start,
+        round_2_start,
+        round_3_start,
+        round_4_start,
         tournament_competitions (
           id,
           notified_inplay,
@@ -48,8 +48,8 @@ export async function POST(request: Request) {
           )
         )
       `)
-      .or(`round1_tee_time.gte.${now.toISOString()},round2_tee_time.gte.${now.toISOString()},round3_tee_time.gte.${now.toISOString()},round4_tee_time.gte.${now.toISOString()}`)
-      .or(`round1_tee_time.lte.${fifteenMinutesFromNow.toISOString()},round2_tee_time.lte.${fifteenMinutesFromNow.toISOString()},round3_tee_time.lte.${fifteenMinutesFromNow.toISOString()},round4_tee_time.lte.${fifteenMinutesFromNow.toISOString()}`);
+      .or(`round_1_start.gte.${now.toISOString()},round_2_start.gte.${now.toISOString()},round_3_start.gte.${now.toISOString()},round_4_start.gte.${now.toISOString()}`)
+      .or(`round_1_start.lte.${fifteenMinutesFromNow.toISOString()},round_2_start.lte.${fifteenMinutesFromNow.toISOString()},round_3_start.lte.${fifteenMinutesFromNow.toISOString()},round_4_start.lte.${fifteenMinutesFromNow.toISOString()}`);
 
     if (tournamentError) {
       console.error('❌ Error fetching tournaments:', tournamentError);
@@ -77,14 +77,14 @@ export async function POST(request: Request) {
           const [firstRound] = comp.rounds_covered.split('-').map((r: string) => parseInt(r.trim()));
           
           switch (firstRound) {
-            case 1: startTime = tournament.round1_tee_time; break;
-            case 2: startTime = tournament.round2_tee_time; break;
-            case 3: startTime = tournament.round3_tee_time; break;
-            case 4: startTime = tournament.round4_tee_time; break;
+            case 1: startTime = tournament.round_1_start; break;
+            case 2: startTime = tournament.round_2_start; break;
+            case 3: startTime = tournament.round_3_start; break;
+            case 4: startTime = tournament.round_4_start; break;
           }
         } else {
           // Default to Round 1 for full tournament competitions
-          startTime = tournament.round1_tee_time;
+          startTime = tournament.round_1_start;
         }
 
         if (!startTime) continue;

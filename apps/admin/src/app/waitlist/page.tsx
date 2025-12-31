@@ -59,16 +59,25 @@ export default function WaitlistPage() {
         body: JSON.stringify({ email }),
       });
 
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        alert(`❌ Error: Server returned non-JSON response. Check console for details.`);
+        return;
+      }
+
+      const data = await response.json();
+
       if (response.ok) {
         alert('✅ Notification sent!');
         fetchWaitlist();
       } else {
-        const { error } = await response.json();
-        alert(`❌ Error: ${error}`);
+        alert(`❌ Error: ${data.error || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Error notifying:', err);
-      alert('❌ Failed to send notification');
+      alert(`❌ Failed to send notification: ${err}`);
     }
   };
 
@@ -81,16 +90,25 @@ export default function WaitlistPage() {
         method: 'POST',
       });
 
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        alert(`❌ Error: Server returned non-JSON response. Check console for details.`);
+        return;
+      }
+
+      const data = await response.json();
+
       if (response.ok) {
-        alert(`✅ Sent ${pending.length} notifications!`);
+        alert(`✅ ${data.message || `Sent ${pending.length} notifications!`}`);
         fetchWaitlist();
       } else {
-        const { error } = await response.json();
-        alert(`❌ Error: ${error}`);
+        alert(`❌ Error: ${data.error || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Error notifying all:', err);
-      alert('❌ Failed to send notifications');
+      alert(`❌ Failed to send notifications: ${err}`);
     }
   };
 

@@ -20,7 +20,7 @@ export async function GET(
     // Get tournament by slug
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('*, round1_tee_time, round2_tee_time, round3_tee_time, round4_tee_time')
+      .select('*, round_1_start, round_2_start, round_3_start, round_4_start')
       .eq('slug', slug)
       .single();
 
@@ -78,10 +78,10 @@ export async function GET(
           name: tournament.name,
           startDate: tournament.start_date,
           endDate: tournament.end_date,
-          round1_tee_time: tournament.round1_tee_time,
-          round2_tee_time: tournament.round2_tee_time,
-          round3_tee_time: tournament.round3_tee_time,
-          round4_tee_time: tournament.round4_tee_time
+          round1_tee_time: tournament.round_1_start,
+          round2_tee_time: tournament.round_2_start,
+          round3_tee_time: tournament.round_3_start,
+          round4_tee_time: tournament.round_4_start
         },
         field: field,
         message: `${field.length} players (DataGolf unavailable)`,
@@ -140,10 +140,10 @@ export async function GET(
         startDate: tournament.start_date,
         endDate: tournament.end_date,
         location: tournament.location,
-        round1_tee_time: tournament.round1_tee_time,
-        round2_tee_time: tournament.round2_tee_time,
-        round3_tee_time: tournament.round3_tee_time,
-        round4_tee_time: tournament.round4_tee_time
+        round1_tee_time: tournament.round_1_start,
+        round2_tee_time: tournament.round_2_start,
+        round3_tee_time: tournament.round_3_start,
+        round4_tee_time: tournament.round_4_start
       },
       field,
       eventInfo: {

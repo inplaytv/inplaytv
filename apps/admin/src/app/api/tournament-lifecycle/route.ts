@@ -94,14 +94,29 @@ export async function GET() {
             competitionCount = count || 0;
           }
 
-          // Get entry count
-          const { count: entryCount, error: entryError } = await supabase
-            .from('entries')
-            .select('*', { count: 'exact', head: true })
+          // Get entry count - entries are in competition_entries linked via competitions
+          let entryCount = 0;
+          // First get all competition IDs for this tournament
+          const { data: comps, error: compsError } = await supabase
+            .from('tournament_competitions')
+            .select('id')
             .eq('tournament_id', tournament.id);
-
-          if (entryError) {
-            console.error(`[Lifecycle API] Error fetching entry count for ${tournament.name}:`, entryError);
+          
+          if (compsError) {
+            console.error(`[Lifecycle API] Error fetching competitions for entry count:`, compsError);
+          } else if (comps && comps.length > 0) {
+            // Now count entries for those competitions
+            const competitionIds = comps.map(c => c.id);
+            const { count, error: entryError } = await supabase
+              .from('competition_entries')
+              .select('*', { count: 'exact', head: true })
+              .in('competition_id', competitionIds);
+            
+            if (entryError) {
+              console.error(`[Lifecycle API] Error fetching entry count for ${tournament.name}:`, entryError);
+            } else {
+              entryCount = count || 0;
+            }
           }
 
           // Use status as-is from database

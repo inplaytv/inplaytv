@@ -123,7 +123,7 @@ function CompetitionCountdown({ regCloseAt, status }: { regCloseAt: string | nul
       return { label: 'COMPLETED', color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.1)', icon: 'fa-flag-checkered' };
     } else if (status === 'live') {
       return { label: 'LIVE', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.1)', icon: 'fa-circle' };
-    } else if (status === 'reg_open') {
+    } else if (status === 'registration_open') {
       return { label: 'REGISTRATION OPEN', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)', icon: 'fa-check-circle' };
     }
     
@@ -207,8 +207,18 @@ function UpcomingTournamentCard({
   
   // Get display text based on competition registration status, not tournament status
   const getStatusDisplay = () => {
-    // SIMPLE RULE: If ANY competition has status='reg_open', show REGISTRATION OPEN
-    const hasOpenCompetition = tournament.competitions?.some((c: any) => c.status === 'reg_open');
+    // SIMPLE RULE: If ANY competition has open registration (by date), show REGISTRATION OPEN
+    const now = new Date();
+    const hasOpenCompetition = tournament.competitions?.some((c: any) => {
+      if (!c.reg_close_at) return false;
+      const closeDate = new Date(c.reg_close_at);
+      if (now >= closeDate) return false; // Registration closed
+      if (c.reg_open_at) {
+        const openDate = new Date(c.reg_open_at);
+        if (now < openDate) return false; // Not opened yet
+      }
+      return true; // Registration is open
+    });
     if (hasOpenCompetition) {
       return 'REGISTRATION OPEN';
     }
@@ -401,7 +411,7 @@ export default function TournamentsPage() {
       // Show tournament if it has ANY competition open for registration
       const hasOpenCompetition = tournament.competitions?.some(c => {
         // Direct status check - show if reg_open
-        if (c.status === 'reg_open') {
+        if (c.status === 'registration_open') {
           // Verify registration is actually open by time
           if (c.reg_open_at && c.reg_close_at) {
             const regOpen = new Date(c.reg_open_at);
@@ -460,7 +470,7 @@ export default function TournamentsPage() {
         }
       }
     } catch (error) {
-      console.log('Using default background');
+      // Use default background
     }
   }
 
@@ -533,18 +543,26 @@ export default function TournamentsPage() {
                   if (!isMainCompetition) return false;
                 }
                 
-                // Only show competitions accepting registrations
+                // Only show competitions accepting registrations - CHECK DATES NOT STATUS
                 const now = new Date();
-                if (c.status === 'reg_open' && c.reg_close_at) {
-                  const closeDate = new Date(c.reg_close_at);
-                  return now < closeDate;
-                }
-                if (c.status === 'upcoming' && c.reg_open_at && c.reg_close_at) {
+                
+                // Must have reg_close_at to determine if registration is open
+                if (!c.reg_close_at) return false;
+                
+                const closeDate = new Date(c.reg_close_at);
+                
+                // Registration is closed - don't show
+                if (now >= closeDate) return false;
+                
+                // If has reg_open_at, check if registration has started
+                if (c.reg_open_at) {
                   const openDate = new Date(c.reg_open_at);
-                  const closeDate = new Date(c.reg_close_at);
-                  return now >= openDate && now < closeDate;
+                  // Registration hasn't started yet - don't show
+                  if (now < openDate) return false;
                 }
-                return false;
+                
+                // Registration is open - show it (regardless of status field)
+                return true;
               })
               .map(c => ({ ...c, tournament: t }))
           : []
@@ -758,13 +776,21 @@ export default function TournamentsPage() {
                 tournamentEnd.setHours(23, 59, 59, 999); // End of the last day
                 if (now > tournamentEnd) return false; // Tournament has ended
                 
-                // Show if tournament itself has registration open, OR any competition has open registration OR is live
-                if (tournament.status === 'registration_open') return true;
-
+                // Show if ANY competition has open registration by date
                 const hasOpenRegistration = tournament.competitions.some(comp => {
                   const regCloseAt = comp.reg_close_at ? new Date(comp.reg_close_at) : null;
-                  // Show if status is reg_open, live, or registration close date is in the future
-                  return comp.status === 'reg_open' || comp.status === 'live' || (regCloseAt && now < regCloseAt);
+                  if (!regCloseAt) return false;
+                  
+                  // Registration closed - don't show
+                  if (now >= regCloseAt) return false;
+                  
+                  // Check if registration has started
+                  if (comp.reg_open_at) {
+                    const regOpenAt = new Date(comp.reg_open_at);
+                    if (now < regOpenAt) return false; // Not started yet
+                  }
+                  
+                  return true; // Registration is open
                 });
 
                 // Show tournament if it has open competitions
@@ -826,37 +852,8 @@ export default function TournamentsPage() {
                       >
                         {/* Dynamic Slides - Registration Open Tournaments + Ads */}
                         {(() => {
-                          // Filter tournaments with main competitions open
-                          const filteredTournaments = tournaments.filter(tournament => {
-                            // Show tournaments with Full Course OR Beat The Cut competitions where registration is open OR tournament is live
-                            const now = new Date();
-                            const hasMainCompetitionOpen = tournament.competitions?.some(c => {
-                              // Only consider major competitions (Full Course, Beat The Cut, THE WEEKENDER)
-                              const isMainCompetition = c.competition_types?.name === 'Full Course' || 
-                                                       c.competition_types?.name === 'Beat The Cut' ||
-                                                       c.competition_types?.name === 'THE WEEKENDER';
-                              if (!isMainCompetition) return false;
-                              
-                              // Show if registration open OR currently live
-                              if (c.status === 'reg_open' || c.status === 'live') {
-                                // Verify registration is actually open by time (if reg_open)
-                                if (c.status === 'reg_open' && c.reg_close_at) {
-                                  const regClose = new Date(c.reg_close_at);
-                                  return now < regClose;
-                                }
-                                return true;
-                              }
-                              if (c.status === 'completed' || c.status === 'reg_closed') return false;
-                              // For upcoming/draft, check if registration actually opened
-                              if (c.reg_open_at && c.reg_close_at) {
-                                const regOpen = new Date(c.reg_open_at);
-                                const regClose = new Date(c.reg_close_at);
-                                return now >= regOpen && now < regClose;
-                              }
-                              return false;
-                            });
-                            return hasMainCompetitionOpen;
-                          });
+                          // Use same filtered tournaments as the main section (ANY open competition)
+                          const filteredTournaments = upcomingTournaments;
                           
                           // Intersperse ads with tournaments (every 1 tournament for testing)
                           const slides: any[] = [];
@@ -904,16 +901,17 @@ export default function TournamentsPage() {
                             }
                             
                             const tournament = slide.data;
-                          // Find Full Course competition for featured display (prefer reg_open)
+                          // Find Full Course competition for featured display (check dates only)
                           const now = new Date();
                           const isCompetitionOpen = (c: any) => {
-                            if (c.status === 'reg_open') return true;
-                            if (c.status === 'live' || c.status === 'completed' || c.status === 'reg_closed') return false;
-                            // Check timestamps for upcoming/draft
-                            if (c.reg_open_at && c.reg_close_at) {
+                            if (!c.reg_close_at) return false;
+                            
+                            const regClose = new Date(c.reg_close_at);
+                            if (now >= regClose) return false; // Registration closed
+                            
+                            if (c.reg_open_at) {
                               const regOpen = new Date(c.reg_open_at);
-                              const regClose = new Date(c.reg_close_at);
-                              return now >= regOpen && now < regClose;
+                              if (now < regOpen) return false; // Not started yet
                             }
                             return false;
                           };
@@ -1028,13 +1026,29 @@ export default function TournamentsPage() {
                                       <div className={styles.featuredStatLabel}>1st Place</div>
                                     </div>
                                   </div>
-                                  <div className={styles.featuredStatBox}>
+                                  <Link 
+                                    href={`/tournaments/${tournament.slug}`}
+                                    className={styles.featuredStatBox}
+                                    style={{ 
+                                      cursor: 'pointer',
+                                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.transform = 'translateY(-2px)';
+                                      e.currentTarget.style.boxShadow = '0 8px 16px rgba(102, 126, 234, 0.4)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.transform = 'translateY(0)';
+                                      e.currentTarget.style.boxShadow = 'none';
+                                    }}
+                                  >
                                     <i className="fas fa-info-circle"></i>
                                     <div>
                                       <div className={styles.featuredStatValue}>{competitionType}</div>
                                       <div className={styles.featuredStatLabel}>Competition Details</div>
                                     </div>
-                                  </div>
+                                  </Link>
                                 </div>
                                 
                                 <div className={styles.featuredActions}>
@@ -1043,7 +1057,7 @@ export default function TournamentsPage() {
                                     className={styles.btnPrimary}
                                   >
                                     <i className="fas fa-users"></i>
-                                    Build Your Team
+                                    All Tournament Competitions
                                   </Link>
                                   <Link 
                                     href="/leaderboards"
@@ -1242,7 +1256,7 @@ export default function TournamentsPage() {
                                 className={styles.btnPrimary}
                               >
                                 <i className="fas fa-users"></i>
-                                Build Your Team
+                                All Tournament Competitions
                               </Link>
                               <Link 
                                 href="/leaderboards"

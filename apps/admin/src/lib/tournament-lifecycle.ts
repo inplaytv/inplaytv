@@ -1,8 +1,8 @@
 // Tournament Lifecycle Status Types
 export const TOURNAMENT_STATUS = {
   UPCOMING: 'upcoming',
-  REGISTRATION_OPEN: 'reg_open',
-  REGISTRATION_CLOSED: 'reg_closed',
+  REGISTRATION_OPEN: 'registration_open',
+  REGISTRATION_CLOSED: 'registration_closed',
   LIVE_INPLAY: 'live',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',

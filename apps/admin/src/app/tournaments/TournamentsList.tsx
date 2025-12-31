@@ -37,8 +37,8 @@ const STATUS_COLORS: Record<string, string> = {
   live_inplay: '#ef4444',
   completed: '#8b5cf6',
   cancelled: '#6b7280',
-  reg_open: '#10b981',
-  reg_closed: '#f59e0b',
+  registration_open: '#10b981',
+  registration_closed: '#f59e0b',
   live: '#ef4444',
 };
 
@@ -50,8 +50,8 @@ const STATUS_LABELS: Record<string, string> = {
   live_inplay: '🏌️ Live In-Play',
   completed: '🏆 Completed',
   cancelled: '❌ Cancelled',
-  reg_open: '✅ Reg Open',
-  reg_closed: '⚠️ Reg Closed',
+  registration_open: '✅ Reg Open',
+  registration_closed: '⚠️ Reg Closed',
   live: '🏌️ Live',
 };
 
@@ -65,8 +65,8 @@ function getStatusBadge(status: string) {
     live_inplay: { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.4)', color: '#f87171', label: 'Live In-Play' },
     completed: { bg: 'rgba(139, 92, 246, 0.2)', border: 'rgba(139, 92, 246, 0.4)', color: '#a78bfa', label: 'Completed' },
     cancelled: { bg: 'rgba(75, 85, 99, 0.2)', border: 'rgba(75, 85, 99, 0.4)', color: '#6b7280', label: 'Cancelled' },
-    reg_open: { bg: 'rgba(16, 185, 129, 0.2)', border: 'rgba(16, 185, 129, 0.4)', color: '#10b981', label: 'Reg Open' },
-    reg_closed: { bg: 'rgba(245, 158, 11, 0.2)', border: 'rgba(245, 158, 11, 0.4)', color: '#fbbf24', label: 'Reg Closed' },
+    registration_open: { bg: 'rgba(16, 185, 129, 0.2)', border: 'rgba(16, 185, 129, 0.4)', color: '#10b981', label: 'Reg Open' },
+    registration_closed: { bg: 'rgba(245, 158, 11, 0.2)', border: 'rgba(245, 158, 11, 0.4)', color: '#fbbf24', label: 'Reg Closed' },
     live: { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.4)', color: '#f87171', label: 'Live' },
   };
 

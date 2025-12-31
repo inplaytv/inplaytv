@@ -322,7 +322,7 @@ function One2OneCard({
   tournament: Tournament;
   formatCurrency: (pennies: number) => string;
 }) {
-  const countdown = useCountdown(template.reg_close_at, template.is_open ? 'reg_open' : 'reg_closed');
+  const countdown = useCountdown(template.reg_close_at, template.is_open ? 'registration_open' : 'registration_closed');
   const isClosed = !template.is_open || countdown === 'Registration Closed';
 
   // Calculate prize pool (winner takes all, less admin fee)
@@ -629,31 +629,11 @@ export default function TournamentDetailPage() {
     // ONLY check competition.reg_close_at for registration status
     // ========================================
     
-    console.log(`📊 ${competition.competition_types?.name || 'Unknown'}:`, {
-      reg_close_at: competition.reg_close_at,
-      reg_open_at: competition.reg_open_at,
-      start_at: competition.start_at,
-      tournament_end: tournament.end_date,
-      regCloseAt: regCloseAt?.toISOString(),
-      now: now.toISOString(),
-      isPastDeadline: regCloseAt ? now >= regCloseAt : 'no deadline',
-      status: competition.status
-    });
-    
     // Tournament end date should include the full day (set to end of day)
     const tournamentEndOfDay = tournamentEnd ? new Date(tournamentEnd) : null;
     if (tournamentEndOfDay) {
       tournamentEndOfDay.setHours(23, 59, 59, 999);
     }
-    
-    console.log(`📊 ${competition.competition_types?.name || 'Unknown'} DATES:`, {
-      tournamentEnd: tournamentEnd?.toISOString(),
-      tournamentEndOfDay: tournamentEndOfDay?.toISOString(),
-      compStartAt: competition.start_at ? new Date(competition.start_at).toISOString() : null,
-      isAfterRegClose: regCloseAt ? now >= regCloseAt : false,
-      isAfterCompStart: competition.start_at ? now >= new Date(competition.start_at) : false,
-      isBeforeTournEnd: tournamentEndOfDay ? now <= tournamentEndOfDay : false
-    });
     
     // PRIORITY 1: Check if tournament has completed
     if (tournamentEndOfDay && now > tournamentEndOfDay) {
@@ -702,8 +682,8 @@ export default function TournamentDetailPage() {
     
     // PRIORITY 4: Check database status only if no clear date-based answer
     // This handles cases where dates aren't set or we need to fall back
-    if (competition.status === 'reg_open' && (!regCloseAt || now < regCloseAt)) {
-      return statusConfig.reg_open;
+    if (competition.status === 'registration_open' && (!regCloseAt || now < regCloseAt)) {
+      return statusConfig.registration_open;
     }
     
     if (competition.status === 'inplay' || competition.status === 'live') {
@@ -772,12 +752,60 @@ export default function TournamentDetailPage() {
         </div>
         
         <div className={styles.heroContent}>
-          {/* Tournament Selector Dropdown */}
+          {/* Back Button and Competition Details in Header */}
+          <div style={{ 
+            position: 'absolute', 
+            top: '1rem', 
+            left: '1rem',
+            zIndex: 10,
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'center'
+          }}>
+            <Link 
+              href="/tournaments"
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 500,
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: 'rgba(255,255,255,0.9)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                textDecoration: 'none'
+              }}
+            >
+              <span>←</span>
+              <span>Back To Tournaments</span>
+            </Link>
+            <div style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: 500,
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <i className="fas fa-info-circle"></i>
+              <span>Competition Details</span>
+            </div>
+          </div>
+
+          {/* Tournament Selector Dropdown - Far Right */}
           {allTournaments.length > 1 && (
             <div style={{ 
               position: 'absolute', 
               top: '1rem', 
-              left: '1rem',
+              right: '1rem',
               zIndex: 10
             }}>
               <select

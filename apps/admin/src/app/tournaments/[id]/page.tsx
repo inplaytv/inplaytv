@@ -164,7 +164,7 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
     reg_close_at: '',
     start_at: '',
     end_at: '',
-    status: 'reg_open', // Default to registration open
+    status: 'registration_open', // Default to registration open
   });
 
   const [manualRegClose, setManualRegClose] = useState(false);
@@ -1510,8 +1510,8 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
               >
                 <option value="draft">Draft</option>
                 <option value="upcoming">Upcoming</option>
-                <option value="reg_open">Registration Open</option>
-                <option value="reg_closed">Registration Closed</option>
+                <option value="registration_open">Registration Open</option>
+                <option value="registration_closed">Registration Closed</option>
                 <option value="live">Live</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
