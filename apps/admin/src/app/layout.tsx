@@ -35,10 +35,9 @@ export default function RootLayout({
         display: 'flex',
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         position: 'relative',
-        isolation: 'isolate',
       }}>
         <Background />
-        <div style={{ display: 'flex', flex: 1, position: 'relative', zIndex: 10 }}>
+        <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
           <SidebarProvider>
             <ConditionalSidebar />
             <MainContent>

@@ -443,6 +443,8 @@ export function hasCompetitionStarted(startAt: string | null): boolean {
 
 /**
  * Check if registration is open
+ * ⚠️ ALWAYS use this function instead of checking status field!
+ * Date validation takes priority over status field to prevent stale data issues.
  */
 export function isRegistrationOpen(
   regOpenAt: string | null,
@@ -454,6 +456,59 @@ export function isRegistrationOpen(
   if (regCloseAt && now >= new Date(regCloseAt)) return false;
   
   return true;
+}
+
+/**
+ * Check if a competition should be visible on tournament list pages
+ * A competition is visible ONLY if registration is currently open
+ * 
+ * ⚠️ CRITICAL: This function checks dates BEFORE status field!
+ * The status field can be stale if cron job hasn't run.
+ * 
+ * NOTE: Live competitions with closed registration are NOT shown on /tournaments page.
+ * Users can view live tournaments on the /leaderboards page instead.
+ */
+export function isCompetitionVisible(competition: {
+  status?: string;
+  reg_open_at?: string | null;
+  reg_close_at?: string | null;
+  start_at?: string | null;
+  end_at?: string | null;
+}): boolean {
+  // Check if registration is open by date (most reliable)
+  // This is the ONLY condition - we don't show live tournaments on /tournaments page
+  return isRegistrationOpen(competition.reg_open_at ?? null, competition.reg_close_at ?? null);
+}
+
+/**
+ * Check if a tournament should be visible (has at least one visible competition)
+ * 
+ * ⚠️ USE THIS FUNCTION for all tournament filtering in UI components!
+ * DO NOT manually check status or dates - this prevents the recurring bug.
+ */
+export function isTournamentVisible(tournament: {
+  competitions?: Array<{
+    status?: string;
+    reg_open_at?: string | null;
+    reg_close_at?: string | null;
+  }>;
+  end_date?: string;
+}): boolean {
+  // Safety check: Tournament has ended
+  if (tournament.end_date) {
+    const tournamentEnd = new Date(tournament.end_date);
+    tournamentEnd.setHours(23, 59, 59, 999);
+    if (new Date() > tournamentEnd) {
+      return false;
+    }
+  }
+  
+  // Check if ANY competition is visible
+  if (!tournament.competitions || tournament.competitions.length === 0) {
+    return false;
+  }
+  
+  return tournament.competitions.some(comp => isCompetitionVisible(comp));
 }
 
 // ============================================================================

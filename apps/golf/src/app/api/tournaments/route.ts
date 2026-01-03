@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
         created_at,
         featured_competition_id
       `)
-      .eq('is_visible', true);
+      .eq('is_visible', true)
+      .neq('status', 'draft'); // Exclude draft tournaments from public API
 
     // For leaderboard context: Show only upcoming or live tournaments
     if (context === 'leaderboard') {

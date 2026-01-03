@@ -16,29 +16,31 @@ interface Club {
   image_url: string;
 }
 
-interface Competition {
+interface ClubhouseEvent {
   id: string;
-  tournament_id: string;
-  tournament_name: string;
-  tournament_slug: string;
-  tournament_location: string;
-  tournament_image_url: string | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  location: string;
   start_date: string;
   end_date: string;
-  competition_type_name: string;
-  competition_type_slug: string;
-  entry_fee_pennies: number;
-  entrants_cap: number;
-  admin_fee_percent: number;
   status: string;
-  participants: number;
+  entry_credits: number;
+  max_entries: number;
+  competitions: {
+    id: string;
+    name: string;
+    entry_credits: number;
+    max_entries: number;
+    rounds_covered: number[] | null;
+  }[];
 }
 
 export default function ClubhousePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [userClub, setUserClub] = useState<Club | null>(null);
-  const [availableCompetitions, setAvailableCompetitions] = useState<Competition[]>([]);
+  const [clubhouseEvents, setClubhouseEvents] = useState<ClubhouseEvent[]>([]);
   const [creditsBalance, setCreditsBalance] = useState(0);
   const [showJoinModal, setShowJoinModal] = useState(false);
 
@@ -58,52 +60,43 @@ export default function ClubhousePage() {
       image_url: '/images/club-placeholder.jpg'
     });
 
-    // Load competitions (Full Course, Beat The Cut, etc.) - Limit to 6
+    // Load clubhouse events with their competitions
     const supabase = createClient();
-    const { data: competitions } = await supabase
-      .from('tournament_competitions')
+    const { data: events } = await supabase
+      .from('clubhouse_events')
       .select(`
         id,
-        tournament_id,
-        entry_fee_pennies,
-        entrants_cap,
-        admin_fee_percent,
+        name,
+        slug,
+        description,
+        location,
+        start_date,
+        end_date,
         status,
-        tournaments!tournament_competitions_tournament_id_fkey (
+        clubhouse_competitions (
+          id,
           name,
-          slug,
-          location,
-          start_date,
-          end_date,
-          image_url
-        ),
-        competition_types (
-          name,
-          slug
+          entry_credits,
+          max_entries,
+          rounds_covered
         )
       `)
-      .eq('competition_format', 'inplay')
-      .in('status', ['reg_open', 'live'])
-      .order('tournaments(start_date)', { ascending: true })
+      .order('start_date', { ascending: true })
       .limit(6);
 
-    if (competitions) {
-      setAvailableCompetitions(competitions.map((c: any) => ({
-        id: c.id,
-        tournament_id: c.tournament_id,
-        tournament_name: c.tournaments?.name || '',
-        tournament_slug: c.tournaments?.slug || '',
-        tournament_location: c.tournaments?.location || '',
-        tournament_image_url: c.tournaments?.image_url || null,
-        start_date: c.tournaments?.start_date || '',
-        end_date: c.tournaments?.end_date || '',
-        competition_type_name: c.competition_types?.name || '',
-        competition_type_slug: c.competition_types?.slug || '',
-        entry_fee_pennies: c.entry_fee_pennies,
-        entrants_cap: c.entrants_cap,
-        admin_fee_percent: c.admin_fee_percent || 10,
-        status: c.status,
-        participants: Math.floor(Math.random() * 30) + 5
+    if (events) {
+      setClubhouseEvents(events.map((e: any) => ({
+        id: e.id,
+        name: e.name,
+        slug: e.slug,
+        description: e.description,
+        location: e.location,
+        start_date: e.start_date,
+        end_date: e.end_date,
+        status: e.status,
+        entry_credits: e.clubhouse_competitions?.[0]?.entry_credits || 100,
+        max_entries: e.clubhouse_competitions?.[0]?.max_entries || 100,
+        competitions: e.clubhouse_competitions || []
       })));
     }
 
@@ -132,6 +125,7 @@ export default function ClubhousePage() {
           <div className={styles.heroContent}>
             <div className={styles.clubBadge}>
               <i className="fas fa-shield-alt"></i>
+              <span style={{ marginLeft: '0.5rem', fontWeight: 700 }}>VIP Member</span>
             </div>
             <h1 className={styles.heroTitle}>Welcome to the Clubhouse</h1>
             <p className={styles.heroSubtitle}>
@@ -143,8 +137,8 @@ export default function ClubhousePage() {
                   <i className="fas fa-trophy"></i>
                 </div>
                 <div className={styles.statContent}>
-                  <div className={styles.statValue}>{availableCompetitions.length}</div>
-                  <div className={styles.statLabel}>Active Competitions</div>
+                  <div className={styles.statValue}>{clubhouseEvents.length}</div>
+                  <div className={styles.statLabel}>Active Events</div>
                 </div>
               </div>
               <div className={styles.stat}>
@@ -245,90 +239,214 @@ export default function ClubhousePage() {
             </p>
           </div>
 
-          <div className={styles.tournamentsGrid}>
-            {availableCompetitions.map((competition) => {
-              const prizePool = (competition.entry_fee_pennies / 100) * competition.entrants_cap * (1 - competition.admin_fee_percent / 100);
-              const firstPlace = prizePool * 0.25; // 25% to winner
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))',
+            gap: '1.5rem',
+          }}>
+            {clubhouseEvents.map((event) => {
+              const totalCompetitions = event.competitions.length;
               
               return (
-                <div key={competition.id} className={styles.tournamentCard}>
-                  <div className={styles.cardHeader}>
-                    <div className={styles.competitionBadge}>
-                      {competition.competition_type_name}
+                <div
+                  key={event.id}
+                  style={{
+                    padding: '2rem',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '16px',
+                    transition: 'all 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                    e.currentTarget.style.borderColor = 'rgba(218, 165, 32, 0.3)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  {/* Event Header */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'flex-start',
+                    marginBottom: '1.5rem',
+                    gap: '1rem',
+                    flexWrap: 'wrap',
+                  }}>
+                    <div>
+                      <h2 style={{ 
+                        color: '#fff', 
+                        margin: '0 0 0.5rem 0',
+                        fontSize: '1.5rem',
+                        fontWeight: 700,
+                      }}>
+                        {event.name}
+                      </h2>
+                      <p style={{ 
+                        color: '#94a3b8', 
+                        margin: 0,
+                        fontSize: '0.95rem',
+                      }}>
+                        {event.location || 'Location TBD'}
+                      </p>
                     </div>
-                    <div className={styles.clubBadge}>
-                      <i className="fas fa-shield-alt"></i>
-                      <span>CLUB EXCLUSIVE</span>
+                    <div style={{ 
+                      padding: '0.5rem 1rem',
+                      background: event.status === 'open' 
+                        ? 'rgba(34, 197, 94, 0.1)' 
+                        : 'rgba(148, 163, 184, 0.1)',
+                      border: `1px solid ${event.status === 'open' 
+                        ? 'rgba(34, 197, 94, 0.3)' 
+                        : 'rgba(148, 163, 184, 0.3)'}`,
+                      color: event.status === 'open' ? '#22c55e' : '#94a3b8',
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                    }}>
+                      {event.status}
                     </div>
                   </div>
-                  
-                  <div className={styles.cardContent}>
-                    <div className={styles.tournamentImage}>
-                      <img 
-                        src={competition.tournament_image_url || "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=300&h=180&fit=crop"} 
-                        alt={competition.competition_type_name}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=300&h=180&fit=crop";
-                        }}
-                      />
+
+                  {/* Stats Grid */}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                    gap: '1rem',
+                  }}>
+                    {/* Entry Cost */}
+                    <div style={{
+                      padding: '1rem',
+                      background: 'rgba(218, 165, 32, 0.1)',
+                      border: '1px solid rgba(218, 165, 32, 0.2)',
+                      borderRadius: '12px',
+                    }}>
+                      <div style={{ 
+                        color: '#64748b', 
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        marginBottom: '0.5rem',
+                      }}>
+                        Entry Cost
+                      </div>
+                      <div style={{ 
+                        color: '#228b22', 
+                        fontSize: '1.5rem',
+                        fontWeight: 700,
+                      }}>
+                        {event.entry_credits}
+                        <span style={{ fontSize: '0.875rem', marginLeft: '0.25rem' }}>credits</span>
+                      </div>
                     </div>
 
-                    <div className={styles.tournamentInfo}>
-                      <p className={styles.tournamentLocation}>
-                        <i className="fas fa-map-marker-alt"></i>
-                        {competition.tournament_location}
-                      </p>
-                      <p className={styles.tournamentDates}>
-                        <i className="fas fa-calendar"></i>
-                        {new Date(competition.start_date).toLocaleDateString('en-GB', { 
-                          day: 'numeric', 
-                          month: 'short' 
-                        })} - {new Date(competition.end_date).toLocaleDateString('en-GB', { 
-                          day: 'numeric', 
-                          month: 'short',
-                          year: 'numeric'
+                    {/* Competitions */}
+                    <div style={{
+                      padding: '1rem',
+                      background: 'rgba(99, 102, 241, 0.1)',
+                      border: '1px solid rgba(99, 102, 241, 0.2)',
+                      borderRadius: '12px',
+                    }}>
+                      <div style={{ 
+                        color: '#64748b', 
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        marginBottom: '0.5rem',
+                      }}>
+                        Competitions
+                      </div>
+                      <div style={{ 
+                        color: '#6366f1', 
+                        fontSize: '1.5rem',
+                        fontWeight: 700,
+                      }}>
+                        {totalCompetitions}
+                      </div>
+                    </div>
+
+                    {/* Max Entries */}
+                    <div style={{
+                      padding: '1rem',
+                      background: 'rgba(234, 179, 8, 0.1)',
+                      border: '1px solid rgba(234, 179, 8, 0.2)',
+                      borderRadius: '12px',
+                    }}>
+                      <div style={{ 
+                        color: '#64748b', 
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        marginBottom: '0.5rem',
+                      }}>
+                        Max Entries
+                      </div>
+                      <div style={{ 
+                        color: '#eab308', 
+                        fontSize: '1.5rem',
+                        fontWeight: 700,
+                      }}>
+                        {event.max_entries}
+                      </div>
+                    </div>
+
+                    {/* Event Dates */}
+                    <div style={{
+                      padding: '1rem',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      borderRadius: '12px',
+                    }}>
+                      <div style={{ 
+                        color: '#64748b', 
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        marginBottom: '0.5rem',
+                      }}>
+                        Event Dates
+                      </div>
+                      <div style={{ 
+                        color: '#ef4444', 
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                      }}>
+                        {new Date(event.start_date).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric'
+                        })} - {new Date(event.end_date).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric'
                         })}
-                      </p>
-                    </div>
-
-                    <div className={styles.competitionStats}>
-                      <div className={styles.competitionStat}>
-                        <i className="fas fa-trophy"></i>
-                        <div>
-                          <div className={styles.statValue}>{prizePool.toLocaleString()} cr</div>
-                          <div className={styles.statLabel}>Prize Pool</div>
-                        </div>
-                      </div>
-                      <div className={styles.competitionStat}>
-                        <i className="fas fa-users"></i>
-                        <div>
-                          <div className={styles.statValue}>{competition.entrants_cap}</div>
-                          <div className={styles.statLabel}>Max Entries</div>
-                        </div>
-                      </div>
-                      <div className={styles.competitionStat}>
-                        <i className="fas fa-ticket-alt"></i>
-                        <div>
-                          <div className={styles.statValue}>{Math.floor(competition.entry_fee_pennies / 100)} cr</div>
-                          <div className={styles.statLabel}>Entry Fee</div>
-                        </div>
-                      </div>
-                      <div className={styles.competitionStat}>
-                        <i className="fas fa-medal"></i>
-                        <div>
-                          <div className={styles.statValue}>{Math.floor(firstPlace).toLocaleString()} cr</div>
-                          <div className={styles.statLabel}>1st Place</div>
-                        </div>
                       </div>
                     </div>
+                  </div>
 
+                  {/* Action Button */}
+                  <div style={{ marginTop: '1.5rem' }}>
                     <Link 
-                      href={`/clubhouse/build-team/${competition.tournament_slug}?competition=${competition.id}`}
-                      className={styles.enterBtn}
+                      href={`/clubhouse/events/${event.id}`}
+                      style={{ textDecoration: 'none' }}
                     >
-                      <i className="fas fa-users"></i>
-                      Build Team
+                      <div style={{
+                        padding: '0.875rem',
+                        background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
+                        border: 'none',
+                        borderRadius: '10px',
+                        color: '#fff',
+                        fontWeight: 600,
+                        fontSize: '1rem',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                      }}>
+                        📋 View Event Details
+                      </div>
                     </Link>
                   </div>
                 </div>

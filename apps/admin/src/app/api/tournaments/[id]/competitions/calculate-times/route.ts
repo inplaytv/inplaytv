@@ -45,7 +45,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       }
 
       const regCloseAt = new Date(new Date(teeTime as string).getTime() - REGISTRATION_CLOSE_BUFFER_MS);
-      const status = now >= regCloseAt ? "live" : (tournament.registration_opens_at && now >= new Date(tournament.registration_opens_at)) ? "reg_open" : "upcoming";
+      const status = now >= regCloseAt ? "reg_closed" : (tournament.registration_opens_at && now >= new Date(tournament.registration_opens_at)) ? "reg_open" : "upcoming";
 
       updates.push({
         id: comp.id,

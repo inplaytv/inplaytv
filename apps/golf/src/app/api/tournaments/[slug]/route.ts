@@ -42,7 +42,6 @@ export async function GET(
       `)
       .eq('tournament_id', tournament.id)
       .eq('competition_format', 'inplay')
-      .in('status', ['draft', 'upcoming', 'registration_open', 'registration_closed', 'live', 'completed'])
       .order('entry_fee_pennies', { ascending: false });
 
     if (competitionsError) {

@@ -15,7 +15,7 @@ export default function TournamentBackgrounds() {
   const [currentBackground, setCurrentBackground] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'tournaments' | 'lobby' | 'entries' | 'leaderboards' | 'one2one'>('tournaments');
+  const [activeTab, setActiveTab] = useState<'tournaments' | 'lobby' | 'entries' | 'leaderboards' | 'one2one' | 'clubhouse' | 'clubhouse_events_list'>('tournaments');
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [pageBackgrounds, setPageBackgrounds] = useState<Record<string, string>>({});
   const [opacity, setOpacity] = useState<number>(0.15);
@@ -26,7 +26,9 @@ export default function TournamentBackgrounds() {
     { id: 'lobby' as const, label: 'Lobby/Home Page', description: 'Background for main lobby', pageKey: 'lobby_page_background' },
     { id: 'entries' as const, label: 'My Entries Page', description: 'Background for /entries page', pageKey: 'entries_page_background' },
     { id: 'leaderboards' as const, label: 'Leaderboards Page', description: 'Background for /leaderboards', pageKey: 'leaderboards_page_background' },
-    { id: 'one2one' as const, label: 'ONE 2 ONE Page', description: 'Background for /one-2-one', pageKey: 'one2one_page_background' }
+    { id: 'one2one' as const, label: 'ONE 2 ONE Page', description: 'Background for /one-2-one', pageKey: 'one2one_page_background' },
+    { id: 'clubhouse' as const, label: 'Clubhouse Page', description: 'Background for /clubhouse/events', pageKey: 'clubhouse_page_background' },
+    { id: 'clubhouse_events_list' as const, label: 'Clubhouse Events List', description: 'Background for /clubhouse/events list page', pageKey: 'clubhouse_events_list_background' }
   ];
 
   useEffect(() => {
@@ -204,7 +206,12 @@ export default function TournamentBackgrounds() {
           ) : (
             <div className={styles.currentPreview}>
               <img 
-                src={currentBackground && currentBackground.startsWith('http') ? currentBackground : `http://localhost:3000${currentBackground || '/backgrounds/golf-course-green.jpg'}`} 
+                src={currentBackground.startsWith('http') 
+                  ? currentBackground 
+                  : currentBackground.startsWith('/backgrounds/') 
+                    ? `http://localhost:3003${currentBackground}` 
+                    : `http://localhost:3003/backgrounds/${currentBackground}`
+                } 
                 alt="Current background"
                 className={styles.currentImage}
                 style={{ opacity: opacity }}

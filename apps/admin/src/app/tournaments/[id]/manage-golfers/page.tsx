@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -34,6 +34,13 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // Ref to prevent duplicate rapid-fire requests
+  const isProcessingRef = useRef(false);
+  
+  // Check if this is the clubhouse master tournament
+  const clubhouseMasterTournamentId = process.env.NEXT_PUBLIC_CLUBHOUSE_MASTER_TOURNAMENT_ID || '00000000-0000-0000-0000-000000000001';
+  const isClubhouseMaster = params.id === clubhouseMasterTournamentId;
   
   // Manual add form
   const [showManualForm, setShowManualForm] = useState(false);
@@ -119,6 +126,12 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
       }
 
       setSuccess(`✅ ${data.message}`);
+      
+      // Notify create event page if this is clubhouse master tournament
+      if (isClubhouseMaster) {
+        window.localStorage.setItem('clubhouse_golfer_groups_updated', Date.now().toString());
+        console.log('[Manage Golfers] Notified create page of new golfer group');
+      }
     } catch (err: any) {
       setError(`❌ ${err.message}`);
     } finally {
@@ -213,6 +226,13 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
   }
 
   async function addFromRankings(ranking: any) {
+    // Validate player has required data
+    if (!ranking.name || ranking.name.trim() === '') {
+      setError('❌ Cannot add player: missing name');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
     setAdding(true);
     setError('');
     setSuccess('');
@@ -257,12 +277,62 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
       return;
     }
 
+    // Prevent duplicate calls
+    if (isProcessingRef.current) {
+      console.log('[addSelectedPlayers] Already processing, ignoring duplicate call');
+      return;
+    }
+
+    isProcessingRef.current = true;
     setAdding(true);
     setError('');
     setSuccess('');
 
+    console.log(`[addSelectedPlayers] Starting bulk add for ${selectedPlayers.size} selected players`);
+
     try {
-      const playersToAdd = rankings.filter(r => selectedPlayers.has(r.dgId));
+      // Get set of already-added golfer DG IDs
+      const golferDgIds = new Set(golfers.map(g => g.dg_id).filter(Boolean));
+      
+      // Filter selected players: must have valid data AND not already in tournament
+      const playersToAdd = rankings.filter(r => 
+        selectedPlayers.has(r.dgId) && 
+        r.name && 
+        r.name.trim() !== '' &&
+        !golferDgIds.has(r.dgId?.toString())
+      );
+      
+      const skippedDuplicates = Array.from(selectedPlayers).filter(dgId => {
+        const player = rankings.find(r => r.dgId === dgId);
+        return player && golferDgIds.has(player.dgId?.toString());
+      }).length;
+      
+      const invalidData = Array.from(selectedPlayers).filter(dgId => {
+        const player = rankings.find(r => r.dgId === dgId);
+        return player && (!player.name || player.name.trim() === '');
+      }).length;
+      
+      console.log(`[addSelectedPlayers] After validation: ${playersToAdd.length} valid players, ${skippedDuplicates} already in tournament, ${invalidData} with invalid data`);
+      console.log('[addSelectedPlayers] Players to add:', playersToAdd.map(p => p.name).join(', '));
+      
+      if (playersToAdd.length === 0) {
+        if (skippedDuplicates > 0 && invalidData === 0) {
+          setError(`ℹ️ All ${skippedDuplicates} selected player(s) are already in this tournament`);
+        } else if (invalidData > 0) {
+          setError('❌ Selected players have invalid data (missing names)');
+        } else {
+          setError('❌ No valid players to add');
+        }
+        setAdding(false);
+        isProcessingRef.current = false;
+        setTimeout(() => setError(''), 5000);
+        return;
+      }
+      
+      if (skippedDuplicates > 0) {
+        setSuccess(`ℹ️ Skipping ${skippedDuplicates} player(s) already in tournament, adding ${playersToAdd.length} new player(s)...`);
+      }
+      
       let addedCount = 0;
       let failedCount = 0;
       const errors: string[] = [];
@@ -300,15 +370,19 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
       if (addedCount > 0) {
         setSuccess(`✅ Added ${addedCount} player(s) successfully!`);
       }
+      
+      console.log(`[addSelectedPlayers] Complete: ${addedCount} added, ${failedCount} failed`);
       await fetchGolfers();
       
       // Clear selection and remove added players from list
       setSelectedPlayers(new Set());
       setRankings(rankings.filter(r => !selectedPlayers.has(r.dgId)));
     } catch (err: any) {
+      console.error('[addSelectedPlayers] Error:', err);
       setError(`❌ ${err.message}`);
     } finally {
       setAdding(false);
+      isProcessingRef.current = false;
       setTimeout(() => {
         setError('');
         setSuccess('');
@@ -479,7 +553,7 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
       {/* Header */}
       <div style={{ marginBottom: '30px' }}>
         <Link
-          href="/tournaments"
+          href={isClubhouseMaster ? '/clubhouse/events/create' : '/tournaments'}
           style={{
             color: '#60a5fa',
             textDecoration: 'none',
@@ -488,11 +562,25 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
             marginBottom: '10px',
           }}
         >
-          ← Back to Tournaments
+          ← Back to {isClubhouseMaster ? 'Create Event' : 'Tournaments'}
         </Link>
         <h1 style={{ margin: '0 0 10px 0', fontSize: '28px', fontWeight: 'bold' }}>
           Manage Golfers
         </h1>
+        {isClubhouseMaster && (
+          <div style={{
+            padding: '12px 16px',
+            background: 'linear-gradient(135deg, rgba(14, 184, 166, 0.1), rgba(6, 182, 212, 0.1))',
+            border: '1px solid rgba(14, 184, 166, 0.3)',
+            borderRadius: '8px',
+            marginBottom: '15px',
+            color: '#0d9488',
+            fontSize: '14px',
+            fontWeight: 500,
+          }}>
+            🏌️ <strong>Clubhouse Master Tournament</strong> - Groups created here will be available for Clubhouse events
+          </div>
+        )}
         {tournament && (
           <p style={{ color: '#666', fontSize: '16px' }}>
             {tournament.name} • Status: <span style={{ 
@@ -819,6 +907,26 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
 
           {rankings.length > 0 && (
             <>
+              {(() => {
+                // Filter out golfers already in tournament
+                const golferDgIds = new Set(golfers.map(g => g.dg_id).filter(Boolean));
+                const availableRankings = rankings.filter(r => !golferDgIds.has(r.dgId?.toString()));
+                const alreadyAddedCount = rankings.length - availableRankings.length;
+                
+                return (
+                  <>
+                    {alreadyAddedCount > 0 && (
+                      <div style={{ marginBottom: '15px', padding: '10px', background: '#fef3c7', borderRadius: '6px', fontSize: '13px', color: '#92400e' }}>
+                        <strong>ℹ️</strong> {alreadyAddedCount} player(s) already added to this tournament (hidden from list)
+                      </div>
+                    )}
+                    
+                    {availableRankings.length === 0 ? (
+                      <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: '6px' }}>
+                        ✅ All players from this search are already in the tournament
+                      </div>
+                    ) : (
+                      <>
               {browseMode && selectedPlayers.size > 0 && (
                 <div style={{ marginBottom: '15px', padding: '12px', backgroundColor: '#dbeafe', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '14px', color: '#1e40af', fontWeight: 600 }}>
@@ -851,7 +959,7 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
                         <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600, fontSize: '13px', color: '#374151' }}>
                           <input
                             type="checkbox"
-                            checked={selectedPlayers.size === rankings.length && rankings.length > 0}
+                            checked={selectedPlayers.size === availableRankings.length && availableRankings.length > 0}
                             onChange={toggleSelectAll}
                             style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                           />
@@ -867,7 +975,7 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
                     </tr>
                   </thead>
                   <tbody>
-                    {rankings.map((ranking) => (
+                    {availableRankings.map((ranking) => (
                       <tr key={ranking.dgId} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: selectedPlayers.has(ranking.dgId) ? '#eff6ff' : 'white' }}>
                         {browseMode && (
                           <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -913,6 +1021,11 @@ export default function ManageGolfersPage({ params }: { params: { id: string } }
                   </tbody>
                 </table>
               </div>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
             </>
           )}
         </div>

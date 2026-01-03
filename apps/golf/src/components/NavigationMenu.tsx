@@ -92,8 +92,14 @@ const menuCategories: MenuCategory[] = [
         description: 'Club competitions & credits'
       },
       { 
+        label: 'Club Tournaments', 
+        href: '/clubhouse/events', 
+        icon: 'fa-trophy',
+        description: 'Enter club events'
+      },
+      { 
         label: 'My Credits', 
-        href: '/clubhouse/credits', 
+        href: '/clubhouse/wallet', 
         icon: 'fa-coins',
         description: 'View your club credits'
       },

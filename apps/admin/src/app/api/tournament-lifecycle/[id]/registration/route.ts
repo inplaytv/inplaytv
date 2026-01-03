@@ -14,6 +14,8 @@ export async function POST(
 ) {
   try {
     const { 
+      start_date,
+      end_date,
       registration_opens_at, 
       registration_closes_at,
       round_1_start,
@@ -63,7 +65,15 @@ export async function POST(
     }
 
     // Validate that registration closes before tournament ends
-    const tournamentEnd = new Date(tournament.end_date);
+    // Use the new end_date if provided, otherwise use existing tournament end_date
+    const effectiveEndDate = end_date || tournament.end_date;
+    if (!effectiveEndDate) {
+      return NextResponse.json(
+        { error: 'Tournament must have an end date' },
+        { status: 400 }
+      );
+    }
+    const tournamentEnd = new Date(effectiveEndDate);
     if (closesAt > tournamentEnd) {
       return NextResponse.json(
         { error: 'Registration must close before the tournament ends' },
@@ -71,8 +81,10 @@ export async function POST(
       );
     }
 
-    // Build updates object with registration times and round tee times
+    // Build updates object with tournament dates, registration times and round tee times
     interface TournamentUpdates {
+      start_date?: string;
+      end_date?: string;
       registration_opens_at: string;
       registration_closes_at: string;
       updated_at: string;
@@ -87,6 +99,10 @@ export async function POST(
       registration_closes_at,
       updated_at: new Date().toISOString()
     };
+
+    // Add tournament dates if provided
+    if (start_date) updates.start_date = start_date;
+    if (end_date) updates.end_date = end_date;
 
     // Add round tee times if provided
     if (round_1_start) updates.round_1_start = round_1_start;
@@ -134,30 +150,74 @@ export async function POST(
 
     // Auto-calculate competition registration times based on round tee times
     console.log('[Registration] Auto-syncing competition times from lifecycle...');
+    
+    // CRITICAL: Calculate times manually to ensure it ALWAYS happens
+    // (Don't rely on fetch to another endpoint which can fail)
     try {
-      // Construct the internal API URL correctly
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002';
-      const calculateUrl = `${baseUrl}/api/tournaments/${params.id}/competitions/calculate-times`;
+      // Fetch tournament data again to ensure we have latest round times
+      const { data: latestTournament } = await supabase
+        .from('tournaments')
+        .select('id, registration_opens_at, round_1_start, round_2_start, round_3_start, round_4_start')
+        .eq('id', params.id)
+        .single();
       
-      console.log('[Registration] Calling:', calculateUrl);
-      
-      const calculateRes = await fetch(calculateUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      console.log('[Registration] Latest tournament round times:', {
+        round_1: latestTournament?.round_1_start,
+        round_2: latestTournament?.round_2_start,
+        round_3: latestTournament?.round_3_start,
+        round_4: latestTournament?.round_4_start
       });
-      
-      if (calculateRes.ok) {
-        const calcData = await calculateRes.json();
-        console.log(`[Registration] ✅ Synced ${calcData.updated} competitions from lifecycle`);
+
+      const { data: competitions } = await supabase
+        .from("tournament_competitions")
+        .select("id, competition_types!inner(name, round_start)")
+        .eq("tournament_id", params.id);
+
+      console.log(`[Registration] Found ${competitions?.length || 0} InPlay competitions to sync`);
+
+      if (competitions && competitions.length > 0 && latestTournament) {
+        const now = new Date();
+        const BUFFER_MS = 15 * 60 * 1000; // 15 minutes
+        let syncedCount = 0;
+
+        for (const comp of competitions) {
+          const roundStart = (comp.competition_types as any).round_start || 1;
+          const roundKey = `round_${roundStart}_start` as keyof typeof latestTournament;
+          const teeTime = latestTournament[roundKey] || null;
+
+          console.log(`[Registration] Processing ${(comp.competition_types as any).name} - Round ${roundStart}, tee time: ${teeTime}`);
+
+          if (!teeTime) {
+            console.log(`[Registration] ⚠️ No tee time for ${(comp.competition_types as any).name} (Round ${roundStart})`);
+            continue;
+          }
+
+          const regCloseAt = new Date(new Date(teeTime as string).getTime() - BUFFER_MS);
+          const status = now >= regCloseAt ? "registration_closed" : 
+                        (latestTournament.registration_opens_at && now >= new Date(latestTournament.registration_opens_at)) ? "registration_open" : 
+                        "upcoming";
+
+          const updateData = {
+            reg_open_at: latestTournament.registration_opens_at,
+            reg_close_at: regCloseAt.toISOString(),
+            start_at: teeTime,
+            status
+          };
+          
+          console.log(`[Registration] Updating ${(comp.competition_types as any).name} with:`, updateData);
+
+          await supabase.from("tournament_competitions").update(updateData).eq("id", comp.id);
+
+          syncedCount++;
+        }
+
+        console.log(`[Registration] ✅ Synced ${syncedCount} InPlay competitions directly`);
       } else {
-        const errorText = await calculateRes.text();
-        console.warn('[Registration] ⚠️ Could not sync competition times:', errorText);
+        console.log('[Registration] ℹ️ No InPlay competitions found to sync or tournament data missing');
       }
-    } catch (calcError) {
-      console.warn('[Registration] ⚠️ Competition time sync failed:', calcError);
-      // Don't fail the whole request if this fails
+    } catch (syncError) {
+      console.error('[Registration] ❌ Failed to sync competition times:', syncError);
+      // Still return success for tournament update, but log the sync failure
     }
 
     return NextResponse.json({ 

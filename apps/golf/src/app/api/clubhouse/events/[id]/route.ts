@@ -1,0 +1,249 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabaseServer';
+import { createClient } from '@supabase/supabase-js';
+
+export const dynamic = 'force-dynamic';
+
+// Service role client for admin operations
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// CORS headers for admin app access
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const supabase = await createServerClient();
+
+    const { data: event, error } = await supabase
+      .from('clubhouse_events')
+      .select(`
+        *,
+        clubhouse_competitions(
+          id,
+          name,
+          entry_credits,
+          max_entries,
+          opens_at,
+          closes_at,
+          starts_at,
+          rounds_covered
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    if (!event) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    }
+
+    // Count entries
+    const competition = event.clubhouse_competitions?.[0];
+    let currentEntries = 0;
+    if (competition) {
+      const { count } = await supabase
+        .from('clubhouse_entries')
+        .select('*', { count: 'exact', head: true })
+        .eq('competition_id', competition.id);
+      currentEntries = count || 0;
+    }
+
+    // Map to consistent format with both old and new fields
+    return NextResponse.json({
+      id: event.id,
+      name: event.name,
+      description: event.description,
+      location: event.location,
+      status: event.status,
+      entry_credits: competition?.entry_credits || 0,
+      max_entries: competition?.max_entries || 0,
+      current_entries: currentEntries,
+      reg_open_at: event.registration_opens_at || competition?.registration_opens_at,
+      reg_close_at: event.registration_closes_at || competition?.registration_closes_at,
+      start_at: event.start_date,
+      end_at: event.end_date,
+      // New multi-round fields (if they exist)
+      round1_tee_time: event.round1_tee_time || null,
+      round2_tee_time: event.round2_tee_time || null,
+      round3_tee_time: event.round3_tee_time || null,
+      round4_tee_time: event.round4_tee_time || null,
+    }, { headers: corsHeaders });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders });
+  }
+}
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const supabase = await createServerClient();
+    const body = await req.json();
+
+    // Helper to convert datetime-local to ISO 8601
+    const toISO = (dateStr: string) => {
+      if (!dateStr) return null;
+      if (dateStr.includes('Z') || dateStr.includes('+')) return dateStr;
+      return new Date(dateStr).toISOString();
+    };
+
+    // Build update object conditionally based on what fields are provided
+    const updateData: any = {
+      name: body.name,
+      description: body.description,
+      location: body.location,
+      end_date: toISO(body.end_date),
+    };
+
+    // Handle both old single-date and new multi-round formats
+    if (body.round1_tee_time) {
+      // New format: use round tee times
+      updateData.start_date = toISO(body.round1_tee_time);
+      updateData.round1_tee_time = toISO(body.round1_tee_time);
+      updateData.round2_tee_time = toISO(body.round2_tee_time);
+      updateData.round3_tee_time = toISO(body.round3_tee_time);
+      updateData.round4_tee_time = toISO(body.round4_tee_time);
+      if (body.registration_opens) {
+        updateData.registration_opens_at = toISO(body.registration_opens);
+      }
+      // Auto-calculate reg close as Round 1 - 15min
+      const round1 = new Date(body.round1_tee_time);
+      round1.setMinutes(round1.getMinutes() - 15);
+      updateData.registration_closes_at = round1.toISOString();
+    } else if (body.start_date) {
+      // Old format: use single start date
+      updateData.start_date = toISO(body.start_date);
+      updateData.registration_opens_at = toISO(body.registration_opens);
+      updateData.registration_closes_at = toISO(body.registration_closes);
+    }
+
+    // Update event
+    const { error: eventError } = await supabase
+      .from('clubhouse_events')
+      .update(updateData)
+      .eq('id', id);
+
+    if (eventError) throw eventError;
+
+    // Update associated competition
+    const { data: competitions } = await supabase
+      .from('clubhouse_competitions')
+      .select('id')
+      .eq('event_id', id)
+      .limit(1);
+
+    if (competitions && competitions.length > 0) {
+      const { error: compError } = await supabase
+        .from('clubhouse_competitions')
+        .update({
+          entry_credits: body.entry_credits,
+          max_entries: body.max_entries,
+          registration_opens_at: toISO(body.registration_opens),
+          registration_closes_at: toISO(body.registration_closes),
+        })
+        .eq('id', competitions[0].id);
+
+      if (compError) throw compError;
+    }
+
+    return NextResponse.json({ success: true }, { headers: corsHeaders });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders });
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    console.log('[Clubhouse Events API] Deleting event:', id);
+
+    // Use admin client for cascade delete
+    const { data: competitions, error: compError } = await supabaseAdmin
+      .from('clubhouse_competitions')
+      .select('id')
+      .eq('event_id', id);
+
+    if (compError) {
+      console.error('[Clubhouse Events API] Error fetching competitions:', compError);
+      throw compError;
+    }
+
+    console.log('[Clubhouse Events API] Found competitions:', competitions?.length || 0);
+
+    if (competitions && competitions.length > 0) {
+      const competitionIds = competitions.map(c => c.id);
+
+      // Get all entry IDs
+      const { data: entries } = await supabaseAdmin
+        .from('clubhouse_entries')
+        .select('id')
+        .in('competition_id', competitionIds);
+
+      if (entries && entries.length > 0) {
+        const entryIds = entries.map(e => e.id);
+
+        // Delete entry picks first
+        await supabaseAdmin
+          .from('clubhouse_entry_picks')
+          .delete()
+          .in('entry_id', entryIds);
+      }
+
+      // Delete entries
+      await supabaseAdmin
+        .from('clubhouse_entries')
+        .delete()
+        .in('competition_id', competitionIds);
+    }
+
+    // Delete competitions
+    await supabaseAdmin
+      .from('clubhouse_competitions')
+      .delete()
+      .eq('event_id', id);
+
+    // Delete the event
+    const { error: deleteEventError } = await supabaseAdmin
+      .from('clubhouse_events')
+      .delete()
+      .eq('id', id);
+
+    if (deleteEventError) {
+      console.error('[Clubhouse Events API] Error deleting event:', deleteEventError);
+      throw deleteEventError;
+    }
+
+    console.log('[Clubhouse Events API] Event deleted successfully:', id);
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Event deleted successfully' 
+    }, { headers: corsHeaders });
+  } catch (error: any) {
+    console.error('[Clubhouse Events API] Delete error:', error);
+    return NextResponse.json({ 
+      error: error.message || 'Failed to delete event' 
+    }, { status: 500, headers: corsHeaders });
+  }
+}

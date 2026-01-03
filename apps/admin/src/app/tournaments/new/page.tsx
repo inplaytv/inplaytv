@@ -46,12 +46,13 @@ export default function NewTournamentPage() {
         const data = await res.json();
         console.log('📊 Fetched competition types:', data);
         
-        // Get the 6 main competitions by exact slug match
+        // Get the 7 main competitions by exact slug match
         const mainSlugs = [
           'full-course-all-4-rounds',
           'beat-the-cut',
           'the-weekender',
           'be-the-first-to-strike',
+          'final-strike',
           'second-round',
           'third-round'
         ];
@@ -124,6 +125,15 @@ export default function NewTournamentPage() {
         }
       }
 
+      console.log('🚀 Submitting tournament creation:', {
+        name: formData.name,
+        slug: formData.slug,
+        hasStartDate: !!formData.start_date,
+        hasEndDate: !!formData.end_date,
+        autoCreateComps,
+        competitionsCount: defaultCompetitions.filter(c => c.enabled).length
+      });
+
       const res = await fetch('/api/tournaments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -134,21 +144,34 @@ export default function NewTournamentPage() {
         }),
       });
 
+      console.log('📡 API Response status:', res.status);
+
       if (res.ok) {
         const data = await res.json();
+        console.log('✅ Tournament created:', data);
         const statusReminder = formData.status === 'draft' 
           ? ' ⚠️ Tournament is in DRAFT status - use Lifecycle Manager to make it visible to players.'
           : '';
         setError(''); // Clear any errors
         alert(`✅ Tournament created successfully! ${autoCreateComps ? `Auto-created ${defaultCompetitions.filter(c => c.enabled).length} competitions.` : ''}${statusReminder}`);
-        router.push(`/tournaments/${data.id}`);
+        
+        // Force page refresh with cache busting
+        window.location.href = `/tournaments/${data.id}?refresh=${Date.now()}`;
       } else {
         const data = await res.json();
-        setError(data.error || 'Failed to create tournament');
+        const errorMessage = data.error || 'Failed to create tournament';
+        console.error('❌ Tournament creation failed:', errorMessage, data);
+        setError(`Error: ${errorMessage}`);
+        
+        // Show detailed error in alert
+        alert(`❌ Failed to create tournament:\n\n${errorMessage}\n\nCheck the browser console for more details.`);
         setSaving(false);
       }
     } catch (err) {
-      setError('Network error');
+      const errorMessage = err instanceof Error ? err.message : 'Network error';
+      console.error('❌ Tournament creation exception:', err);
+      setError(`Error: ${errorMessage}`);
+      alert(`❌ Failed to create tournament:\n\n${errorMessage}\n\nCheck your network connection and try again.`);
       setSaving(false);
     }
   };
@@ -316,16 +339,18 @@ export default function NewTournamentPage() {
           padding: '1.5rem',
           marginBottom: '1.5rem',
         }}>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem' }}>Dates & Times</h2>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.5rem' }}>Dates & Times</h2>
+          <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1rem', fontStyle: 'italic' }}>
+            💡 Optional: You can set these now or later in the <strong>Tournament Lifecycle Manager</strong>
+          </p>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                Start Date *
+                Start Date (Optional)
               </label>
               <input
                 type="datetime-local"
-                required
                 value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                 style={{
@@ -341,11 +366,10 @@ export default function NewTournamentPage() {
 
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                End Date *
+                End Date (Optional)
               </label>
               <input
                 type="datetime-local"
-                required
                 value={formData.end_date}
                 onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                 style={{
@@ -543,7 +567,7 @@ export default function NewTournamentPage() {
               style={{ marginRight: '0.5rem' }}
             />
             <label htmlFor="auto-create-comps" style={{ fontSize: '1rem', fontWeight: 600, color: '#60a5fa' }}>
-              Auto-Create Main Competitions (6)
+              Auto-Create Main Competitions (7)
             </label>
           </div>
           

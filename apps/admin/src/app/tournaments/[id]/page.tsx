@@ -773,11 +773,10 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                Start Date *
+                Start Date (Optional)
               </label>
               <input
                 type="datetime-local"
-                required
                 value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                 style={{
@@ -793,11 +792,10 @@ export default function EditTournamentPage({ params }: { params: { id: string } 
 
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                End Date *
+                End Date (Optional)
               </label>
               <input
                 type="datetime-local"
-                required
                 value={formData.end_date}
                 onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                 style={{

@@ -51,20 +51,20 @@ export async function POST(request: NextRequest) {
       defaultCompetitions = [],
     } = body;
 
-    if (!name || !slug || !start_date || !end_date) {
+    if (!name || !slug) {
       return NextResponse.json(
-        { error: 'Name, slug, start date, and end date are required' },
+        { error: 'Name and slug are required' },
         { status: 400 }
       );
     }
 
     const adminClient = createAdminClient();
     
-    // Calculate registration dates if auto-manage enabled: 7 days before start, 15 minutes before start
+    // Calculate registration dates if auto-manage enabled AND dates provided: 7 days before start, 15 minutes before start
     let registrationOpenDate = null;
     let registrationCloseDate = null;
     
-    if (auto_manage_timing && start_date) {
+    if (auto_manage_timing && start_date && end_date) {
       const startDateObj = new Date(start_date);
       registrationOpenDate = new Date(startDateObj.getTime() - 7 * 24 * 60 * 60 * 1000); // -7 days
       registrationCloseDate = new Date(startDateObj.getTime() - 15 * 60 * 1000); // -15 minutes
@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
         description: description || null,
         location: location || null,
         timezone: timezone || 'Europe/London',
-        start_date,
-        end_date,
+        start_date: start_date || null,
+        end_date: end_date || null,
         status: status || 'draft',
         external_id: external_id || null,
         image_url: image_url || null,
@@ -90,13 +90,26 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
+      console.error('❌ Tournament insert error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      
       if (error.code === '23505') {
         return NextResponse.json(
-          { error: 'A tournament with this slug already exists' },
+          { error: `A tournament with slug "${slug}" already exists. Please use a different name.` },
           { status: 400 }
         );
       }
-      throw error;
+      
+      // Return detailed error message
+      return NextResponse.json(
+        { 
+          error: error.message || 'Failed to create tournament',
+          details: error.details || 'No additional details',
+          hint: error.hint || null,
+          code: error.code || null
+        },
+        { status: 500 }
+      );
     }
 
     // Auto-create competitions if enabled
@@ -117,11 +130,11 @@ export async function POST(request: NextRequest) {
         entrants_cap: comp.entrants_cap,
         admin_fee_percent: comp.admin_fee_percent,
         status: 'draft', // Start in draft, will be updated by lifecycle manager
-        // Inherit registration times from tournament
+        // Inherit registration times from tournament if available
         reg_open_at: registrationOpenDate ? registrationOpenDate.toISOString() : null,
         reg_close_at: registrationCloseDate ? registrationCloseDate.toISOString() : null,
-        start_at: start_date,
-        end_at: end_date,
+        start_at: start_date || null,
+        end_at: end_date || null,
       }));
 
       const { data: compsData, error: compsError } = await adminClient

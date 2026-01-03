@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import RequireAuth from '@/components/RequireAuth';
 import InsufficientFundsModal from '@/components/InsufficientFundsModal';
 import TournamentBackgroundControls from '@/components/TournamentBackgroundControls';
+import { isTournamentVisible, isRegistrationOpen } from '@/lib/unified-competition';
 import styles from './tournaments.module.css';
 
 interface CompetitionType {
@@ -52,6 +53,50 @@ function extractTour(description: string | null, name?: string): 'PGA' | 'LPGA' 
   if (text.includes('european')) return 'European';
   if (text.includes('pga')) return 'PGA';
   return null;
+}
+
+// Ad Slide Component - auto-detects image format
+function AdSlide({ ad, slideKey }: { ad: any; slideKey: string }) {
+  const formats = ['.svg', '.png', '.jpg', '.jpeg', '.webp'];
+  const [formatIndex, setFormatIndex] = useState(0);
+  const imageSrc = `/ads/${ad.imageSlot}${formats[formatIndex]}`;
+  
+  const handleImageError = () => {
+    if (formatIndex < formats.length - 1) {
+      setFormatIndex(formatIndex + 1);
+    }
+  };
+  
+  return (
+    <div key={slideKey} className={styles.sliderSlide}>
+      <a 
+        href={ad.clickUrl} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className={styles.adSlide}
+      >
+        <div className={styles.adBadge}>
+          <i className="fas fa-bullhorn"></i>
+          <span>SPONSORED</span>
+        </div>
+        <div className={styles.adContent}>
+          <img 
+            src={imageSrc}
+            alt={ad.title}
+            className={styles.adImage}
+            onError={handleImageError}
+          />
+          <div className={styles.adOverlay}>
+            <h3 className={styles.adTitle}>{ad.title}</h3>
+            <p className={styles.adDescription}>{ad.description}</p>
+            <button className={styles.adCta}>
+              Learn More <i className="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </a>
+    </div>
+  );
 }
 
 // Custom hook for countdown timer - v2
@@ -110,8 +155,8 @@ function CompetitionCountdown({ regCloseAt, status }: { regCloseAt: string | nul
       const hasClosed = now >= closeDate;
       
       if (hasClosed) {
-        // Registration has closed - show as LIVE (not checking tournament dates here)
-        return { label: 'LIVE', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.1)', icon: 'fa-circle' };
+        // Registration has closed
+        return { label: 'REGISTRATION CLOSED', color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.1)', icon: 'fa-door-closed' };
       } else {
         // Registration is still open
         return { label: 'REGISTRATION OPEN', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)', icon: 'fa-check-circle' };
@@ -121,8 +166,6 @@ function CompetitionCountdown({ regCloseAt, status }: { regCloseAt: string | nul
     // PRIORITY 2: No reg_close_at date - fall back to database status
     if (status === 'completed') {
       return { label: 'COMPLETED', color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.1)', icon: 'fa-flag-checkered' };
-    } else if (status === 'live') {
-      return { label: 'LIVE', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.1)', icon: 'fa-circle' };
     } else if (status === 'registration_open') {
       return { label: 'REGISTRATION OPEN', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)', icon: 'fa-check-circle' };
     }
@@ -207,18 +250,11 @@ function UpcomingTournamentCard({
   
   // Get display text based on competition registration status, not tournament status
   const getStatusDisplay = () => {
-    // SIMPLE RULE: If ANY competition has open registration (by date), show REGISTRATION OPEN
-    const now = new Date();
-    const hasOpenCompetition = tournament.competitions?.some((c: any) => {
-      if (!c.reg_close_at) return false;
-      const closeDate = new Date(c.reg_close_at);
-      if (now >= closeDate) return false; // Registration closed
-      if (c.reg_open_at) {
-        const openDate = new Date(c.reg_open_at);
-        if (now < openDate) return false; // Not opened yet
-      }
-      return true; // Registration is open
-    });
+    // Use centralized utility - check if ANY competition has open registration
+    const hasOpenCompetition = tournament.competitions?.some((c: any) => 
+      isRegistrationOpen(c.reg_open_at, c.reg_close_at)
+    );
+    
     if (hasOpenCompetition) {
       return 'REGISTRATION OPEN';
     }
@@ -360,18 +396,18 @@ function UpcomingTournamentCard({
 }
 
 export default function TournamentsPage() {
-  // Advertisement configuration
+  // Advertisement configuration - auto-detects .svg, .png, or .jpg
   const advertisements = [
     {
       id: 'ad-1',
-      imageUrl: '/ads/ad-slot-1.svg',
+      imageSlot: 'ad-slot-1', // Will try .svg, .png, .jpg automatically
       clickUrl: 'https://inplaytv.com',
       title: '',
       description: ''
     },
     {
       id: 'ad-2',
-      imageUrl: '/ads/ad-slot-2.png',
+      imageSlot: 'ad-slot-2', // Will try .svg, .png, .jpg automatically
       clickUrl: 'https://another-url.com',
       title: 'InPlayTV for Golf Clubs',
       description: 'Play Golf With Real Professionals'
@@ -406,39 +442,14 @@ export default function TournamentsPage() {
   const totalSlides = useMemo(() => {
     if (tournaments.length === 0) return 0;
     
-    const filteredCount = tournaments.filter(tournament => {
-      const now = new Date();
-      // Show tournament if it has ANY competition open for registration
-      const hasOpenCompetition = tournament.competitions?.some(c => {
-        // Direct status check - show if reg_open
-        if (c.status === 'registration_open') {
-          // Verify registration is actually open by time
-          if (c.reg_open_at && c.reg_close_at) {
-            const regOpen = new Date(c.reg_open_at);
-            const regClose = new Date(c.reg_close_at);
-            return now >= regOpen && now < regClose;
-          }
-          return true; // Trust reg_open status even without times
-        }
-        
-        // For 'upcoming' status, check if registration window is open
-        if (c.status === 'upcoming' && c.reg_open_at && c.reg_close_at) {
-          const regOpen = new Date(c.reg_open_at);
-          const regClose = new Date(c.reg_close_at);
-          return now >= regOpen && now < regClose;
-        }
-        
-        return false;
-      });
-      
-      return hasOpenCompetition;
-    }).length;
+    // Use centralized visibility utility to prevent filter bugs
+    const filteredCount = tournaments.filter(isTournamentVisible).length;
     
     // With ads after each tournament: filteredCount tournaments + filteredCount ads
     return advertisements.length > 0 ? filteredCount * 2 : filteredCount;
   }, [tournaments]);
 
-  // Auto-advance slider - only if there's more than 1 slide
+  // Au⚠️ CRITICAL: Use centralized utility to prevent recurring 1 slide
   useEffect(() => {
     // Only auto-advance if there are multiple slides and not hovering
     if (totalSlides <= 1 || isHovering) return;
@@ -544,38 +555,23 @@ export default function TournamentsPage() {
                 }
                 
                 // Only show competitions accepting registrations - CHECK DATES NOT STATUS
-                const now = new Date();
-                
                 // Must have reg_close_at to determine if registration is open
                 if (!c.reg_close_at) return false;
                 
-                const closeDate = new Date(c.reg_close_at);
-                
-                // Registration is closed - don't show
-                if (now >= closeDate) return false;
-                
-                // If has reg_open_at, check if registration has started
-                if (c.reg_open_at) {
-                  const openDate = new Date(c.reg_open_at);
-                  // Registration hasn't started yet - don't show
-                  if (now < openDate) return false;
-                }
-                
-                // Registration is open - show it (regardless of status field)
-                return true;
+                // ⚠️ CRITICAL: Use centralized utility function
+                return isRegistrationOpen(c.reg_open_at, c.reg_close_at);
               })
               .map(c => ({ ...c, tournament: t }))
           : []
       )
     : [];
 
-  // Filter competitions by type
   const filteredCompetitions = selectedFilter === 'all' 
     ? allCompetitions 
     : allCompetitions.filter(c => c.competition_types.slug === selectedFilter);
 
   // Sort competitions
-  const sortedCompetitions = [...filteredCompetitions].sort((a, b) => {
+  let sortedCompetitions = [...filteredCompetitions].sort((a, b) => {
     switch (sortBy) {
       case 'prize_pool':
         // Sort by entry fee since we don't have prize pool
@@ -590,6 +586,54 @@ export default function TournamentsPage() {
         return 0;
     }
   });
+
+  // ⚠️ ENSURE MINIMUM 4 COMPETITIONS WITH AT LEAST ONE FROM EACH TOURNAMENT
+  // This guarantees users always see enough variety in competition options
+  if (sortedCompetitions.length > 0 && sortedCompetitions.length < 4) {
+    // Get unique tournaments that have open competitions
+    const tournamentsWithComps = Array.from(
+      new Set(sortedCompetitions.map(c => c.tournament.id))
+    );
+
+    // If we have fewer than 4 competitions, try to add more
+    const MIN_COMPETITIONS = 4;
+    const needed = MIN_COMPETITIONS - sortedCompetitions.length;
+    
+    if (needed > 0) {
+      // Get all available competitions (ignoring show/hide toggle for padding)
+      const allAvailableComps = Array.isArray(tournaments) 
+        ? tournaments.flatMap(t => 
+            Array.isArray(t.competitions) 
+              ? t.competitions
+                  .filter(c => {
+                    // Must have reg_close_at and registration must be open
+                    if (!c.reg_close_at) return false;
+                    return isRegistrationOpen(c.reg_open_at, c.reg_close_at);
+                  })
+                  .map(c => ({ ...c, tournament: t }))
+              : []
+          )
+        : [];
+
+      // Filter out competitions already in the list
+      const existingIds = new Set(sortedCompetitions.map(c => c.id));
+      const additionalComps = allAvailableComps.filter(c => !existingIds.has(c.id));
+
+      // Prioritize: First add one from each tournament not yet represented
+      const representedTournaments = new Set(sortedCompetitions.map(c => c.tournament.id));
+      const compsFromNewTournaments = additionalComps.filter(
+        c => !representedTournaments.has(c.tournament.id)
+      );
+
+      // Then add remaining competitions to reach minimum of 4
+      const compsToAdd = [
+        ...compsFromNewTournaments.slice(0, needed),
+        ...additionalComps.filter(c => representedTournaments.has(c.tournament.id)).slice(0, Math.max(0, needed - compsFromNewTournaments.length))
+      ].slice(0, needed);
+
+      sortedCompetitions = [...sortedCompetitions, ...compsToAdd];
+    }
+  }
 
   // Calculate stats for header
   const calculatedTotalPrizePool = allCompetitions.reduce((sum, c) => {
@@ -768,34 +812,8 @@ export default function TournamentsPage() {
         ) : (
           <>
             {(() => {
-              // Filter tournaments that have open registration OR live competitions
-              const now = new Date();
-              const upcomingTournaments = tournaments.filter(tournament => {
-                // CRITICAL: Exclude tournaments that have already ended (safety check)
-                const tournamentEnd = new Date(tournament.end_date);
-                tournamentEnd.setHours(23, 59, 59, 999); // End of the last day
-                if (now > tournamentEnd) return false; // Tournament has ended
-                
-                // Show if ANY competition has open registration by date
-                const hasOpenRegistration = tournament.competitions.some(comp => {
-                  const regCloseAt = comp.reg_close_at ? new Date(comp.reg_close_at) : null;
-                  if (!regCloseAt) return false;
-                  
-                  // Registration closed - don't show
-                  if (now >= regCloseAt) return false;
-                  
-                  // Check if registration has started
-                  if (comp.reg_open_at) {
-                    const regOpenAt = new Date(comp.reg_open_at);
-                    if (now < regOpenAt) return false; // Not started yet
-                  }
-                  
-                  return true; // Registration is open
-                });
-
-                // Show tournament if it has open competitions
-                return hasOpenRegistration;
-              });
+              // Use centralized visibility utility to prevent filter bugs
+              const upcomingTournaments = tournaments.filter(isTournamentVisible);
               
               if (upcomingTournaments.length === 0) {
                 return (
@@ -868,36 +886,7 @@ export default function TournamentsPage() {
                           
                           return slides.map((slide, index) => {
                             if (slide.type === 'ad') {
-                              const ad = slide.data;
-                              return (
-                                <div key={ad.id} className={styles.sliderSlide}>
-                                  <a 
-                                    href={ad.clickUrl} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className={styles.adSlide}
-                                  >
-                                    <div className={styles.adBadge}>
-                                      <i className="fas fa-bullhorn"></i>
-                                      <span>SPONSORED</span>
-                                    </div>
-                                    <div className={styles.adContent}>
-                                      <img 
-                                        src={ad.imageUrl} 
-                                        alt={ad.title}
-                                        className={styles.adImage}
-                                      />
-                                      <div className={styles.adOverlay}>
-                                        <h3 className={styles.adTitle}>{ad.title}</h3>
-                                        <p className={styles.adDescription}>{ad.description}</p>
-                                        <button className={styles.adCta}>
-                                          Learn More <i className="fas fa-arrow-right"></i>
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </a>
-                                </div>
-                              );
+                              return <AdSlide key={`ad-${index}`} ad={slide.data} slideKey={`ad-${index}`} />;
                             }
                             
                             const tournament = slide.data;
@@ -913,7 +902,7 @@ export default function TournamentsPage() {
                               const regOpen = new Date(c.reg_open_at);
                               if (now < regOpen) return false; // Not started yet
                             }
-                            return false;
+                            return true; // Registration is open
                           };
                           const fullCourseComp = tournament.competitions?.find(
                             (c: any) => c.competition_types?.name === 'Full Course' && isCompetitionOpen(c)

@@ -36,13 +36,12 @@ export async function GET() {
 
     console.log('[Lifecycle API] Starting tournament fetch...');
     
-    // Fetch all tournaments ordered by start date - FORCE FRESH READ
-    // Add timestamp to bust any caching
+    // Fetch all tournaments ordered by creation date (newest first)
     const timestamp = Date.now();
     let { data: tournaments, error: tournamentsError } = await supabase
       .from('tournaments')
       .select('*')
-      .order('start_date', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(1000);
 
     if (tournamentsError) {

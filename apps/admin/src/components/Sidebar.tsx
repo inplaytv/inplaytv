@@ -45,6 +45,14 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    title: 'Clubhouse',
+    icon: '🏌️',
+    items: [
+      { label: 'All Events', href: '/clubhouse/events' },
+      { label: 'Create Event', href: '/clubhouse/events/create' },
+    ],
+  },
+  {
     title: 'Finance',
     icon: '£',
     items: [
@@ -104,6 +112,8 @@ export default function Sidebar() {
   const { expandedSection, setExpandedSection } = useSidebar();
   const [signingOut, setSigningOut] = useState(false);
 
+  console.log('[Sidebar] Rendering sidebar component');
+
   // Auto-expand section based on current route
   useEffect(() => {
     const currentSection = navSections.find(section => 
@@ -160,7 +170,7 @@ export default function Sidebar() {
           position: 'fixed',
           left: 0,
           top: 0,
-          zIndex: 100,
+          zIndex: 1000,
           transition: 'width 0.2s ease',
           overflow: 'hidden',
         }}
@@ -307,7 +317,7 @@ export default function Sidebar() {
             position: 'fixed',
             left: '60px',
             top: 0,
-            zIndex: 98,
+            zIndex: 999,
             animation: 'slideIn 0.2s ease',
             boxShadow: '2px 0 10px rgba(0,0,0,0.3)',
           }}

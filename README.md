@@ -87,6 +87,30 @@ See [docs/00-PROJECT-STATUS.md](./docs/00-PROJECT-STATUS.md) for details.
 
 ---
 
+## 🏗️ Clubhouse System (Testing Environment)
+
+**Purpose**: Clean implementation to test systematic fixes before backporting to main system.
+
+**Documentation**:
+- **[SYSTEMATIC-FIX-PLAN.md](./SYSTEMATIC-FIX-PLAN.md)** - Strategy & problems being solved
+- **[CLUBHOUSE-TEST-CHECKLIST.md](./CLUBHOUSE-TEST-CHECKLIST.md)** - 15-test systematic plan
+- **[TEST-1-READY.md](./TEST-1-READY.md)** - Current test status
+
+**Current**: Test 1 ready (Create Event via admin panel)
+
+**Key Features**:
+- Credit-based entry system (no real money)
+- Database constraints enforced (6 golfers, captain, unique entries)
+- Triggers for automatic status updates and timing sync
+- RPC functions for atomic payment operations
+- Complete admin panel for event management
+
+**Pages Built**: 8 user pages + 5 admin pages  
+**Database**: 5 tables with triggers and RPC functions deployed  
+**Status**: ~85% built, 0% tested (systematic testing in progress)
+
+---
+
 ## Deploy
 
 **Full deployment guide:** [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)

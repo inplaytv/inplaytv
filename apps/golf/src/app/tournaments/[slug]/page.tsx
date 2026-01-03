@@ -146,16 +146,16 @@ function CompetitionCard({
   formatDateRange
 }: any) {
   // Use statusBadge to determine what countdown to show
-  const isLive = statusBadge.label === 'Live';
   const isAwaitingStart = statusBadge.label === 'Awaiting Start';
+  const isRegClosed = statusBadge.label === 'Registration Closed';
   
-  // If live or awaiting start, no countdown needed
+  // If awaiting start, no countdown needed
   // If can register, countdown to reg close
   // Otherwise, show closed message
   const countdown = useCountdown(
     canRegister ? competition.reg_close_at : null, 
     competition.status, 
-    isLive ? 'Live Now' : (isAwaitingStart ? 'Starting Soon' : 'Registration Closed'),
+    isAwaitingStart ? 'Starting Soon' : 'Registration Closed',
     competition.start_at
   );
   
@@ -253,7 +253,7 @@ function CompetitionCard({
         </div>
 
         {/* Registration Countdown */}
-        {(competition.reg_close_at || competition.start_at) && !isLive && (
+        {(competition.reg_close_at || competition.start_at) && (
           <div className={styles.registrationCountdown} style={{
             background: isStartingSoon ? 'rgba(59, 130, 246, 0.1)' : (isClosed ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)'),
             borderTop: isStartingSoon ? '1px solid rgba(59, 130, 246, 0.2)' : (isClosed ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)'),
@@ -288,7 +288,7 @@ function CompetitionCard({
               </span>
               <div className={styles.btnShine}></div>
             </Link>
-          ) : statusBadge.label === 'Live' ? (
+          ) : isRegClosed ? (
             <Link 
               href={`/leaderboards`}
               className={styles.btnPlay}
@@ -296,7 +296,7 @@ function CompetitionCard({
             >
               <span className={styles.btnContent}>
                 <i className="fas fa-chart-line"></i>
-                <span>View Live Leaderboard</span>
+                <span>View Leaderboard</span>
               </span>
               <div className={styles.btnShine}></div>
             </Link>
@@ -596,6 +596,7 @@ export default function TournamentDetailPage() {
     const statusConfig: Record<string, { label: string; icon: string; color: string }> = {
       draft: { label: 'Draft', icon: 'fa-pencil-alt', color: '#6b7280' },
       upcoming: { label: 'Upcoming', icon: 'fa-clock', color: '#3b82f6' },
+      registration_open: { label: 'Registration Open', icon: 'fa-door-open', color: '#10b981' },
       reg_open: { label: 'Registration Open', icon: 'fa-door-open', color: '#10b981' },
       reg_closed: { label: 'Registration Closed', icon: 'fa-door-closed', color: '#f59e0b' },
       awaiting_start: { label: 'Awaiting Start', icon: 'fa-hourglass-half', color: '#3b82f6' },
@@ -655,14 +656,8 @@ export default function TournamentDetailPage() {
     if (regCloseAt && now >= regCloseAt) {
       // Registration has closed - check if competition has actually started
       if (compStartAt && now >= compStartAt) {
-        // Competition has started
-        if (tournamentEndOfDay && now <= tournamentEndOfDay) {
-          // Tournament is still in progress - show as live
-          return statusConfig.live;
-        } else {
-          // Tournament has ended - show as completed
-          return statusConfig.completed;
-        }
+        // Competition has started - show as registration closed (not live)
+        return statusConfig.reg_closed;
       } else if (compStartAt && now < compStartAt) {
         // Competition hasn't started yet - show as awaiting start with countdown
         return statusConfig.awaiting_start;
@@ -683,15 +678,13 @@ export default function TournamentDetailPage() {
     // PRIORITY 4: Check database status only if no clear date-based answer
     // This handles cases where dates aren't set or we need to fall back
     if (competition.status === 'registration_open' && (!regCloseAt || now < regCloseAt)) {
-      return statusConfig.registration_open;
+      return statusConfig.reg_open;
     }
     
-    if (competition.status === 'inplay' || competition.status === 'live') {
+    if (competition.status === 'live') {
       // If explicitly marked as live, but dates say reg is still open, trust the dates (handled above)
-      // If we get here, show as live
-      if (tournamentEndOfDay && now <= tournamentEndOfDay) {
-        return statusConfig.live;
-      }
+      // If we get here, registration must be closed - show registration closed
+      return statusConfig.reg_closed;
     }
     
     // Fall back to database status or draft

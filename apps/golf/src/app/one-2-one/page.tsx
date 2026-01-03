@@ -124,7 +124,7 @@ export default function One2OneLobbyPage() {
         margin: '0 auto',
         padding: '2rem'
       }}>
-        <div style={{ marginBottom: '3rem' }}>
+        <div style={{ marginBottom: '1.5rem', marginTop: '0px' }}>
           {/* Header with inline Back to Lobby link */}
           <div style={{
             display: 'flex',
@@ -158,16 +158,6 @@ export default function One2OneLobbyPage() {
             {/* Empty spacer to balance the flex layout */}
             <div style={{ width: '120px' }}></div>
           </div>
-          
-          <p style={{
-            fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)',
-            color: 'rgba(255,255,255,0.7)',
-            textAlign: 'center',
-            marginBottom: '0',
-            padding: '0 1rem'
-          }}>
-            Head-to-head battles • Winner takes all • Auto-matched opponents
-          </p>
         </div>
 
         {/* Info Cards */}
@@ -181,27 +171,27 @@ export default function One2OneLobbyPage() {
             background: 'rgba(16, 185, 129, 0.05)',
             border: '1px solid rgba(16, 185, 129, 0.2)',
             borderRadius: '16px',
-            padding: '1.5rem',
+            padding: '0.75rem',
             textAlign: 'center'
           }}>
             <div style={{
-              width: '60px',
-              height: '60px',
-              margin: '0 auto 1rem',
+              width: '30px',
+              height: '30px',
+              margin: '0 auto 0.5rem',
               background: 'linear-gradient(135deg, #10b981, #059669)',
-              borderRadius: '16px',
+              borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '1.5rem',
+              fontSize: '0.75rem',
               color: '#fff'
             }}>
               <i className="fas fa-trophy"></i>
             </div>
-            <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <h3 style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.25rem' }}>
               Winner Takes All
             </h3>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem' }}>
               Beat your opponent and take home 90% of the combined entry fees
             </p>
           </div>
@@ -210,27 +200,27 @@ export default function One2OneLobbyPage() {
             background: 'rgba(59, 130, 246, 0.05)',
             border: '1px solid rgba(59, 130, 246, 0.2)',
             borderRadius: '16px',
-            padding: '1.5rem',
+            padding: '0.75rem',
             textAlign: 'center'
           }}>
             <div style={{
-              width: '60px',
-              height: '60px',
-              margin: '0 auto 1rem',
+              width: '30px',
+              height: '30px',
+              margin: '0 auto 0.5rem',
               background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-              borderRadius: '16px',
+              borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '1.5rem',
+              fontSize: '0.75rem',
               color: '#fff'
             }}>
               <i className="fas fa-sync-alt"></i>
             </div>
-            <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <h3 style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.25rem' }}>
               Auto-Matching
             </h3>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem' }}>
               First-come-first-served matching • No skill-based pairing
             </p>
           </div>
@@ -239,27 +229,27 @@ export default function One2OneLobbyPage() {
             background: 'rgba(245, 158, 11, 0.05)',
             border: '1px solid rgba(245, 158, 11, 0.2)',
             borderRadius: '16px',
-            padding: '1.5rem',
+            padding: '0.75rem',
             textAlign: 'center'
           }}>
             <div style={{
-              width: '60px',
-              height: '60px',
-              margin: '0 auto 1rem',
+              width: '30px',
+              height: '30px',
+              margin: '0 auto 0.5rem',
               background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-              borderRadius: '16px',
+              borderRadius: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '1.5rem',
+              fontSize: '0.75rem',
               color: '#fff'
             }}>
               <i className="fas fa-shield-alt"></i>
             </div>
-            <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <h3 style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.25rem' }}>
               Fair Play
             </h3>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem' }}>
               If no opponent joins, you'll get a full refund automatically
             </p>
           </div>

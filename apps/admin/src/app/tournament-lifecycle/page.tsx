@@ -16,6 +16,7 @@ interface Tournament {
   golfer_count: number;
   competition_count: number;
   entry_count: number;
+  created_at?: string;
 }
 
 interface StatusTransition {
@@ -137,12 +138,11 @@ export default function TournamentLifecyclePage() {
         console.log('[Lifecycle UI] Fetched tournaments:', data.tournaments?.length || 0);
         console.log('[Lifecycle UI] Tournament data:', data.tournaments);
         
-        // Sort tournaments: Active at top, completed at bottom
-        const sorted = sortTournamentsByPriority(data.tournaments);
-        setTournaments(sorted);
+        // Use tournaments as-is from API (already ordered by created_at DESC)
+        setTournaments(data.tournaments || []);
         
-        console.log('[Lifecycle UI] Active tournaments:', sorted.filter(t => ['draft', 'live', 'registration_open', 'registration_open', 'upcoming'].includes(t.status)).length);
-        console.log('[Lifecycle UI] Completed tournaments:', sorted.filter(t => ['completed', 'cancelled'].includes(t.status)).length);
+        console.log('[Lifecycle UI] Active tournaments:', data.tournaments?.filter((t: Tournament) => ['draft', 'live', 'registration_open', 'registration_open', 'upcoming'].includes(t.status)).length);
+        console.log('[Lifecycle UI] Completed tournaments:', data.tournaments?.filter((t: Tournament) => ['completed', 'cancelled'].includes(t.status)).length);
       } else {
         console.error('[Lifecycle UI] Failed to fetch tournaments:', res.status, res.statusText);
       }
@@ -154,10 +154,11 @@ export default function TournamentLifecyclePage() {
   }
 
   function sortTournamentsByPriority(tournaments: Tournament[]): Tournament[] {
-    // Status priority: live > registration_open > upcoming > completed > cancelled
+    // Status priority: live > registration_open > draft/upcoming > completed > cancelled
     const statusPriority: { [key: string]: number } = {
       'live': 1,
       'registration_open': 2,
+      'draft': 3,
       'upcoming': 3,
       'completed': 4,
       'cancelled': 5
@@ -168,17 +169,12 @@ export default function TournamentLifecyclePage() {
       const priorityDiff = (statusPriority[a.status] || 99) - (statusPriority[b.status] || 99);
       if (priorityDiff !== 0) return priorityDiff;
 
-      // Within same status, sort by start date (soonest first for active, most recent first for completed)
-      const aDate = new Date(a.start_date).getTime();
-      const bDate = new Date(b.start_date).getTime();
+      // Within same status, sort by creation date (newest first)
+      const aCreated = new Date((a as any).created_at || a.start_date).getTime();
+      const bCreated = new Date((b as any).created_at || b.start_date).getTime();
       
-      if (a.status === 'completed' || a.status === 'cancelled') {
-        // For completed/cancelled, show most recent first
-        return bDate - aDate;
-      } else {
-        // For active tournaments, show soonest first
-        return aDate - bDate;
-      }
+      // Show newest created tournaments first
+      return bCreated - aCreated;
     });
   }
 
@@ -863,6 +859,8 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
 }) {
   const [registrationOpens, setRegistrationOpens] = useState('');
   const [registrationCloses, setRegistrationCloses] = useState('');
+  const [tournamentStart, setTournamentStart] = useState('');
+  const [tournamentEnd, setTournamentEnd] = useState('');
   const [round1TeeTime, setRound1TeeTime] = useState('');
   const [round2TeeTime, setRound2TeeTime] = useState('');
   const [round3TeeTime, setRound3TeeTime] = useState('');
@@ -876,10 +874,37 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
   }, [tournament]);
 
   function loadTeeTimesFromTournament() {
+    // Load tournament dates
+    if (tournament.start_date) {
+      setTournamentStart(new Date(tournament.start_date).toISOString().slice(0, 16));
+    } else {
+      // Auto-set to today if not set
+      const today = new Date();
+      today.setHours(6, 20, 0, 0);
+      setTournamentStart(today.toISOString().slice(0, 16));
+    }
+    
+    if (tournament.end_date) {
+      setTournamentEnd(new Date(tournament.end_date).toISOString().slice(0, 16));
+    } else {
+      // Auto-set to 3 days from start if not set
+      const today = new Date();
+      today.setDate(today.getDate() + 3);
+      today.setHours(18, 0, 0, 0);
+      setTournamentEnd(today.toISOString().slice(0, 16));
+    }
+    
     if (tournament.registration_opens_at) {
       const date = new Date(tournament.registration_opens_at);
       setRegistrationOpens(date.toISOString().slice(0, 16));
+    } else {
+      // Auto-set to 7 days before start if not set
+      const today = new Date();
+      today.setDate(today.getDate() - 7);
+      today.setHours(9, 0, 0, 0);
+      setRegistrationOpens(today.toISOString().slice(0, 16));
     }
+    
     if (tournament.registration_closes_at) {
       const date = new Date(tournament.registration_closes_at);
       setRegistrationCloses(date.toISOString().slice(0, 16));
@@ -987,6 +1012,8 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          start_date: tournamentStart || null,
+          end_date: tournamentEnd || null,
           registration_opens_at: registrationOpens || null,
           registration_closes_at: registrationCloses || null,
           round_1_start: round1TeeTime || null,
@@ -1047,6 +1074,37 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
           <p className={styles.timezone}>Timezone: {tournament.timezone}</p>
 
           <div style={{ marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem', color: '#3b82f6' }}>
+              Tournament Dates
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className={styles.formGroup}>
+                <label htmlFor="tournament-start">Tournament Start Date</label>
+                <input
+                  id="tournament-start"
+                  type="datetime-local"
+                  value={tournamentStart}
+                  onChange={(e) => setTournamentStart(e.target.value)}
+                  className={styles.input}
+                />
+                <small>When the tournament begins (Round 1)</small>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="tournament-end">Tournament End Date</label>
+                <input
+                  id="tournament-end"
+                  type="datetime-local"
+                  value={tournamentEnd}
+                  onChange={(e) => setTournamentEnd(e.target.value)}
+                  className={styles.input}
+                />
+                <small>When the tournament ends (after Round 4)</small>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
             <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem', color: '#60a5fa' }}>
               Tournament Registration
             </h3>
@@ -1069,9 +1127,19 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
                   type="button"
                   onClick={() => {
                     if (round4TeeTime) {
+                      // Parse the datetime-local value which is in local time
                       const round4Date = new Date(round4TeeTime);
-                      const closesDate = new Date(round4Date.getTime() - 15 * 60000);
-                      setRegistrationCloses(closesDate.toISOString().slice(0, 16));
+                      // Subtract 15 minutes (900000 milliseconds)
+                      const closesDate = new Date(round4Date.getTime() - 15 * 60 * 1000);
+                      // Format back to datetime-local format (YYYY-MM-DDTHH:mm)
+                      const year = closesDate.getFullYear();
+                      const month = String(closesDate.getMonth() + 1).padStart(2, '0');
+                      const day = String(closesDate.getDate()).padStart(2, '0');
+                      const hours = String(closesDate.getHours()).padStart(2, '0');
+                      const minutes = String(closesDate.getMinutes()).padStart(2, '0');
+                      const formatted = `${year}-${month}-${day}T${hours}:${minutes}`;
+                      setRegistrationCloses(formatted);
+                      console.log('🕐 Round 4:', round4TeeTime, '→ Reg Closes:', formatted);
                     } else {
                       alert('Please set Round 4 Tee Time first');
                     }
@@ -1104,9 +1172,76 @@ function RegistrationModal({ tournament, onClose, onSuccess }: {
           </div>
 
           <div>
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem', color: '#10b981' }}>
-              Round Tee Times (Competition Registration Closes 15 min before each)
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0, color: '#10b981' }}>
+                Round Tee Times (Competition Registration Closes 15 min before each)
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!tournamentStart) {
+                    alert('Please set Tournament Start Date first (in the section above)');
+                    return;
+                  }
+                  // Auto-fill all rounds starting from tournament start date at 06:20
+                  const startDate = new Date(tournamentStart);
+                  
+                  // Round 1: Tournament start date at 06:20
+                  const r1 = new Date(startDate);
+                  r1.setHours(6, 20, 0, 0);
+                  
+                  // Round 2: Next day at 06:20
+                  const r2 = new Date(r1);
+                  r2.setDate(r2.getDate() + 1);
+                  
+                  // Round 3: Two days later at 06:20
+                  const r3 = new Date(r1);
+                  r3.setDate(r3.getDate() + 2);
+                  
+                  // Round 4: Three days later at 06:20
+                  const r4 = new Date(r1);
+                  r4.setDate(r4.getDate() + 3);
+                  
+                  // Format all to datetime-local
+                  const format = (date: Date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    return `${year}-${month}-${day}T${hours}:${minutes}`;
+                  };
+                  
+                  setRound1TeeTime(format(r1));
+                  setRound2TeeTime(format(r2));
+                  setRound3TeeTime(format(r3));
+                  setRound4TeeTime(format(r4));
+                  
+                  console.log('🎯 Auto-filled all tee times:', {
+                    r1: format(r1),
+                    r2: format(r2),
+                    r3: format(r3),
+                    r4: format(r4)
+                  });
+                }}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.75rem',
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <i className="fas fa-magic"></i>
+                Auto-Fill All Rounds (06:20 daily)
+              </button>
+            </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
               <div className={styles.formGroup}>
