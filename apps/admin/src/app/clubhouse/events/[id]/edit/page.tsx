@@ -16,6 +16,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
     name: '',
     description: '',
     location: '',
+    status: 'upcoming',
     entry_credits: 0,
     max_entries: 0,
     start_date: '',
@@ -62,6 +63,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         name: event.name,
         description: event.description || '',
         location: event.location || '',
+        status: event.status || 'upcoming',
         entry_credits: event.entry_credits,
         max_entries: event.max_entries,
         start_date: formatDateForInput(event.start_at),
@@ -199,6 +201,36 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                   fontSize: '0.875rem',
                 }}
               />
+            </div>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.875rem' }}>
+                Status *
+              </label>
+              <select
+                required
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  background: '#0a0f1a',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="upcoming">Upcoming</option>
+                <option value="open">Open (Registration Active)</option>
+                <option value="active">Active (Event In Progress)</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                💡 Status auto-updates based on dates, but you can override it manually here
+              </div>
             </div>
 
             <div style={{ marginBottom: '0.5rem' }}>

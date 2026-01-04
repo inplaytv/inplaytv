@@ -112,6 +112,11 @@ export async function PUT(
       end_date: toISO(body.end_date),
     };
 
+    // Allow manual status override
+    if (body.status) {
+      updateData.status = body.status;
+    }
+
     // Handle both old single-date and new multi-round formats
     if (body.round1_tee_time) {
       // New format: use round tee times
