@@ -322,8 +322,8 @@ export default function ClubhousePage() {
                     {/* Entry Cost */}
                     <div style={{
                       padding: '1rem',
-                      background: 'rgba(218, 165, 32, 0.1)',
-                      border: '1px solid rgba(218, 165, 32, 0.2)',
+                      background: 'rgba(20, 184, 166, 0.1)',
+                      border: '1px solid rgba(20, 184, 166, 0.2)',
                       borderRadius: '12px',
                     }}>
                       <div style={{ 
@@ -336,7 +336,7 @@ export default function ClubhousePage() {
                         Entry Cost
                       </div>
                       <div style={{ 
-                        color: '#228b22', 
+                        color: '#14b8a6', 
                         fontSize: '1.5rem',
                         fontWeight: 700,
                       }}>
@@ -348,8 +348,8 @@ export default function ClubhousePage() {
                     {/* Competitions */}
                     <div style={{
                       padding: '1rem',
-                      background: 'rgba(34, 139, 34, 0.1)',
-                      border: '1px solid rgba(34, 139, 34, 0.2)',
+                      background: 'rgba(20, 184, 166, 0.1)',
+                      border: '1px solid rgba(20, 184, 166, 0.2)',
                       borderRadius: '12px',
                     }}>
                       <div style={{ 
@@ -362,7 +362,7 @@ export default function ClubhousePage() {
                         Competitions
                       </div>
                       <div style={{ 
-                        color: '#228b22', 
+                        color: '#14b8a6', 
                         fontSize: '1.5rem',
                         fontWeight: 700,
                       }}>
@@ -435,7 +435,7 @@ export default function ClubhousePage() {
                     >
                       <div style={{
                         padding: '0.875rem',
-                        background: 'linear-gradient(135deg, #228b22, #daa520)',
+                        background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
                         border: 'none',
                         borderRadius: '10px',
                         color: '#fff',
