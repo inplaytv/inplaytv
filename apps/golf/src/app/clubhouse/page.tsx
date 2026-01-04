@@ -348,8 +348,8 @@ export default function ClubhousePage() {
                     {/* Competitions */}
                     <div style={{
                       padding: '1rem',
-                      background: 'rgba(99, 102, 241, 0.1)',
-                      border: '1px solid rgba(99, 102, 241, 0.2)',
+                      background: 'rgba(34, 139, 34, 0.1)',
+                      border: '1px solid rgba(34, 139, 34, 0.2)',
                       borderRadius: '12px',
                     }}>
                       <div style={{ 
@@ -362,7 +362,7 @@ export default function ClubhousePage() {
                         Competitions
                       </div>
                       <div style={{ 
-                        color: '#6366f1', 
+                        color: '#228b22', 
                         fontSize: '1.5rem',
                         fontWeight: 700,
                       }}>
