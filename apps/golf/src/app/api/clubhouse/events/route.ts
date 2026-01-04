@@ -69,6 +69,7 @@ export async function GET() {
       }
 
       return {
+        __system: 'clubhouse' as const, // System discriminator
         id: event.id,
         name: event.name,
         description: event.description,
@@ -230,7 +231,7 @@ export async function POST(req: NextRequest) {
       throw compError;
     }
 
-    return NextResponse.json(event, { headers: corsHeaders });
+    return NextResponse.json({ ...event, __system: 'clubhouse' as const }, { headers: corsHeaders });
   } catch (error: any) {
     console.error('[Clubhouse Events API] Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders });

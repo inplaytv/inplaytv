@@ -184,6 +184,7 @@ export async function GET(request: NextRequest) {
         }
 
         return {
+          __system: 'inplay' as const, // System discriminator
           ...tournament,
           competitions: competitions || [],
           featured_competition: featuredCompetition,

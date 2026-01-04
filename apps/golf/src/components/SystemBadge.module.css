@@ -1,0 +1,96 @@
+/* System Badge Styles */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+/* System Colors */
+.badge.inplay {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.badge.clubhouse {
+  background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(168, 85, 247, 0.2);
+}
+
+/* Variants */
+.badge.compact {
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: 4px;
+}
+
+.badge.pill {
+  border-radius: 12px;
+  padding: 4px 14px;
+}
+
+/* Icon */
+.icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.badge.compact .icon {
+  font-size: 10px;
+}
+
+/* Hover Effect */
+.badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Label (text-only version) */
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.label[data-system="inplay"] {
+  color: #3b82f6;
+}
+
+.label[data-system="clubhouse"] {
+  color: #a855f7;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .badge.inplay {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  }
+  
+  .badge.clubhouse {
+    background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .badge {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+  
+  .badge.compact {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+}
