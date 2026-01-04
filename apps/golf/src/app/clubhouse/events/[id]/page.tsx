@@ -570,7 +570,7 @@ export default function EventDetailPage() {
                           }
                         }}
                       >
-                        {compHasStarted ? '🔒 Started' : '🏌️ Build Team'}
+                        {compHasStarted ? '🔒 Closed' : '🏌️ Build Team'}
                       </Link>
                       <Link
                         href={`/clubhouse/competitions/${comp.id}`}

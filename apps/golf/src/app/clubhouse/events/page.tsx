@@ -336,30 +336,10 @@ export default function ClubhouseEventsPage() {
 
                     {/* Action Buttons */}
                     <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
-                      {event.status === 'open' && userCredits >= event.entry_credits && (
-                        <Link 
-                          href={`/clubhouse/build-team/${event.id}`}
-                          style={{ flex: 1, textDecoration: 'none' }}
-                        >
-                          <div style={{
-                            padding: '0.875rem',
-                            background: 'linear-gradient(135deg, #228b22, #32cd32)',
-                            border: 'none',
-                            borderRadius: '10px',
-                            color: '#fff',
-                            fontWeight: 600,
-                            fontSize: '1rem',
-                            textAlign: 'center',
-                            cursor: 'pointer',
-                          }}>
-                            🏌️ Build Your Team
-                          </div>
-                        </Link>
-                      )}
                       <Link 
                         href={`/clubhouse/events/${event.id}`}
                         style={{ 
-                          flex: event.status === 'open' && userCredits >= event.entry_credits ? 1 : 'auto',
+                          flex: 1,
                           textDecoration: 'none',
                         }}
                       >
