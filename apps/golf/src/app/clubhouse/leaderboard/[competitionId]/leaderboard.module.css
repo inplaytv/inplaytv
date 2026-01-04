@@ -8,6 +8,17 @@
   margin-bottom: 2rem;
 }
 
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.spacer {
+  width: 120px; /* Same width as back link to balance centering */
+}
+
 .backLink {
   display: inline-flex;
   align-items: center;
@@ -15,49 +26,131 @@
   color: #daa520;
   text-decoration: none;
   font-weight: 600;
-  margin-bottom: 1rem;
   transition: transform 0.2s;
+  white-space: nowrap;
 }
 
 .backLink:hover {
   transform: translateX(-4px);
 }
 
-.titleSection {
-  margin-bottom: 1rem;
-}
-
 .title {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: #fff;
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.75rem;
+  text-align: center;
+  flex: 1;
 }
 
 .title i {
   color: #daa520;
 }
 
-.subtitle {
+/* Round Selector Inline */
+.roundTabsInline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.competitionName {
   color: #daa520;
-  font-size: 1.125rem;
-  margin: 0;
-  font-weight: 500;
+  font-size: 0.95rem;
+  font-weight: 600;
+  opacity: 0.9;
 }
 
-.statusBadge {
-  display: inline-block;
+.roundButtons {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.roundTab {
   padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
+.roundTab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.roundTab:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(20, 184, 166, 0.3);
+  color: #14b8a6;
+  transform: translateY(-1px);
+}
+
+.roundTab:hover::before {
+  left: 100%;
+}
+
+.roundTab.active {
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  border-color: rgba(20, 184, 166, 0.5);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
+  transform: scale(1.02);
+}
+
+.roundTab.active:hover {
+  transform: scale(1.02) translateY(-1px);
+  box-shadow: 0 3px 12px rgba(20, 184, 166, 0.4);
+}
+
+/* Header Stats Inline */
+.headerStats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.statItem i {
+  color: #14b8a6;
+  font-size: 1rem;
+}
+
+/* Info Card */
 .infoCard {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -215,10 +308,52 @@
   gap: 0.25rem;
 }
 
+.playerNameRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .playerName {
   font-size: 1rem;
   font-weight: 600;
   color: #fff;
+}
+
+.golferNames {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.golferBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(20, 184, 166, 0.1);
+  border: 1px solid rgba(20, 184, 166, 0.25);
+  border-radius: 6px;
+  color: #14b8a6;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.golferName {
+  color: #14b8a6;
+}
+
+.golferScore {
+  padding: 0.1rem 0.35rem;
+  background: rgba(20, 184, 166, 0.2);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  min-width: 22px;
+  text-align: center;
 }
 
 .teamInfo {

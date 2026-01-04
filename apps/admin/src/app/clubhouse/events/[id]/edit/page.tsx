@@ -5,15 +5,33 @@ import { useRouter } from 'next/navigation';
 import RequireAdmin from '@/components/RequireAdmin';
 import styles from '../../create/create-event.module.css';
 
+interface Tournament {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+}
+
+interface GolferGroup {
+  id: string;
+  name: string;
+  golfer_count: number;
+}
+
 export default function EditEventPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [golferGroups, setGolferGroups] = useState<GolferGroup[]>([]);
+  
+  const masterTournamentId = process.env.NEXT_PUBLIC_CLUBHOUSE_MASTER_TOURNAMENT_ID || '00000000-0000-0000-0000-000000000001';
   
   const [formData, setFormData] = useState({
     name: '',
+    slug: '', // From API response, read-only
     description: '',
     location: '',
     status: 'upcoming',
@@ -27,13 +45,45 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
     round2_tee_time: '',
     round3_tee_time: '',
     round4_tee_time: '',
+    linked_tournament_id: '',
+    assigned_golfer_group_id: '',
   });
 
   const [hasRoundTimes, setHasRoundTimes] = useState(false);
 
   useEffect(() => {
     fetchEvent();
+    fetchTournaments();
+    fetchGolferGroups();
   }, [id]);
+
+  async function fetchGolferGroups() {
+    try {
+      const res = await fetch('/api/golfer-groups', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setGolferGroups(data.groups || data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch golfer groups:', err);
+    }
+  }
+
+  async function fetchTournaments() {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_GOLF_API_URL || 'http://localhost:3003';
+      const res = await fetch(`${apiUrl}/api/tournaments`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        const activeTournaments = data.filter((t: Tournament) => 
+          ['upcoming', 'registration_open', 'in_progress'].includes(t.status)
+        );
+        setTournaments(activeTournaments);
+      }
+    } catch (err) {
+      console.error('Failed to fetch tournaments:', err);
+    }
+  }
 
   async function fetchEvent() {
     try {
@@ -61,6 +111,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
 
       setFormData({
         name: event.name,
+        slug: event.slug || '', // From API, read-only in UI
         description: event.description || '',
         location: event.location || '',
         status: event.status || 'upcoming',
@@ -74,6 +125,8 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         round2_tee_time: usesRoundTimes ? formatDateForInput(event.round2_tee_time) : '',
         round3_tee_time: usesRoundTimes ? formatDateForInput(event.round3_tee_time) : '',
         round4_tee_time: usesRoundTimes ? formatDateForInput(event.round4_tee_time) : '',
+        linked_tournament_id: event.linked_tournament_id || '',
+        assigned_golfer_group_id: event.assigned_golfer_group_id || '',
       });
       
       setLoading(false);
@@ -147,6 +200,28 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 placeholder="Masters Clubhouse Championship"
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  background: '#0a0f1a',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                }}
+              />
+            </div>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.875rem' }}>
+                Slug *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.slug}
+                onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                placeholder="masters-clubhouse-championship"
                 style={{
                   width: '100%',
                   padding: '0.6rem',
@@ -277,106 +352,206 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
               />
             </div>
 
-            <div style={{ marginBottom: '0.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.3rem', color: '#fff', fontSize: '0.8rem' }}>
-                Start Date *
-              </label>
-              <input
-                type="datetime-local"
-                required
-                value={formData.start_date}
-                onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+            <div style={{ gridColumn: '1 / -1', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 500 }}>
+                  Golfer Group (Available Players)
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <a
+                    href={`/tournaments/${masterTournamentId}/manage-golfers`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: '0.4rem 0.75rem',
+                      background: 'rgba(14, 184, 166, 0.1)',
+                      color: '#daa520',
+                      border: '1px solid rgba(14, 184, 166, 0.3)',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(14, 184, 166, 0.15)';
+                      e.currentTarget.style.borderColor = 'rgba(14, 184, 166, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(14, 184, 166, 0.1)';
+                      e.currentTarget.style.borderColor = 'rgba(14, 184, 166, 0.3)';
+                    }}
+                  >
+                    📊 Import Golfers
+                  </a>
+                  <a
+                    href="/golfers/groups"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: '0.4rem 0.75rem',
+                      background: 'rgba(99, 102, 241, 0.1)',
+                      color: '#818cf8',
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)';
+                      e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
+                      e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+                    }}
+                  >
+                    👥 View Groups
+                  </a>
+                  <button
+                    type="button"
+                    onClick={fetchGolferGroups}
+                    style={{
+                      padding: '0.4rem 0.75rem',
+                      background: 'rgba(168, 85, 247, 0.1)',
+                      color: '#c084fc',
+                      border: '1px solid rgba(168, 85, 247, 0.3)',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(168, 85, 247, 0.15)';
+                      e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(168, 85, 247, 0.1)';
+                      e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.3)';
+                    }}
+                  >
+                    🔄 Refresh
+                  </button>
+                </div>
+              </div>
+              <select
+                value={formData.assigned_golfer_group_id}
+                onChange={(e) => setFormData({...formData, assigned_golfer_group_id: e.target.value})}
                 style={{
                   width: '100%',
                   padding: '0.6rem',
                   background: '#0a0f1a',
                   border: '1px solid rgba(255,255,255,0.1)',
                   borderRadius: '6px',
-                  color: '#fff',
-                  fontSize: '0.8rem',
+                  color: formData.assigned_golfer_group_id ? '#fff' : '#999',
+                  fontSize: '0.875rem',
                 }}
-              />
+              >
+                <option value="">All Golfers (No Group)</option>
+                {golferGroups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name} ({group.golfer_count} golfers)
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                Select which golfers will be available for this event. Leave blank to allow all golfers.
+              </div>
             </div>
 
-            <div style={{ marginBottom: '0.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.3rem', color: '#fff', fontSize: '0.8rem' }}>
-                End Date *
+            {/* Tournament Linking (DataGolf Integration - Option A) */}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: '0.4rem',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                }}
+              >
+                Link to InPlay Tournament (Optional)
               </label>
-              <input
-                type="datetime-local"
-                required
-                value={formData.end_date}
-                onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+              <select
+                value={formData.linked_tournament_id}
+                onChange={(e) => setFormData({...formData, linked_tournament_id: e.target.value})}
                 style={{
                   width: '100%',
-                  padding: '0.6rem',
+                  padding: '0.75rem',
                   background: '#0a0f1a',
                   border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  fontSize: '0.8rem',
+                  borderRadius: '8px',
+                  color: formData.linked_tournament_id ? '#fff' : '#999',
+                  fontSize: '0.875rem',
                 }}
-              />
+              >
+                <option value="">None (Use Golfer Group above)</option>
+                {tournaments.map((tournament) => (
+                  <option key={tournament.id} value={tournament.id}>
+                    {tournament.name}
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(218, 165, 32, 0.8)', marginTop: '0.4rem', display: 'flex', alignItems: 'start', gap: '0.5rem' }}>
+                <span>💡</span>
+                <span>
+                  When linked tournament syncs from DataGolf, this event will automatically use those golfers (overrides Golfer Group selection)
+                </span>
+              </div>
             </div>
 
-            <div style={{ marginBottom: '0.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.3rem', color: '#fff', fontSize: '0.8rem' }}>
-                Registration Opens *
-              </label>
-              <input
-                type="datetime-local"
-                required
-                value={formData.registration_opens}
-                onChange={(e) => setFormData({...formData, registration_opens: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem',
-                  background: '#0a0f1a',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  fontSize: '0.8rem',
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '0.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.3rem', color: '#fff', fontSize: '0.8rem' }}>
-                Registration Closes *
-              </label>
-              <input
-                type="datetime-local"
-                required
-                value={formData.registration_closes}
-                onChange={(e) => setFormData({...formData, registration_closes: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem',
-                  background: '#0a0f1a',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  fontSize: '0.8rem',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Round Tee Times Section */}
-          {hasRoundTimes && (
             <div style={{ gridColumn: '1 / -1', marginTop: '1rem', padding: '1rem', background: 'rgba(14, 184, 166, 0.05)', borderRadius: '8px', border: '1px solid rgba(14, 184, 166, 0.2)' }}>
-              <h3 style={{ color: '#daa520', fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 600 }}>Round Tee Times</h3>
+              <h3 style={{ color: '#daa520', fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 600 }}>Tournament Dates & Registration</h3>
+              
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.3rem', color: '#fff', fontSize: '0.8rem' }}>
+                  Registration Opens *
+                </label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={formData.registration_opens}
+                  onChange={(e) => setFormData({...formData, registration_opens: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '0.6rem',
+                    background: '#0a0f1a',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    fontSize: '0.8rem',
+                  }}
+                />
+                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                  Auto-set to 5 days before Round 1, but you can adjust
+                </div>
+              </div>
+
               <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1rem' }}>
-                Set tee times for each round. Competitions will automatically close 15 minutes before each round starts.
+                Set tee times for each round. Registration will automatically close 15 minutes before Round 1 starts.
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.3rem', color: '#fff', fontSize: '0.8rem' }}>
-                    Round 1 Tee Time *
+                    Round 1 Tee Time * (Tournament Start)
                   </label>
                   <input
                     type="datetime-local"
-                    required={hasRoundTimes}
+                    required
                     value={formData.round1_tee_time}
                     onChange={(e) => setFormData({...formData, round1_tee_time: e.target.value})}
                     style={{
@@ -396,7 +571,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                   </label>
                   <input
                     type="datetime-local"
-                    required={hasRoundTimes}
+                    required
                     value={formData.round2_tee_time}
                     onChange={(e) => setFormData({...formData, round2_tee_time: e.target.value})}
                     style={{
@@ -416,7 +591,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                   </label>
                   <input
                     type="datetime-local"
-                    required={hasRoundTimes}
+                    required
                     value={formData.round3_tee_time}
                     onChange={(e) => setFormData({...formData, round3_tee_time: e.target.value})}
                     style={{
@@ -436,7 +611,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                   </label>
                   <input
                     type="datetime-local"
-                    required={hasRoundTimes}
+                    required
                     value={formData.round4_tee_time}
                     onChange={(e) => setFormData({...formData, round4_tee_time: e.target.value})}
                     style={{
@@ -452,51 +627,114 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             </div>
-          )}
 
-          <div style={{ 
-            display: 'flex', 
-            gap: '1rem', 
-            marginTop: '2rem',
-            paddingTop: '1.5rem',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
-          }}>
-            <button
-              type="button"
-              onClick={() => router.back()}
-              disabled={saving}
-              style={{
-                flex: 1,
-                padding: '0.75rem 1.5rem',
-                background: 'rgba(255,255,255,0.08)',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: '8px',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                cursor: saving ? 'not-allowed' : 'pointer',
-                opacity: saving ? 0.5 : 1,
-              }}
-            >
-              Cancel
-            </button>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.3rem', color: '#fff', fontSize: '0.8rem' }}>
+                Tournament End Date *
+              </label>
+              <input
+                type="datetime-local"
+                required
+                value={formData.end_date}
+                onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  background: '#0a0f1a',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.8rem',
+                }}
+              />
+            </div>
+
+            <div style={{ gridColumn: '1 / -1', marginTop: '1rem', padding: '1rem', background: 'rgba(79, 70, 229, 0.05)', borderRadius: '8px', border: '1px solid rgba(79, 70, 229, 0.2)' }}>
+              <h3 style={{ color: '#a78bfa', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: 600 }}>Auto-Calculated Timing</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.3rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem' }}>
+                    Registration Opens
+                  </label>
+                  <div style={{
+                    padding: '0.6rem',
+                    background: 'rgba(79, 70, 229, 0.1)',
+                    border: '1px solid rgba(79, 70, 229, 0.3)',
+                    borderRadius: '6px',
+                    color: '#a78bfa',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                  }}>
+                    {formData.registration_opens ? (() => {
+                      try {
+                        return new Date(formData.registration_opens).toLocaleString('en-GB', { 
+                          day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                        });
+                      } catch {
+                        return 'Set Round 1 tee time';
+                      }
+                    })() : 'Set Round 1 tee time'}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
+                    5 days before Round 1
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.3rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem' }}>
+                    Competitions Close
+                  </label>
+                  <div style={{
+                    padding: '0.6rem',
+                    background: 'rgba(79, 70, 229, 0.1)',
+                    border: '1px solid rgba(79, 70, 229, 0.3)',
+                    borderRadius: '6px',
+                    color: '#a78bfa',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                  }}>
+                    15 min before each round
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
+                    Auto-calculated per round
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
             <button
               type="submit"
               disabled={saving}
               style={{
-                flex: 1,
-                padding: '0.75rem 1.5rem',
-                background: saving ? '#555' : 'linear-gradient(135deg, #228b22 0%, #daa520 100%)',
+                padding: '0.625rem 1.25rem',
+                background: saving ? '#374151' : 'linear-gradient(135deg, #228b22, #daa520)',
                 color: '#fff',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: '6px',
                 fontSize: '0.875rem',
                 fontWeight: 600,
                 cursor: saving ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease',
               }}
             >
               {saving ? 'Saving...' : 'Update Event'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.back()}
+              style={{
+                padding: '0.625rem 1.25rem',
+                background: '#374151',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
             </button>
           </div>
         </form>

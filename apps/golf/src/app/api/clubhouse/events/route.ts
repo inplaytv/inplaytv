@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabaseAdminServer';
 
 export const dynamic = 'force-dynamic';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // CORS headers for admin app access
 const corsHeaders = {
@@ -21,12 +16,15 @@ export async function OPTIONS() {
 
 export async function GET() {
   try {
+    const supabase = createAdminClient(); // Fresh client per request
+    
     // Join events with competitions and count entries
     const { data: events, error } = await supabase
       .from('clubhouse_events')
       .select(`
         id,
         name,
+        slug,
         description,
         status,
         registration_opens_at,
@@ -57,6 +55,10 @@ export async function GET() {
       // Use first competition for basic data (they all share same credits/max)
       const firstComp = competitions[0];
       
+      console.log('📊 Event:', event.name);
+      console.log('   Competitions:', competitions.length);
+      console.log('   First comp golfer_groups:', firstComp?.golfer_groups);
+      
       let currentEntries = 0;
       if (competitions.length > 0) {
         // Count entries across ALL competitions for this event
@@ -72,6 +74,7 @@ export async function GET() {
         __system: 'clubhouse' as const, // System discriminator
         id: event.id,
         name: event.name,
+        slug: event.slug,
         description: event.description,
         status: event.status,
         entry_credits: firstComp?.entry_credits || 0,
@@ -94,6 +97,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = createAdminClient(); // Fresh client per request
     const body = await req.json();
     
     // Check if event with same name already exists
@@ -165,6 +169,7 @@ export async function POST(req: NextRequest) {
         round2_tee_time: toISO(body.round2_tee_time),
         round3_tee_time: toISO(body.round3_tee_time),
         round4_tee_time: toISO(body.round4_tee_time),
+        linked_tournament_id: body.linked_tournament_id || null, // Option A: Link to InPlay tournament
       })
       .select()
       .single();

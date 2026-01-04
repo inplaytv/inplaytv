@@ -13,7 +13,7 @@ interface Golfer {
   last_name: string;
   world_ranking: number | null;
   image_url: string | null;
-  salary?: number; // Optional - Clubhouse doesn't use salaries
+  salary_pennies?: number; // Salary in pennies for team builder budget system
 }
 
 interface LineupSlot {
@@ -67,7 +67,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
   const [totalBudget] = useState(60000); // £600 salary cap in pennies
   const [searchQuery, setSearchQuery] = useState('');
   const [salaryFilter, setSalaryFilter] = useState<'all' | 'premium' | 'mid' | 'value'>('all');
-  const [sortBy, setSortBy] = useState<'salary' | 'ranking' | 'points' | 'name'>('ranking');
+  const [sortBy, setSortBy] = useState<'salary' | 'ranking' | 'points' | 'name'>('salary');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -185,14 +185,28 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
         
+        console.log('💰 Checking wallet for user:', user.id);
         const { data: walletData, error: walletError } = await supabase
           .from('clubhouse_wallets')
           .select('credits')
           .eq('user_id', user.id)
           .single();
         
+        console.log('💰 Wallet query result:', { walletData, walletError });
+        
+        if (walletError) {
+          console.error('❌ Wallet error:', walletError);
+          if (walletError.code === 'PGRST116') {
+            // Wallet doesn't exist for this user
+            setError(`No wallet found for your account. Please contact an admin to set up your wallet.`);
+            setLoading(false);
+            return;
+          }
+        }
+        
         const userCredits = walletData?.credits || 0;
         setUserBalance(userCredits);
+        console.log('💰 User credits:', userCredits, 'Entry cost:', mappedCompetition.entry_credits);
 
         // Check if user has enough credits
         if (userCredits < mappedCompetition.entry_credits) {
@@ -221,7 +235,8 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
               first_name,
               last_name,
               world_ranking,
-              image_url
+              image_url,
+              salary_pennies
             )
           `)
           .eq('group_id', competition.assigned_golfer_group_id);
@@ -231,7 +246,15 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         }
 
         golfers = (groupGolfers || [])
-          .map((item: any) => item.golfer)
+          .map((item: any) => {
+            const g = item.golfer;
+            if (!g) return null;
+            // Map salary_pennies to salary for consistency with InPlay system
+            return {
+              ...g,
+              salary_pennies: g.salary_pennies || 0
+            };
+          })
           .filter((g: any) => g !== null)
           .sort((a: any, b: any) => {
             if (a.world_ranking === null) return 1;
@@ -244,7 +267,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         // No golfer group assigned - fetch all golfers (fallback)
         const { data: allGolfers, error: golfersError } = await supabase
           .from('golfers')
-          .select('id, full_name, first_name, last_name, world_ranking, image_url')
+          .select('id, full_name, first_name, last_name, world_ranking, image_url, salary_pennies')
           .order('world_ranking', { ascending: true, nullsFirst: false });
         
         if (golfersError) {
@@ -326,7 +349,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
   }
 
   // Calculate budget stats (with null checks)
-  const usedBudget = lineup.reduce((sum, slot) => sum + (slot.golfer?.salary || 0), 0);
+  const usedBudget = lineup.reduce((sum, slot) => sum + (slot.golfer?.salary_pennies || 0), 0);
   const remainingBudget = competition ? (totalBudget - usedBudget) : 0;
   const budgetPercentage = competition ? ((usedBudget / totalBudget) * 100) : 0;
   const playersSelected = lineup.filter(slot => slot.golfer !== null).length;
@@ -390,24 +413,24 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
   const getTopTierPlayers = (count: number = 3) => {
     const selectedIds = lineup.filter(slot => slot.golfer).map(slot => slot.golfer!.id);
     return availableGolfers
-      .filter(g => !selectedIds.includes(g.id) && (g.salary || 0) >= 10000 && (g.salary || 0) <= remainingBudget)
-      .sort((a, b) => (b.salary || 0) - (a.salary || 0)) // Highest salary first
+      .filter(g => !selectedIds.includes(g.id) && (g.salary_pennies || 0) >= 10000 && (g.salary_pennies || 0) <= remainingBudget)
+      .sort((a, b) => (b.salary_pennies || 0) - (a.salary_pennies || 0)) // Highest salary first
       .slice(0, count);
   };
 
   const getMidTierPlayers = (count: number = 3) => {
     const selectedIds = lineup.filter(slot => slot.golfer).map(slot => slot.golfer!.id);
     return availableGolfers
-      .filter(g => !selectedIds.includes(g.id) && (g.salary || 0) >= 7000 && (g.salary || 0) < 10000 && (g.salary || 0) <= remainingBudget)
-      .sort((a, b) => (b.salary || 0) - (a.salary || 0))
+      .filter(g => !selectedIds.includes(g.id) && (g.salary_pennies || 0) >= 7000 && (g.salary_pennies || 0) < 10000 && (g.salary_pennies || 0) <= remainingBudget)
+      .sort((a, b) => (b.salary_pennies || 0) - (a.salary_pennies || 0))
       .slice(0, count);
   };
 
   const getValuePickPlayers = (count: number = 3) => {
     const selectedIds = lineup.filter(slot => slot.golfer).map(slot => slot.golfer!.id);
     return availableGolfers
-      .filter(g => !selectedIds.includes(g.id) && (g.salary || 0) < 7000 && (g.salary || 0) <= remainingBudget)
-      .sort((a, b) => (b.salary || 0) - (a.salary || 0))
+      .filter(g => !selectedIds.includes(g.id) && (g.salary_pennies || 0) < 7000 && (g.salary_pennies || 0) <= remainingBudget)
+      .sort((a, b) => (b.salary_pennies || 0) - (a.salary_pennies || 0))
       .slice(0, count);
   };
 
@@ -429,19 +452,19 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
       }
 
       // Salary filter
-      if (salaryFilter === 'premium' && (golfer.salary || 0) < 10000) return false;
-      if (salaryFilter === 'mid' && ((golfer.salary || 0) < 7000 || (golfer.salary || 0) >= 10000)) return false;
-      if (salaryFilter === 'value' && (golfer.salary || 0) >= 7000) return false;
+      if (salaryFilter === 'premium' && (golfer.salary_pennies || 0) < 10000) return false;
+      if (salaryFilter === 'mid' && ((golfer.salary_pennies || 0) < 7000 || (golfer.salary_pennies || 0) >= 10000)) return false;
+      if (salaryFilter === 'value' && (golfer.salary_pennies || 0) >= 7000) return false;
 
       // Affordability filter - Don't filter if no players selected yet
-      if (playersSelected > 0 && (golfer.salary || 0) > remainingBudget) return false;
+      if (playersSelected > 0 && (golfer.salary_pennies || 0) > remainingBudget) return false;
 
       return true;
     })
     .sort((a, b) => {
       switch (sortBy) {
         case 'salary':
-          return (b.salary || 0) - (a.salary || 0);
+          return (b.salary_pennies || 0) - (a.salary_pennies || 0);
         case 'ranking':
           return (a.world_ranking || 999) - (b.world_ranking || 999);
         case 'name':
@@ -459,8 +482,8 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
       return;
     }
 
-    if ((golfer.salary || 0) > remainingBudget) {
-      alert(`Not enough budget! This golfer costs £${(golfer.salary || 0).toLocaleString()}`);
+    if ((golfer.salary_pennies || 0) > remainingBudget) {
+      alert(`Not enough budget! This golfer costs £${(golfer.salary_pennies || 0).toLocaleString()}`);
       return;
     }
 
@@ -526,7 +549,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         .map(slot => ({
           golfer_id: slot.golfer!.id,
           slot_position: slot.slotNumber,
-          salary_at_selection: slot.golfer!.salary,
+          salary_at_selection: slot.golfer!.salary_pennies || 0,
         }));
 
       const payload = {
@@ -588,6 +611,14 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
       }
 
       // CREATE MODE: Use create_clubhouse_entry RPC function
+      console.log('🚀 Calling create_clubhouse_entry with:', {
+        p_user_id: (await supabase.auth.getUser()).data.user?.id,
+        p_competition_id: competition.id,
+        p_golfer_ids: golferIds,
+        p_captain_id: captain.golfer!.id,
+        p_credits: competition.entry_credits
+      });
+      
       const { data, error } = await supabase.rpc('create_clubhouse_entry', {
         p_user_id: (await supabase.auth.getUser()).data.user?.id,
         p_competition_id: competition.id,
@@ -611,7 +642,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
       ]);
 
       alert('Entry submitted successfully!');
-      router.push('/clubhouse/entries');
+      router.push('/clubhouse/my-entries');
     } catch (err: any) {
       console.error('Submit error:', err);
       setError(err.message || 'Failed to submit entry');
@@ -902,7 +933,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
               }}>
                 {filteredGolfers.map(golfer => {
                   const isSelected = lineup.some(slot => slot.golfer?.id === golfer.id);
-                  const canAfford = (golfer.salary || 0) <= remainingBudget;
+                  const canAfford = (golfer.salary_pennies || 0) <= remainingBudget;
                   const isFull = playersSelected >= 6;
                   
                   return (
@@ -955,7 +986,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
                           </div>
                         </div>
                         <div style={{ fontSize: '14px', fontWeight: 600, color: '#fbbf24' }}>
-                          {formatCurrency(golfer.salary || 0)}
+                          {formatCurrency(golfer.salary_pennies || 0)}
                         </div>
                         {isSelected && (
                           <div style={{
@@ -1027,7 +1058,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
                             </div>
                           </div>
                           <div style={{ fontSize: '13px', fontWeight: 600, color: '#fbbf24' }}>
-                            {formatCurrency(slot.golfer.salary || 0)}
+                            {formatCurrency(slot.golfer.salary_pennies || 0)}
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: '6px' }}>

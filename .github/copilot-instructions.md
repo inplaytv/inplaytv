@@ -503,23 +503,70 @@ class SportsRadarAdapter implements ScoringAdapter {
 }
 ```
 
+## 🛑 THREE SEPARATE SYSTEMS - CRITICAL ISOLATION RULES
+
+### System Overview
+This project has THREE SYSTEMS that share some resources but MUST remain isolated:
+
+#### 1. InPlay System (Original)
+- **Tables**: `tournament_competitions`, `competition_entries`, `competition_entry_picks`
+- **Paths**: `/tournaments/`, `/api/tournaments/`
+- **Purpose**: Main fantasy golf game
+
+#### 2. ONE 2 ONE System
+- **Tables**: `competition_instances`, shares entries/picks with InPlay
+- **Paths**: `/one-2-one/`, `/api/one-2-one/`
+- **Purpose**: Head-to-head challenges
+
+#### 3. Clubhouse System (Testing Ground)
+- **Tables**: ALL start with `clubhouse_*` prefix
+- **Paths**: `/clubhouse/`, `/api/clubhouse/`
+- **Purpose**: Test fixes before backporting to main systems
+
+### PRE-CHANGE VERIFICATION CHECKLIST
+
+**BEFORE MODIFYING ANY CODE, COMPLETE THIS CHECKLIST:**
+
+See: `PRE-CHANGE-CHECKLIST.md` in root directory
+
+1. **Identify System** - Which system am I working on?
+2. **Find ALL References** - `grep -r "variableName" apps/`
+3. **Check Database Schema** - Verify columns exist before using in API
+4. **Verify Isolation** - Ensure changes don't leak into other systems
+   ```bash
+   grep -r "clubhouse" apps/golf/src/app/tournaments/  # Should be empty
+   grep -r "tournament_competitions" apps/golf/src/app/clubhouse/  # Should be empty
+   ```
+5. **Review the Plan** - Check SYSTEMATIC-FIX-PLAN.md or CLUBHOUSE-SYSTEM-PLAN.md
+6. **ONE Change at a Time** - Don't combine unrelated changes
+7. **Verify After** - Search for orphaned references
+
+### Development Plans Reference
+
+- **SYSTEMATIC-FIX-PLAN.md** - Test fixes in Clubhouse, then backport to main systems
+- **CLUBHOUSE-SYSTEM-PLAN.md** - Current step-by-step testing plan
+- **scripts/clubhouse/ARCHITECTURE-DIAGRAM.txt** - Visual architecture guide
+
 ## Critical Rules
 
-1. **Never mix Supabase client types** - Use appropriate client for context (browser/server/admin)
-2. **Validate golfer eligibility** - Always check against `golfer_groups` before creating entries
-3. **Use tournament slugs** - Routes use slugs, not IDs (e.g., `/tournaments/alfred-dunhill-championship`)
-4. **Server-side secrets** - Service role keys and Stripe secrets NEVER in client code
-5. **CSS Modules** - Always use co-located CSS modules, never global styles
-6. **Port conflicts** - Use `pnpm kill:ports` if dev server won't start
-7. **Admin checks** - Middleware uses `admins` table (`user_id` column), not auth metadata
-8. **Dynamic exports** - API routes need `export const dynamic = 'force-dynamic'` for real-time data
-9. **ONE 2 ONE entries** - Always check `instance_id` vs `competition_id` - they're mutually exclusive
-10. **Scoring service** - Server-side only, never import in client components
-11. **Registration timing** - Lifecycle Manager is source of truth; competitions auto-derive times, never set manually
-12. **Competition status** - Check `tournament_competitions.status`, NOT `tournaments.status` for entry validation
-13. **Wallet mutations** - ALWAYS use `wallet_apply()` RPC function, never direct INSERT/UPDATE on `wallets` table
-14. **Profile names** - Use `display_name` (auto-computed from first_name + last_name) in all user-facing displays
-15. **Refunds** - ONE 2 ONE instances auto-cancel and refund via cron job `/api/one-2-one/cron/cancel-unfilled`
+1. **Check PRE-CHANGE-CHECKLIST.md BEFORE every change** - Verify system isolation
+2. **Never mix Supabase client types** - Use appropriate client for context (browser/server/admin)
+3. **Validate golfer eligibility** - Always check against `golfer_groups` before creating entries
+4. **Use tournament slugs** - Routes use slugs, not IDs (e.g., `/tournaments/alfred-dunhill-championship`)
+5. **Server-side secrets** - Service role keys and Stripe secrets NEVER in client code
+6. **CSS Modules** - Always use co-located CSS modules, never global styles
+7. **Port conflicts** - Use `pnpm kill:ports` if dev server won't start
+8. **Admin checks** - Middleware uses `admins` table (`user_id` column), not auth metadata
+9. **Dynamic exports** - API routes need `export const dynamic = 'force-dynamic'` for real-time data
+10. **ONE 2 ONE entries** - Always check `instance_id` vs `competition_id` - they're mutually exclusive
+11. **Scoring service** - Server-side only, never import in client components
+12. **Registration timing** - Lifecycle Manager is source of truth; competitions auto-derive times, never set manually
+13. **Competition status** - Check `tournament_competitions.status`, NOT `tournaments.status` for entry validation
+14. **Wallet mutations** - ALWAYS use `wallet_apply()` RPC function, never direct INSERT/UPDATE on `wallets` table
+15. **Profile names** - Use `display_name` (auto-computed from first_name + last_name) in all user-facing displays
+16. **Refunds** - ONE 2 ONE instances auto-cancel and refund via cron job `/api/one-2-one/cron/cancel-unfilled`
+17. **NEVER modify InPlay/ONE 2 ONE when working on Clubhouse** - Systems are isolated for a reason
+18. **Grep BEFORE renaming variables** - Find ALL references first to avoid breaking code
 
 ## Common Pitfalls & Debugging
 

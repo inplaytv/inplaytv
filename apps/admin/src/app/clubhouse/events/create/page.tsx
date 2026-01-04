@@ -11,33 +11,57 @@ interface GolferGroup {
   golfer_count: number;
 }
 
+interface Tournament {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+}
+
 export default function CreateEventPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [golferGroups, setGolferGroups] = useState<GolferGroup[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   
   // Get the master tournament ID from env or use fallback
   const masterTournamentId = process.env.NEXT_PUBLIC_CLUBHOUSE_MASTER_TOURNAMENT_ID || '00000000-0000-0000-0000-000000000001';
   
   const [formData, setFormData] = useState({
     name: '',
+    slug: '', // Auto-generated from name
     description: '',
     location: '',
+    status: 'upcoming', // Default status for new events
     entry_credits: 0,
     max_entries: 0,
+    registration_opens: '', // When registration starts
     round1_tee_time: '',
     round2_tee_time: '',
     round3_tee_time: '',
     round4_tee_time: '',
     end_date: '',
     assigned_golfer_group_id: '',
+    linked_tournament_id: '', // NEW: Optional link to InPlay tournament
   });
 
+  // Auto-generate slug from name
+  useEffect(() => {
+    if (formData.name) {
+      const slug = formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      setFormData(prev => ({ ...prev, slug }));
+    }
+  }, [formData.name]);
+
   // Auto-calculate registration opens (5 days before Round 1)
-  const registrationOpens = formData.round1_tee_time ? 
-    new Date(new Date(formData.round1_tee_time).getTime() - (5 * 24 * 60 * 60 * 1000))
-      .toISOString().slice(0, 16) : '';
+  useEffect(() => {
+    if (formData.round1_tee_time && !formData.registration_opens) {
+      const regOpens = new Date(new Date(formData.round1_tee_time).getTime() - (5 * 24 * 60 * 60 * 1000))
+        .toISOString().slice(0, 16);
+      setFormData(prev => ({ ...prev, registration_opens: regOpens }));
+    }
+  }, [formData.round1_tee_time]);
 
   // Restore form data from localStorage on mount
   useEffect(() => {
@@ -63,6 +87,7 @@ export default function CreateEventPage() {
   // Fetch golfer groups on mount
   useEffect(() => {
     fetchGolferGroups();
+    fetchTournaments();
   }, []);
 
   // Auto-refresh golfer groups when window regains focus
@@ -119,6 +144,26 @@ export default function CreateEventPage() {
       }
     } catch (err) {
       console.error('Failed to fetch golfer groups:', err);
+    }
+  }
+
+  async function fetchTournaments() {
+    try {
+      const res = await fetch('/api/tournaments', {
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Filter to active/upcoming tournaments
+        const activeTournaments = data.filter((t: Tournament) => 
+          ['upcoming', 'registration_open', 'in_progress'].includes(t.status)
+        );
+        setTournaments(activeTournaments);
+      } else {
+        console.error('Failed to fetch tournaments:', res.status);
+      }
+    } catch (err) {
+      console.error('Failed to fetch tournaments:', err);
     }
   }
 
@@ -226,6 +271,33 @@ export default function CreateEventPage() {
 
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.875rem' }}>
+                Slug (URL-friendly name) *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.slug}
+                onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                placeholder="masters-clubhouse-championship"
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  background: '#0a0f1a',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '6px',
+                  color: '#999',
+                  fontSize: '0.875rem',
+                  fontFamily: 'monospace',
+                }}
+                readOnly
+              />
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                Auto-generated from event name
+              </div>
+            </div>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.875rem' }}>
                 Description
               </label>
               <textarea
@@ -266,6 +338,35 @@ export default function CreateEventPage() {
                   fontSize: '0.875rem',
                 }}
               />
+            </div>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.875rem' }}>
+                Status *
+              </label>
+              <select
+                required
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  background: '#0a0f1a',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                }}
+              >
+                <option value="upcoming">Upcoming</option>
+                <option value="reg_open">Registration Open</option>
+                <option value="live">Live</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                New events typically start as "Upcoming"
+              </div>
             </div>
 
             <div style={{ marginBottom: '0.5rem' }}>
@@ -433,15 +534,81 @@ export default function CreateEventPage() {
               </div>
             </div>
 
+            {/* Tournament Linking (DataGolf Integration - Option A) */}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: '0.4rem',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                }}
+              >
+                Link to InPlay Tournament (Optional)
+              </label>
+              <select
+                value={formData.linked_tournament_id}
+                onChange={(e) => setFormData({...formData, linked_tournament_id: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: '#0a0f1a',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '8px',
+                  color: formData.linked_tournament_id ? '#fff' : '#999',
+                  fontSize: '0.875rem',
+                }}
+              >
+                <option value="">None (Use Golfer Group above)</option>
+                {tournaments.map((tournament) => (
+                  <option key={tournament.id} value={tournament.id}>
+                    {tournament.name}
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(218, 165, 32, 0.8)', marginTop: '0.4rem', display: 'flex', alignItems: 'start', gap: '0.5rem' }}>
+                <span>💡</span>
+                <span>
+                  When linked tournament syncs from DataGolf, this event will automatically use those golfers (overrides Golfer Group selection)
+                </span>
+              </div>
+            </div>
+
             <div style={{ gridColumn: '1 / -1', marginTop: '1rem', padding: '1rem', background: 'rgba(14, 184, 166, 0.05)', borderRadius: '8px', border: '1px solid rgba(14, 184, 166, 0.2)' }}>
-              <h3 style={{ color: '#daa520', fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 600 }}>Round Tee Times</h3>
+              <h3 style={{ color: '#daa520', fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 600 }}>Tournament Dates & Registration</h3>
+              
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.3rem', color: '#fff', fontSize: '0.8rem' }}>
+                  Registration Opens *
+                </label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={formData.registration_opens}
+                  onChange={(e) => setFormData({...formData, registration_opens: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '0.6rem',
+                    background: '#0a0f1a',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    fontSize: '0.8rem',
+                  }}
+                />
+                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                  Auto-set to 5 days before Round 1, but you can adjust
+                </div>
+              </div>
+
               <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1rem' }}>
-                Set tee times for each round. Registration will automatically close 15 minutes before each round starts.
+                Set tee times for each round. Registration will automatically close 15 minutes before Round 1 starts.
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.3rem', color: '#fff', fontSize: '0.8rem' }}>
-                    Round 1 Tee Time *
+                    Round 1 Tee Time * (Tournament Start)
                   </label>
                   <input
                     type="datetime-local"
@@ -559,9 +726,9 @@ export default function CreateEventPage() {
                     fontSize: '0.8rem',
                     fontWeight: 500,
                   }}>
-                    {registrationOpens ? (() => {
+                    {formData.registration_opens ? (() => {
                       try {
-                        return new Date(registrationOpens).toLocaleString('en-GB', { 
+                        return new Date(formData.registration_opens).toLocaleString('en-GB', { 
                           day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
                         });
                       } catch {

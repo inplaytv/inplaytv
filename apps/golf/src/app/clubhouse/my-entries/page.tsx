@@ -14,6 +14,11 @@ interface Entry {
   status: string;
   golfer_ids: string[];
   captain_id: string;
+  golfers?: Array<{
+    id: string;
+    name: string;
+    isCaptain: boolean;
+  }>;
   competition: {
     id: string;
     name: string;
@@ -31,6 +36,7 @@ export default function MyEntriesPage() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [activeEntryIndex, setActiveEntryIndex] = useState<{[competitionId: string]: number}>({});
 
   useEffect(() => {
     if (user) {
@@ -41,29 +47,96 @@ export default function MyEntriesPage() {
   async function fetchEntries() {
     const supabase = createClient();
     
-    const { data, error } = await supabase
+    // Fetch entries first
+    const { data: entriesData, error: entriesError } = await supabase
       .from('clubhouse_entries')
-      .select(`
-        *,
-        competition:clubhouse_competitions(
-          id,
-          name,
-          event:clubhouse_events(
-            id,
-            name,
-            slug,
-            status
-          )
-        )
-      `)
+      .select('*')
       .eq('user_id', user!.id)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching entries:', error);
-    } else {
-      setEntries(data || []);
+    if (entriesError) {
+      console.error('Error fetching entries:', entriesError);
+      setLoading(false);
+      return;
     }
+
+    if (!entriesData || entriesData.length === 0) {
+      setEntries([]);
+      setLoading(false);
+      return;
+    }
+
+    // Get unique competition IDs
+    const competitionIds = [...new Set(entriesData.map(e => e.competition_id))];
+
+    // Fetch competitions
+    const { data: competitions, error: compError } = await supabase
+      .from('clubhouse_competitions')
+      .select('id, name, event_id')
+      .in('id', competitionIds);
+
+    if (compError) {
+      console.error('Error fetching competitions:', compError);
+      setLoading(false);
+      return;
+    }
+
+    // Get unique event IDs
+    const eventIds = [...new Set(competitions?.map(c => c.event_id) || [])];
+
+    // Fetch events
+    const { data: events, error: eventsError } = await supabase
+      .from('clubhouse_events')
+      .select('id, name, slug, status')
+      .in('id', eventIds);
+
+    if (eventsError) {
+      console.error('Error fetching events:', eventsError);
+      setLoading(false);
+      return;
+    }
+
+    // Get all golfer IDs from all entries
+    const allGolferIds = [...new Set(entriesData.flatMap(e => e.golfer_ids))];
+
+    // Fetch golfer names
+    const { data: golfers } = await supabase
+      .from('golfers')
+      .select('id, first_name, last_name')
+      .in('id', allGolferIds);
+
+    // Map data together
+    const enrichedEntries = entriesData.map(entry => {
+      const competition = competitions?.find(c => c.id === entry.competition_id);
+      const event = events?.find(e => e.id === competition?.event_id);
+      
+      // Map golfer names
+      const entryGolfers = entry.golfer_ids.map((golferId: string) => {
+        const golfer = golfers?.find(g => g.id === golferId);
+        return {
+          id: golferId,
+          name: golfer ? `${golfer.first_name} ${golfer.last_name}` : 'Unknown',
+          isCaptain: golferId === entry.captain_id
+        };
+      });
+      
+      return {
+        ...entry,
+        golfers: entryGolfers,
+        competition: {
+          id: competition?.id || entry.competition_id,
+          name: competition?.name || 'Unknown Competition',
+          event: {
+            id: event?.id || '',
+            name: event?.name || 'Unknown Event',
+            slug: event?.slug || '',
+            status: event?.status || 'unknown'
+          }
+        }
+      };
+    });
+
+    setEntries(enrichedEntries as any);
     setLoading(false);
   }
 
@@ -118,13 +191,13 @@ export default function MyEntriesPage() {
           <div>
             <h1 className={styles.title}>
               <i className="fas fa-clipboard-list"></i>
-              My Entries
+              My Entries ({entries.length})
             </h1>
-            <p className={styles.subtitle}>Track your clubhouse tournament entries</p>
+            <p className={styles.subtitle}>View your tournament entries and teams</p>
           </div>
           <Link href="/clubhouse/events" className={styles.enterBtn}>
             <i className="fas fa-plus"></i>
-            Enter Event
+            Enter New Event
           </Link>
         </div>
 
@@ -150,7 +223,7 @@ export default function MyEntriesPage() {
           </button>
         </div>
 
-        {/* Entries List */}
+        {/* Entries Grid */}
         {filteredEntries.length === 0 ? (
           <div className={styles.empty}>
             <i className="fas fa-inbox"></i>
@@ -161,53 +234,142 @@ export default function MyEntriesPage() {
             </Link>
           </div>
         ) : (
-          <div className={styles.entriesList}>
-            {filteredEntries.map(entry => (
-              <div key={entry.id} className={styles.entryCard}>
-                <div className={styles.entryHeader}>
-                  <div>
-                    <h3>{entry.competition.event.name}</h3>
-                    <p className={styles.compName}>{entry.competition.name}</p>
-                  </div>
-                  {getStatusBadge(entry.competition.event.status)}
-                </div>
+          <div className={styles.entriesGrid}>
+            {/* Group entries by competition */}
+            {(() => {
+              // Group entries by competition
+              const groupedEntries = filteredEntries.reduce((acc, entry) => {
+                const compId = entry.competition.id;
+                if (!acc[compId]) {
+                  acc[compId] = [];
+                }
+                acc[compId].push(entry);
+                return acc;
+              }, {} as {[key: string]: Entry[]});
 
-                <div className={styles.entryStats}>
-                  <div className={styles.stat}>
-                    <i className="fas fa-users"></i>
-                    <span>{entry.golfer_ids.length} Golfers</span>
-                  </div>
-                  <div className={styles.stat}>
-                    <i className="fas fa-star"></i>
-                    <span>Captain Selected</span>
-                  </div>
-                  <div className={styles.stat}>
-                    <i className="fas fa-coins"></i>
-                    <span>{entry.credits_paid} Credits</span>
-                  </div>
-                  <div className={styles.stat}>
-                    <i className="fas fa-calendar"></i>
-                    <span>{new Date(entry.created_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
+              return Object.entries(groupedEntries).map(([competitionId, compEntries]) => {
+                const currentIndex = activeEntryIndex[competitionId] || 0;
+                const entry = compEntries[currentIndex];
+                const totalEntries = compEntries.length;
 
-                <div className={styles.entryActions}>
-                  <Link 
-                    href={`/clubhouse/leaderboard/${entry.competition.id}`} 
-                    className={styles.viewBtn}
-                  >
-                    <i className="fas fa-trophy"></i>
-                    View Leaderboard
-                  </Link>
-                  {entry.competition.event.status === 'open' && (
-                    <button className={styles.withdrawBtn} disabled>
-                      <i className="fas fa-times"></i>
-                      Withdraw (Soon)
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                return (
+                  <div key={competitionId} className={styles.entryCard}>
+                    <div className={styles.cardContainer}>
+                      {/* Left Side - Event/Competition Details */}
+                      <div className={styles.detailsPanel}>
+                        <div className={styles.eventBadge}>
+                          {getStatusBadge(entry.competition.event.status)}
+                        </div>
+                        <h3 className={styles.eventName}>{entry.competition.event.name}</h3>
+                        <p className={styles.compName}>{entry.competition.name}</p>
+                        
+                        <div className={styles.metaGrid}>
+                          <div className={styles.metaItem}>
+                            <i className="fas fa-coins"></i>
+                            <div>
+                              <span className={styles.metaLabel}>Entry Fee</span>
+                              <span className={styles.metaValue}>{entry.credits_paid}</span>
+                            </div>
+                          </div>
+                          <div className={styles.metaItem}>
+                            <i className="fas fa-calendar"></i>
+                            <div>
+                              <span className={styles.metaLabel}>Entered</span>
+                              <span className={styles.metaValue}>
+                                {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Link 
+                          href={`/clubhouse/leaderboard/${entry.competition.id}`} 
+                          className={styles.leaderboardBtn}
+                        >
+                          <i className="fas fa-trophy"></i>
+                          View Leaderboard
+                        </Link>
+                      </div>
+
+                      {/* Right Side - Team Selection */}
+                      <div className={styles.teamPanel}>
+                        <div className={styles.teamHeader}>
+                          <h4>
+                            <i className="fas fa-users"></i>
+                            Your Team
+                          </h4>
+                          <button className={styles.editBtn} disabled title="Edit coming soon">
+                            <i className="fas fa-edit"></i>
+                            Edit
+                          </button>
+                        </div>
+
+                        <div className={styles.golferGrid}>
+                          {entry.golfers?.map((golfer) => (
+                            <div 
+                              key={golfer.id}
+                              className={`${styles.golferCard} ${golfer.isCaptain ? styles.captain : ''}`}
+                            >
+                              <div className={styles.golferInfo}>
+                                <span className={styles.golferName}>{golfer.name}</span>
+                                {golfer.isCaptain && (
+                                  <span className={styles.captainBadge}>
+                                    <i className="fas fa-star"></i>
+                                    Captain
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Entry Navigation */}
+                        {totalEntries > 1 && (
+                          <div className={styles.entryNavigation}>
+                            <button
+                              className={styles.navArrow}
+                              onClick={() => setActiveEntryIndex(prev => ({
+                                ...prev,
+                                [competitionId]: Math.max(0, currentIndex - 1)
+                              }))}
+                              disabled={currentIndex === 0}
+                            >
+                              <i className="fas fa-chevron-left"></i>
+                            </button>
+
+                            <div className={styles.entryNumbers}>
+                              {compEntries.map((_, idx) => (
+                                <button
+                                  key={idx}
+                                  className={`${styles.entryNumberBtn} ${idx === currentIndex ? styles.active : ''}`}
+                                  onClick={() => setActiveEntryIndex(prev => ({
+                                    ...prev,
+                                    [competitionId]: idx
+                                  }))}
+                                >
+                                  {idx + 1}
+                                </button>
+                              ))}
+                            </div>
+
+                            <button
+                              className={styles.navArrow}
+                              onClick={() => setActiveEntryIndex(prev => ({
+                                ...prev,
+                                [competitionId]: Math.min(totalEntries - 1, currentIndex + 1)
+                              }))}
+                              disabled={currentIndex === totalEntries - 1}
+                            >
+                              <i className="fas fa-chevron-right"></i>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         )}
       </div>

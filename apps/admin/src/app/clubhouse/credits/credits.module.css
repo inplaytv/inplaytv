@@ -1,0 +1,213 @@
+.container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: #fff;
+}
+
+.header p {
+  color: #9ca3af;
+  font-size: 1rem;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 1024px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+}
+
+.grantSection,
+.walletsSection {
+  background: rgba(30, 30, 30, 0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.grantSection h2,
+.walletsSection h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field label {
+  font-weight: 500;
+  color: #e5e7eb;
+  font-size: 0.875rem;
+}
+
+.field small {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  margin-top: -0.25rem;
+}
+
+.input,
+.select {
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.select option {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.message {
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.message.success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.message.error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.submitButton {
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.walletsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.walletsGrid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.walletsGrid::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.walletsGrid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.walletsGrid::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.walletCard {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.walletUser {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.walletUser strong {
+  color: #fff;
+  font-size: 0.875rem;
+}
+
+.walletUser small {
+  color: #9ca3af;
+  font-size: 0.75rem;
+}
+
+.walletBalance {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.credits {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.creditsLabel {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+}
+
+.noWallet {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-style: italic;
+}

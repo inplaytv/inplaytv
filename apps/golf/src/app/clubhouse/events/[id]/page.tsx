@@ -132,7 +132,13 @@ export default function EventDetailPage() {
     );
   }
 
-  const canEnter = (event.status === 'open' || event.status === 'active') && userCredits >= event.entry_credits && !hasEntered;
+  // Check if registration is actually open based on timing
+  const now = new Date();
+  const regOpens = new Date(event.reg_open_at);
+  const regCloses = new Date(event.reg_close_at);
+  const isRegistrationOpen = now >= regOpens && now < regCloses;
+  
+  const canEnter = isRegistrationOpen && userCredits >= event.entry_credits && !hasEntered;
 
   return (
     <RequireAuth>
@@ -331,7 +337,7 @@ export default function EventDetailPage() {
               fontSize: '0.75rem',
               color: '#a5b4fc',
             }}>
-              Status: {event.status} | Credits: {userCredits}/{event.entry_credits} | Entered: {hasEntered ? 'Yes' : 'No'} | Can Enter: {canEnter ? 'Yes' : 'No'}
+              Status: {event.status} | Reg Open: {isRegistrationOpen ? 'Yes' : 'No'} | Credits: {userCredits}/{event.entry_credits} | Entered: {hasEntered ? 'Yes' : 'No'} | Can Enter: {canEnter ? 'Yes' : 'No'}
             </div>
 
             {hasEntered && (
@@ -407,8 +413,16 @@ export default function EventDetailPage() {
                 gap: '2rem',
               }}>
                 {competitions.map((comp) => {
-                  const compHasStarted = new Date(comp.starts_at) <= new Date();
-                  const canEnterThisComp = canEnter && !compHasStarted;
+                  // Check competition-level timing
+                  const now = new Date();
+                  const compOpens = new Date(comp.opens_at);
+                  const compCloses = new Date(comp.closes_at);
+                  const compStarts = new Date(comp.starts_at);
+                  const isCompRegistrationOpen = now >= compOpens && now < compCloses;
+                  const compHasStarted = compStarts <= now;
+                  
+                  // Can enter if: registration is open, hasn't started, and have credits (unlimited entries allowed)
+                  const canEnterThisComp = isCompRegistrationOpen && !compHasStarted && userCredits >= event.entry_credits;
                   
                   return (
                   <div
@@ -601,33 +615,7 @@ export default function EventDetailPage() {
                         📋 Comp Details
                       </Link>
                     </div>
-                    {!canEnter && event.status === 'active' && hasEntered && (
-                      <div style={{ 
-                        padding: '1rem',
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        borderRadius: '12px',
-                        color: 'rgba(255, 255, 255, 0.7)', 
-                        fontSize: '0.9rem', 
-                        fontStyle: 'italic',
-                        textAlign: 'center',
-                      }}>
-                        ✓ Already entered
-                      </div>
-                    )}
-                    {!canEnter && event.status !== 'active' && (
-                      <div style={{ 
-                        padding: '1rem',
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        borderRadius: '12px',
-                        color: 'rgba(255, 255, 255, 0.7)', 
-                        fontSize: '0.9rem', 
-                        fontStyle: 'italic',
-                        textAlign: 'center',
-                      }}>
-                        Registration closed
-                      </div>
-                    )}
-                    {!canEnter && userCredits < comp.entry_credits && event.status === 'active' && !hasEntered && (
+                    {!canEnter && userCredits < comp.entry_credits && (
                       <div style={{ 
                         padding: '1rem',
                         background: 'rgba(234, 179, 8, 0.2)',

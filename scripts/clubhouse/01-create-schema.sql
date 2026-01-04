@@ -17,9 +17,18 @@ CREATE TABLE IF NOT EXISTS clubhouse_events (
   start_date TIMESTAMPTZ NOT NULL,
   end_date TIMESTAMPTZ NOT NULL,
   
+  -- Round tee times (for competition scheduling)
+  round1_tee_time TIMESTAMPTZ,
+  round2_tee_time TIMESTAMPTZ,
+  round3_tee_time TIMESTAMPTZ,
+  round4_tee_time TIMESTAMPTZ,
+  
   -- Registration timing (source of truth)
   registration_opens_at TIMESTAMPTZ NOT NULL,
   registration_closes_at TIMESTAMPTZ NOT NULL,
+  
+  -- Optional link to InPlay tournament for golfer sync
+  linked_tournament_id UUID REFERENCES tournaments(id) ON DELETE SET NULL,
   
   -- Status (auto-calculated by trigger)
   status TEXT NOT NULL DEFAULT 'upcoming'
@@ -70,12 +79,18 @@ CREATE TABLE IF NOT EXISTS clubhouse_competitions (
   name TEXT NOT NULL,
   description TEXT,
   
+  -- Which rounds this competition covers (e.g., [1,2,3,4] or [1] or [2])
+  rounds_covered INTEGER[] NOT NULL,
+  
   -- Pricing in credits (whole numbers, not pennies)
   entry_credits INTEGER NOT NULL CHECK (entry_credits >= 0),
   prize_credits INTEGER CHECK (prize_credits >= 0),
   
   -- Capacity
   max_entries INTEGER NOT NULL DEFAULT 100 CHECK (max_entries > 0),
+  
+  -- Golfer group (which golfers can be selected)
+  assigned_golfer_group_id UUID REFERENCES golfer_groups(id) ON DELETE SET NULL,
   
   -- Timing (copied from event, auto-synced by trigger)
   opens_at TIMESTAMPTZ NOT NULL,
@@ -165,6 +180,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS clubhouse_event_status_auto_update ON clubhouse_events;
 CREATE TRIGGER clubhouse_event_status_auto_update
   BEFORE INSERT OR UPDATE OF registration_opens_at, start_date, end_date
   ON clubhouse_events
@@ -187,6 +203,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS clubhouse_event_timing_sync ON clubhouse_events;
 CREATE TRIGGER clubhouse_event_timing_sync
   AFTER UPDATE OF registration_opens_at, registration_closes_at, start_date
   ON clubhouse_events
@@ -204,6 +221,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS clubhouse_user_wallet_init ON auth.users;
 CREATE TRIGGER clubhouse_user_wallet_init
   AFTER INSERT ON auth.users
   FOR EACH ROW
@@ -321,11 +339,13 @@ ALTER TABLE clubhouse_credit_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clubhouse_entries ENABLE ROW LEVEL SECURITY;
 
 -- Events: Everyone can read visible events
+DROP POLICY IF EXISTS "Public can view visible events" ON clubhouse_events;
 CREATE POLICY "Public can view visible events"
   ON clubhouse_events FOR SELECT
   USING (is_visible = true);
 
 -- Competitions: Everyone can read competitions for visible events
+DROP POLICY IF EXISTS "Public can view competitions" ON clubhouse_competitions;
 CREATE POLICY "Public can view competitions"
   ON clubhouse_competitions FOR SELECT
   USING (
@@ -337,21 +357,25 @@ CREATE POLICY "Public can view competitions"
   );
 
 -- Wallets: Users can only see their own wallet
+DROP POLICY IF EXISTS "Users can view own wallet" ON clubhouse_wallets;
 CREATE POLICY "Users can view own wallet"
   ON clubhouse_wallets FOR SELECT
   USING (auth.uid() = user_id);
 
 -- Transactions: Users can only see their own transactions
+DROP POLICY IF EXISTS "Users can view own transactions" ON clubhouse_credit_transactions;
 CREATE POLICY "Users can view own transactions"
   ON clubhouse_credit_transactions FOR SELECT
   USING (auth.uid() = user_id);
 
 -- Entries: Users can view their own entries
+DROP POLICY IF EXISTS "Users can view own entries" ON clubhouse_entries;
 CREATE POLICY "Users can view own entries"
   ON clubhouse_entries FOR SELECT
   USING (auth.uid() = user_id);
 
 -- Entries: Users can view all entries in competitions they're in (for leaderboard)
+DROP POLICY IF EXISTS "Users can view entries in their competitions" ON clubhouse_entries;
 CREATE POLICY "Users can view entries in their competitions"
   ON clubhouse_entries FOR SELECT
   USING (
@@ -388,6 +412,4 @@ DO $$
 BEGIN
   RAISE NOTICE 'Clubhouse schema created successfully!';
   RAISE NOTICE 'Tables: clubhouse_events, clubhouse_competitions, clubhouse_wallets, clubhouse_credit_transactions, clubhouse_entries';
-  RAISE NOTICE 'Run this query to verify:';
-  RAISE NOTICE 'SELECT tablename FROM pg_tables WHERE schemaname = ''public'' AND tablename LIKE ''clubhouse_%'';';
 END $$;

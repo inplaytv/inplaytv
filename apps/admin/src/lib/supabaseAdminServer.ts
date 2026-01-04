@@ -24,5 +24,13 @@ export function createAdminClient() {
       autoRefreshToken: false,
       persistSession: false,
     },
+    db: {
+      schema: 'public',
+    },
+    global: {
+      headers: {
+        'x-client-info': `clubhouse-admin-${Date.now()}`, // Force new connection
+      },
+    },
   });
 }

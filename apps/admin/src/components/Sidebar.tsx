@@ -50,6 +50,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'All Events', href: '/clubhouse/events' },
       { label: 'Create Event', href: '/clubhouse/events/create' },
+      { label: 'Grant Credits', href: '/clubhouse/credits' },
     ],
   },
   {

@@ -98,6 +98,12 @@ const menuCategories: MenuCategory[] = [
         description: 'Enter club events'
       },
       { 
+        label: 'My Entries', 
+        href: '/clubhouse/my-entries', 
+        icon: 'fa-clipboard-list',
+        description: 'View your tournament entries'
+      },
+      { 
         label: 'My Credits', 
         href: '/clubhouse/wallet', 
         icon: 'fa-coins',

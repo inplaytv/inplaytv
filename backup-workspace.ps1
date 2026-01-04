@@ -36,11 +36,13 @@ try {
     $excludeFiles = @("*.log", "pnpm-lock.yaml")
     
     $robocopyArgs = @(
-        $sourceDir,
-        $fullBackupPath,
+        "`"$sourceDir`"",
+        "`"$fullBackupPath`"",
         "/E",  # Copy subdirectories including empty ones
-        "/XD" + ($excludeDirs -join " /XD "),  # Exclude directories
-        "/XF" + ($excludeFiles -join " /XF "),  # Exclude files
+        "/XD"
+    ) + $excludeDirs + @(
+        "/XF"
+    ) + $excludeFiles + @(
         "/MT:8",  # Multi-threaded (8 threads)
         "/NFL",  # No file list
         "/NDL",  # No directory list
@@ -52,12 +54,24 @@ try {
     )
     
     Write-Host "Running backup (excluding node_modules, .next, .git, etc.)..." -ForegroundColor Yellow
-    $result = robocopy @robocopyArgs
+    
+    # Build the command string for Invoke-Expression
+    $cmd = "robocopy `"$sourceDir`" `"$fullBackupPath`" /E"
+    foreach ($dir in $excludeDirs) {
+        $cmd += " /XD `"$dir`""
+    }
+    foreach ($file in $excludeFiles) {
+        $cmd += " /XF `"$file`""
+    }
+    $cmd += " /MT:8 /NFL /NDL /NJH /NJS /NC /NS /NP"
+    
+    Write-Host "Command: $cmd" -ForegroundColor Gray
+    Invoke-Expression $cmd
     
     # Robocopy exit codes: 0-7 are success, 8+ are errors
     if ($LASTEXITCODE -lt 8) {
         Write-Host ""
-        Write-Host "✓ Backup completed successfully!" -ForegroundColor Green
+        Write-Host "[SUCCESS] Backup completed successfully!" -ForegroundColor Green
         Write-Host "Backup saved to: $fullBackupPath" -ForegroundColor Cyan
         
         # Get backup size
@@ -78,12 +92,12 @@ try {
             $sizeGB = (Get-ChildItem $_.FullName -Recurse | Measure-Object -Property Length -Sum).Sum / 1GB
             $sizeText = "{0:N2}" -f $sizeGB
             $hoursText = [math]::Round($age.TotalHours, 1)
-            Write-Host "  - $($_.Name) ($sizeText GB, $hoursText hours ago)" -ForegroundColor Gray
+            Write-Host "  - $($_.Name) (${sizeText} GB, ${hoursText} hours ago)" -ForegroundColor Gray
         }
 }
 catch {
     Write-Host ""
-    Write-Host "X Backup failed: $_" -ForegroundColor Red
+    Write-Host "[ERROR] Backup failed: $_" -ForegroundColor Red
     exit 1
 }
 

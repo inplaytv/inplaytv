@@ -88,12 +88,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { event_id, golfer_ids, captain_id } = await req.json();
+    const { competition_id, golfer_ids, captain_id } = await req.json();
 
     // Validate input
-    if (!event_id || !golfer_ids || !Array.isArray(golfer_ids) || golfer_ids.length !== 6 || !captain_id) {
+    if (!competition_id || !golfer_ids || !Array.isArray(golfer_ids) || golfer_ids.length !== 6 || !captain_id) {
       return NextResponse.json({ 
-        error: 'Invalid entry data. Must provide event_id, 6 golfer_ids, and captain_id' 
+        error: 'Invalid entry data. Must provide competition_id, 6 golfer_ids, and captain_id' 
       }, { status: 400 });
     }
 
@@ -103,12 +103,26 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
+    // Get competition details for entry fee
+    const { data: competition, error: compError } = await supabase
+      .from('clubhouse_competitions')
+      .select('entry_credits')
+      .eq('id', competition_id)
+      .single();
+
+    if (compError || !competition) {
+      return NextResponse.json({ 
+        error: 'Competition not found' 
+      }, { status: 404 });
+    }
+
     // Call RPC function to handle entry submission (atomic transaction)
-    const { data, error } = await supabase.rpc('clubhouse_enter_event', {
+    const { data, error } = await supabase.rpc('create_clubhouse_entry', {
       p_user_id: user.id,
-      p_event_id: event_id,
+      p_competition_id: competition_id,
       p_golfer_ids: golfer_ids,
-      p_captain_id: captain_id
+      p_captain_id: captain_id,
+      p_credits: competition.entry_credits
     });
 
     if (error) {

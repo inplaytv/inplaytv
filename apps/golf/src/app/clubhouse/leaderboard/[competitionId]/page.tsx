@@ -17,6 +17,7 @@ interface LeaderboardEntry {
     display_name: string;
     username: string;
   };
+  golfer_details?: Array<{ name: string; score: number }>;
   total_score?: number;
   position?: number;
 }
@@ -27,6 +28,7 @@ interface Competition {
   description: string;
   entry_credits: number;
   prize_credits: number;
+  rounds_covered?: number[];
   event: {
     name: string;
     status: string;
@@ -41,22 +43,21 @@ export default function LeaderboardPage() {
   const [competition, setCompetition] = useState<Competition | null>(null);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [allCompetitions, setAllCompetitions] = useState<Competition[]>([]);
+  const [selectedRound, setSelectedRound] = useState<string>(competitionId);
 
   useEffect(() => {
     fetchLeaderboard();
-  }, [competitionId]);
+  }, [selectedRound]);
 
   async function fetchLeaderboard() {
     const supabase = createClient();
     
-    // Fetch competition details
+    // Fetch competition details for selected round
     const { data: compData, error: compError } = await supabase
       .from('clubhouse_competitions')
-      .select(`
-        *,
-        event:clubhouse_events(name, status, slug)
-      `)
-      .eq('id', competitionId)
+      .select('*')
+      .eq('id', selectedRound)
       .single();
 
     if (compError) {
@@ -65,32 +66,104 @@ export default function LeaderboardPage() {
       return;
     }
 
-    setCompetition(compData);
+    // Fetch all competitions for this event (for round selector)
+    const { data: allCompsData } = await supabase
+      .from('clubhouse_competitions')
+      .select('id, name, rounds_covered')
+      .eq('event_id', compData.event_id)
+      .order('rounds_covered');
 
-    // Fetch entries with user profiles
+    console.log('Fetched competitions:', allCompsData?.length || 0, 'comps for event', compData.event_id);
+    if (allCompsData) {
+      const compsWithEvent = allCompsData.map(c => ({
+        ...c,
+        event: { name: '', status: '', slug: '' }
+      }));
+      setAllCompetitions(compsWithEvent as Competition[]);
+      console.log('Set allCompetitions:', compsWithEvent.length);
+    }
+
+    // Fetch event details
+    const { data: eventData } = await supabase
+      .from('clubhouse_events')
+      .select('name, status, slug')
+      .eq('id', compData.event_id)
+      .single();
+
+    setCompetition({
+      ...compData,
+      event: eventData || { name: 'Unknown Event', status: 'unknown', slug: '' }
+    });
+
+    // Fetch entries
     const { data: entriesData, error: entriesError } = await supabase
       .from('clubhouse_entries')
-      .select(`
-        *,
-        user:profiles(display_name, username)
-      `)
-      .eq('competition_id', competitionId)
+      .select('*')
+      .eq('competition_id', selectedRound)
       .eq('status', 'active')
       .order('created_at', { ascending: true });
 
+    console.log('Entries data:', entriesData?.length || 0, 'entries for competition', selectedRound);
+
     if (entriesError) {
       console.error('Error fetching entries:', entriesError);
-    } else {
-      // Mock scoring - in real system would calculate from golfer scores
-      const withScores = (entriesData || []).map((entry, idx) => ({
-        ...entry,
-        total_score: Math.floor(Math.random() * 20) - 10, // Mock score
-        position: idx + 1
-      })).sort((a, b) => (a.total_score || 0) - (b.total_score || 0));
-
-      setEntries(withScores);
+      setLoading(false);
+      return;
     }
 
+    if (!entriesData || entriesData.length === 0) {
+      console.log('No entries found');
+      setEntries([]);
+      setLoading(false);
+      return;
+    }
+
+    // Fetch user profiles
+    const userIds = [...new Set(entriesData?.map(e => e.user_id) || [])];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, display_name, username')
+      .in('id', userIds);
+
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+    // Fetch all golfers for entries
+    const allGolferIds = [...new Set(entriesData?.flatMap(e => e.golfer_ids) || [])];
+    console.log('Fetching golfers:', allGolferIds.length);
+    
+    const { data: golfers } = await supabase
+      .from('golfers')
+      .select('id, first_name, last_name')
+      .in('id', allGolferIds);
+
+    console.log('Fetched golfers:', golfers?.length || 0);
+
+    const golferMap = new Map(golfers?.map(g => [g.id, {
+      name: `${g.first_name[0]}. ${g.last_name}`,
+      score: Math.floor(Math.random() * 10) - 5 // Mock individual golfer score
+    }]) || []);
+
+    // Enrich entries with user data, golfer details, and mock scores
+    const withScores = (entriesData || []).map((entry, idx) => {
+      const profile = profileMap.get(entry.user_id);
+      const golferDetails = entry.golfer_ids.map(id => golferMap.get(id) || { name: 'Unknown', score: 0 }).slice(0, 6);
+      return {
+        ...entry,
+        user: profile || { display_name: 'Unknown', username: 'unknown' },
+        golfer_details: golferDetails,
+        total_score: Math.floor(Math.random() * 20) - 10, // Mock score
+        position: idx + 1
+      };
+    }).sort((a, b) => (a.total_score || 0) - (b.total_score || 0));
+const getRoundLabel = (comp: Competition) => {
+    if (!comp.rounds_covered || comp.rounds_covered.length === 0) return 'All Rounds';
+    if (comp.rounds_covered.length === 4) return 'All Rounds';
+    if (comp.rounds_covered.length === 1) return `R${comp.rounds_covered[0]}`;
+    return `R${comp.rounds_covered.join(', ')}`;
+  };
+
+  
+    setEntries(withScores);
     setLoading(false);
   }
 
@@ -109,6 +182,13 @@ export default function LeaderboardPage() {
       completed: '#6366f1'
     };
     return colors[status as keyof typeof colors] || '#6b7280';
+  };
+
+  const getRoundLabel = (comp: Competition) => {
+    if (!comp.rounds_covered || comp.rounds_covered.length === 0) return 'All Rounds';
+    if (comp.rounds_covered.length === 4) return 'All Rounds';
+    if (comp.rounds_covered.length === 1) return `R${comp.rounds_covered[0]}`;
+    return `R${comp.rounds_covered.join(', ')}`;
   };
 
   if (loading) {
@@ -132,7 +212,8 @@ export default function LeaderboardPage() {
             <i className="fas fa-exclamation-circle"></i>
             <h3>Competition Not Found</h3>
             <p>The competition you're looking for doesn't exist.</p>
-            <Link href="/clubhouse/events" className={styles.backBtn}>
+            <Link href="/clubhouse/events" className={styles.backLink}>
+              <i className="fas fa-arrow-left"></i>
               Back to Events
             </Link>
           </div>
@@ -146,46 +227,49 @@ export default function LeaderboardPage() {
       <div className={styles.container}>
         {/* Header */}
         <div className={styles.header}>
-          <Link href={`/clubhouse/events/${competition.event.slug}`} className={styles.backLink}>
-            <i className="fas fa-arrow-left"></i>
-            Back to Event
-          </Link>
-          
-          <div className={styles.titleSection}>
+          <div className={styles.topRow}>
+            <Link href={`/clubhouse/events/${competition.event.slug}`} className={styles.backLink}>
+              <i className="fas fa-arrow-left"></i>
+              Back to Event
+            </Link>
+            
             <h1 className={styles.title}>
               <i className="fas fa-trophy"></i>
               {competition.event.name}
             </h1>
-            <p className={styles.subtitle}>{competition.name}</p>
+
+            <div className={styles.spacer}></div>
           </div>
 
-          <div className={styles.statusBadge} style={{ background: getStatusColor(competition.event.status) }}>
-            {competition.event.status.toUpperCase()}
-          </div>
-        </div>
+          {/* Round Selector Inline */}
+          {allCompetitions.length > 1 && (
+            <div className={styles.roundTabsInline}>
+              <span className={styles.competitionName}>{competition.name}</span>
+              <div className={styles.roundButtons}>
+                {allCompetitions.map((comp) => (
+                  <button
+                    key={comp.id}
+                    className={`${styles.roundTab} ${selectedRound === comp.id ? styles.active : ''}`}
+                    onClick={() => setSelectedRound(comp.id)}
+                  >
+                    {getRoundLabel(comp)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-        {/* Competition Info */}
-        <div className={styles.infoCard}>
-          <div className={styles.infoStat}>
-            <i className="fas fa-users"></i>
-            <div>
-              <span className={styles.statValue}>{entries.length}</span>
-              <span className={styles.statLabel}>Entries</span>
-            </div>
-          </div>
-          <div className={styles.infoStat}>
-            <i className="fas fa-coins"></i>
-            <div>
-              <span className={styles.statValue}>{competition.entry_credits}</span>
-              <span className={styles.statLabel}>Entry Credits</span>
-            </div>
-          </div>
-          <div className={styles.infoStat}>
-            <i className="fas fa-trophy"></i>
-            <div>
-              <span className={styles.statValue}>{competition.prize_credits || 'TBD'}</span>
-              <span className={styles.statLabel}>Prize Pool</span>
-            </div>
+          {/* Competition Stats Inline */}
+          <div className={styles.headerStats}>
+            <span className={styles.statItem}>
+              <i className="fas fa-users"></i> {entries.length} Entries
+            </span>
+            <span className={styles.statItem}>
+              <i className="fas fa-coins"></i> {competition.entry_credits} Entry Credits
+            </span>
+            <span className={styles.statItem}>
+              <i className="fas fa-trophy"></i> {competition.prize_credits || 'TBD'} Prize Pool
+            </span>
           </div>
         </div>
 
@@ -219,13 +303,21 @@ export default function LeaderboardPage() {
                   {getPositionBadge(entry.position || idx + 1)}
                 </div>
                 <div className={styles.playerInfo}>
-                  <span className={styles.playerName}>
-                    {entry.user?.display_name || entry.user?.username || 'Unknown Player'}
-                  </span>
-                  <span className={styles.teamInfo}>
-                    <i className="fas fa-users"></i>
-                    {entry.golfer_ids.length} golfers
-                  </span>
+                  <div className={styles.playerNameRow}>
+                    <span className={styles.playerName}>
+                      {entry.user?.display_name || entry.user?.username || 'Unknown Player'}
+                    </span>
+                    <div className={styles.golferNames}>
+                      {entry.golfer_details?.map((golfer, i) => (
+                        <span key={i} className={styles.golferBadge}>
+                          <span className={styles.golferName}>{golfer.name}</span>
+                          <span className={styles.golferScore}>
+                            {golfer.score > 0 ? '+' : ''}{golfer.score}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div className={styles.score}>
                   <span className={entry.total_score && entry.total_score < 0 ? styles.under : styles.over}>

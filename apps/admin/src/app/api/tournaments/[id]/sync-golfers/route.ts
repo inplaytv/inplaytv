@@ -496,6 +496,46 @@ export async function POST(
         console.log('⚠️ No competitions found for this tournament');
       }
 
+      // ========================================================================
+      // OPTION A: AUTO-LINK TO CLUBHOUSE EVENTS
+      // ========================================================================
+      console.log('🏡 Checking for linked Clubhouse events...');
+      
+      const { data: linkedClubhouseEvents } = await supabase
+        .from('clubhouse_events')
+        .select('id, name')
+        .eq('linked_tournament_id', tournamentId);
+
+      if (linkedClubhouseEvents && linkedClubhouseEvents.length > 0) {
+        console.log(`🔗 Found ${linkedClubhouseEvents.length} linked Clubhouse events`);
+        
+        // Get ALL competitions for these clubhouse events
+        const eventIds = linkedClubhouseEvents.map(e => e.id);
+        const { data: clubhouseCompetitions } = await supabase
+          .from('clubhouse_competitions')
+          .select('id, name')
+          .in('event_id', eventIds);
+
+        if (clubhouseCompetitions && clubhouseCompetitions.length > 0) {
+          // Auto-assign golfer group to all clubhouse competitions
+          const { error: clubhouseLinkError } = await supabase
+            .from('clubhouse_competitions')
+            .update({ assigned_golfer_group_id: groupId })
+            .in('id', clubhouseCompetitions.map(c => c.id));
+
+          if (clubhouseLinkError) {
+            console.error('⚠️ Error linking group to Clubhouse competitions:', clubhouseLinkError);
+          } else {
+            console.log(`✅ Auto-assigned golfer group to ${clubhouseCompetitions.length} Clubhouse competitions`);
+            linkedClubhouseEvents.forEach(e => {
+              console.log(`   • ${e.name}`);
+            });
+          }
+        }
+      } else {
+        console.log('   No linked Clubhouse events (this is fine)');
+      }
+
       return NextResponse.json({
         success: true,
         tournament: {

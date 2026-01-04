@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabaseServer';
+import { createAdminClient } from '@/lib/supabaseAdminServer';
 import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-// Service role client for admin operations
+// Service role client for admin operations (legacy, prefer createAdminClient)
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -67,14 +68,15 @@ export async function GET(
     return NextResponse.json({
       id: event.id,
       name: event.name,
+      slug: event.slug,
       description: event.description,
       location: event.location,
       status: event.status,
       entry_credits: competition?.entry_credits || 0,
       max_entries: competition?.max_entries || 0,
       current_entries: currentEntries,
-      reg_open_at: event.registration_opens_at || competition?.registration_opens_at,
-      reg_close_at: event.registration_closes_at || competition?.registration_closes_at,
+      reg_open_at: event.registration_opens_at,
+      reg_close_at: event.registration_closes_at,
       start_at: event.start_date,
       end_at: event.end_date,
       // New multi-round fields (if they exist)
@@ -82,6 +84,8 @@ export async function GET(
       round2_tee_time: event.round2_tee_time || null,
       round3_tee_time: event.round3_tee_time || null,
       round4_tee_time: event.round4_tee_time || null,
+      // Option A: Tournament linking for DataGolf integration
+      linked_tournament_id: event.linked_tournament_id || null,
     }, { headers: corsHeaders });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders });
@@ -94,7 +98,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createServerClient();
+    const supabase = createAdminClient(); // Use admin client to bypass RLS
     const body = await req.json();
 
     // Helper to convert datetime-local to ISO 8601
@@ -110,6 +114,7 @@ export async function PUT(
       description: body.description,
       location: body.location,
       end_date: toISO(body.end_date),
+      linked_tournament_id: body.linked_tournament_id || null, // Option A: Tournament linking
     };
 
     // Allow manual status override
@@ -147,25 +152,43 @@ export async function PUT(
 
     if (eventError) throw eventError;
 
-    // Update associated competition
+    // Update ALL associated competitions (there are 5 per event)
     const { data: competitions } = await supabase
       .from('clubhouse_competitions')
       .select('id')
-      .eq('event_id', id)
-      .limit(1);
+      .eq('event_id', id); // Remove .limit(1) to get ALL competitions
+
+    console.log('📋 Found competitions for event:', competitions);
 
     if (competitions && competitions.length > 0) {
+      console.log('🔧 Updating ALL', competitions.length, 'competitions with golfer_group_id:', body.assigned_golfer_group_id);
+      
+      // Update ALL competitions, not just the first one
       const { error: compError } = await supabase
         .from('clubhouse_competitions')
         .update({
           entry_credits: body.entry_credits,
           max_entries: body.max_entries,
-          registration_opens_at: toISO(body.registration_opens),
-          registration_closes_at: toISO(body.registration_closes),
+          opens_at: toISO(body.registration_opens),
+          closes_at: toISO(body.registration_closes),
+          assigned_golfer_group_id: body.assigned_golfer_group_id || null,
         })
-        .eq('id', competitions[0].id);
+        .eq('event_id', id); // Update by event_id to catch ALL competitions
 
-      if (compError) throw compError;
+      if (compError) {
+        console.error('❌ Competition update error:', compError);
+        throw compError;
+      }
+      console.log('✅ All competitions updated successfully');
+      
+      // Verify the update by reading back
+      const { data: verifyComps } = await supabase
+        .from('clubhouse_competitions')
+        .select('id, assigned_golfer_group_id')
+        .eq('event_id', id);
+      console.log('🔍 Verification - competitions after update:', verifyComps);
+    } else {
+      console.warn('⚠️ No competitions found for event:', id);
     }
 
     return NextResponse.json({ success: true }, { headers: corsHeaders });

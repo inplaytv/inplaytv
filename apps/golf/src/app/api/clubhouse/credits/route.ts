@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     const supabase = createClient();
 
     // Use atomic RPC function to grant credits (no auth check for now - development)
-    const { data: newBalance, error: grantError } = await supabase.rpc('grant_credits', {
+    const { data: newBalance, error: grantError } = await supabase.rpc('apply_clubhouse_credits', {
       p_user_id: userId,
       p_amount: amount,
       p_reason: reason

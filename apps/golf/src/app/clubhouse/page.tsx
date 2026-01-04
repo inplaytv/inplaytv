@@ -119,6 +119,76 @@ export default function ClubhousePage() {
   return (
     <RequireAuth>
       <div className={styles.container}>
+        {/* Quick Actions Header */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '1rem', 
+          marginBottom: '2rem', 
+          padding: '1rem',
+          background: 'rgba(255, 255, 255, 0.05)',
+          borderRadius: '12px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          flexWrap: 'wrap',
+          justifyContent: 'center'
+        }}>
+          <Link href="/clubhouse/events" style={{
+            padding: '0.75rem 1.5rem',
+            background: 'linear-gradient(135deg, #b19cd9 0%, #9575cd 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '10px',
+            fontWeight: 600,
+            fontSize: '0.95rem',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'all 0.3s ease'
+          }}>
+            <i className="fas fa-calendar-alt"></i>
+            Browse Events
+          </Link>
+          <Link href="/clubhouse/my-entries" style={{
+            padding: '0.75rem 1.5rem',
+            background: 'rgba(255, 255, 255, 0.08)',
+            color: 'white',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '10px',
+            fontWeight: 600,
+            fontSize: '0.95rem',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'all 0.3s ease',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <i className="fas fa-clipboard-list"></i>
+            My Entries
+          </Link>
+          <Link href="/clubhouse/wallet" style={{
+            padding: '0.75rem 1.5rem',
+            background: 'rgba(255, 255, 255, 0.08)',
+            color: 'white',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '10px',
+            fontWeight: 600,
+            fontSize: '0.95rem',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'all 0.3s ease',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <i className="fas fa-wallet"></i>
+            My Wallet
+          </Link>
+        </div>
+
         {/* Hero Section */}
         <section className={styles.hero}>
           <div className={styles.heroOverlay}></div>
@@ -322,8 +392,8 @@ export default function ClubhousePage() {
                     {/* Entry Cost */}
                     <div style={{
                       padding: '1rem',
-                      background: 'rgba(20, 184, 166, 0.1)',
-                      border: '1px solid rgba(20, 184, 166, 0.2)',
+                      background: 'rgba(218, 165, 32, 0.1)',
+                      border: '1px solid rgba(218, 165, 32, 0.2)',
                       borderRadius: '12px',
                     }}>
                       <div style={{ 
@@ -336,7 +406,7 @@ export default function ClubhousePage() {
                         Entry Cost
                       </div>
                       <div style={{ 
-                        color: '#14b8a6', 
+                        color: '#228b22', 
                         fontSize: '1.5rem',
                         fontWeight: 700,
                       }}>
@@ -348,8 +418,8 @@ export default function ClubhousePage() {
                     {/* Competitions */}
                     <div style={{
                       padding: '1rem',
-                      background: 'rgba(20, 184, 166, 0.1)',
-                      border: '1px solid rgba(20, 184, 166, 0.2)',
+                      background: 'rgba(34, 139, 34, 0.1)',
+                      border: '1px solid rgba(34, 139, 34, 0.2)',
                       borderRadius: '12px',
                     }}>
                       <div style={{ 
@@ -362,7 +432,7 @@ export default function ClubhousePage() {
                         Competitions
                       </div>
                       <div style={{ 
-                        color: '#14b8a6', 
+                        color: '#228b22', 
                         fontSize: '1.5rem',
                         fontWeight: 700,
                       }}>
@@ -435,7 +505,7 @@ export default function ClubhousePage() {
                     >
                       <div style={{
                         padding: '0.875rem',
-                        background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
+                        background: 'linear-gradient(135deg, #228b22, #daa520)',
                         border: 'none',
                         borderRadius: '10px',
                         color: '#fff',
