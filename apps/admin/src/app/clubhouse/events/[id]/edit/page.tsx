@@ -365,7 +365,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
           {/* Round Tee Times Section */}
           {hasRoundTimes && (
             <div style={{ gridColumn: '1 / -1', marginTop: '1rem', padding: '1rem', background: 'rgba(14, 184, 166, 0.05)', borderRadius: '8px', border: '1px solid rgba(14, 184, 166, 0.2)' }}>
-              <h3 style={{ color: '#0eb8a6', fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 600 }}>Round Tee Times</h3>
+              <h3 style={{ color: '#daa520', fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 600 }}>Round Tee Times</h3>
               <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1rem' }}>
                 Set tee times for each round. Competitions will automatically close 15 minutes before each round starts.
               </div>
@@ -486,7 +486,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
               style={{
                 flex: 1,
                 padding: '0.75rem 1.5rem',
-                background: saving ? '#555' : 'linear-gradient(135deg, #14b8a6 0%, #0891b2 100%)',
+                background: saving ? '#555' : 'linear-gradient(135deg, #228b22 0%, #daa520 100%)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '8px',

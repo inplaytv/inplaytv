@@ -325,7 +325,7 @@ export default function CreateEventPage() {
                     style={{
                       padding: '0.4rem 0.75rem',
                       background: 'rgba(14, 184, 166, 0.1)',
-                      color: '#0eb8a6',
+                      color: '#daa520',
                       border: '1px solid rgba(14, 184, 166, 0.3)',
                       borderRadius: '6px',
                       fontSize: '0.75rem',
@@ -434,7 +434,7 @@ export default function CreateEventPage() {
             </div>
 
             <div style={{ gridColumn: '1 / -1', marginTop: '1rem', padding: '1rem', background: 'rgba(14, 184, 166, 0.05)', borderRadius: '8px', border: '1px solid rgba(14, 184, 166, 0.2)' }}>
-              <h3 style={{ color: '#0eb8a6', fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 600 }}>Round Tee Times</h3>
+              <h3 style={{ color: '#daa520', fontSize: '0.9rem', marginBottom: '0.75rem', fontWeight: 600 }}>Round Tee Times</h3>
               <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1rem' }}>
                 Set tee times for each round. Registration will automatically close 15 minutes before each round starts.
               </div>
@@ -602,7 +602,7 @@ export default function CreateEventPage() {
               disabled={loading}
               style={{
                 padding: '0.625rem 1.25rem',
-                background: loading ? '#374151' : 'linear-gradient(135deg, #0d9488, #14b8a6)',
+                background: loading ? '#374151' : 'linear-gradient(135deg, #228b22, #daa520)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '6px',

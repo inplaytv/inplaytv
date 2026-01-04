@@ -435,7 +435,7 @@ export default function ClubhousePage() {
                     >
                       <div style={{
                         padding: '0.875rem',
-                        background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
+                        background: 'linear-gradient(135deg, #228b22, #daa520)',
                         border: 'none',
                         borderRadius: '10px',
                         color: '#fff',

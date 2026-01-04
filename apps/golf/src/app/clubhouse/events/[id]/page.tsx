@@ -227,7 +227,7 @@ export default function EventDetailPage() {
                 <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.25rem', fontWeight: 600 }}>
                   Entry Cost
                 </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#14b8a6' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#daa520' }}>
                   {event.entry_credits}
                 </div>
               </div>
@@ -448,7 +448,7 @@ export default function EventDetailPage() {
                         background: 'rgba(20, 184, 166, 0.2)',
                         borderRadius: '8px',
                         fontSize: '0.875rem',
-                        color: '#14b8a6',
+                        color: '#daa520',
                         fontWeight: 600,
                       }}>
                         Round{comp.rounds_covered.length > 1 ? 's' : ''} {comp.rounds_covered.join(', ')}
@@ -471,7 +471,7 @@ export default function EventDetailPage() {
                         <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.5rem', fontWeight: 600 }}>
                           Entry Fee
                         </div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#14b8a6' }}>
+                        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#daa520' }}>
                           {comp.entry_credits}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>Credits</div>
