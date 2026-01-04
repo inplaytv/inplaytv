@@ -146,7 +146,7 @@ export default function LeaderboardPage() {
     // Enrich entries with user data, golfer details, and mock scores
     const withScores = (entriesData || []).map((entry, idx) => {
       const profile = profileMap.get(entry.user_id);
-      const golferDetails = entry.golfer_ids.map(id => golferMap.get(id) || { name: 'Unknown', score: 0 }).slice(0, 6);
+      const golferDetails = entry.golfer_ids.map((id: string) => golferMap.get(id) || { name: 'Unknown', score: 0 }).slice(0, 6);
       return {
         ...entry,
         user: profile || { display_name: 'Unknown', username: 'unknown' },
