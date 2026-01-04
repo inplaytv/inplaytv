@@ -788,16 +788,20 @@ export default function CreateEventPage() {
                   localStorage.removeItem('clubhouse_event_draft');
                   setFormData({
                     name: '',
+                    slug: '',
                     description: '',
                     location: '',
+                    status: 'upcoming',
                     entry_credits: 0,
                     max_entries: 0,
+                    registration_opens: '',
                     round1_tee_time: '',
                     round2_tee_time: '',
                     round3_tee_time: '',
                     round4_tee_time: '',
                     end_date: '',
                     assigned_golfer_group_id: '',
+                    linked_tournament_id: '',
                   });
                 }
               }}
