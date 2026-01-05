@@ -26,6 +26,7 @@ interface Competition {
   id: string;
   event_id: string;
   event_name: string;
+  name?: string;
   entry_credits: number;
   max_entries: number;
   opens_at: string | null;

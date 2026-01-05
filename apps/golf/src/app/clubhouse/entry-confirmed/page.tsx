@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from './confirmed.module.css';
 
-export default function EntryConfirmedPage() {
+function EntryConfirmedContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [countdown, setCountdown] = useState(10);
@@ -80,5 +80,13 @@ export default function EntryConfirmedPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function EntryConfirmedPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EntryConfirmedContent />
+    </Suspense>
   );
 }

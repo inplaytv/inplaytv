@@ -240,7 +240,7 @@ export async function PUT(
           let opensAt;
 
           // Get the tee time for THIS competition's first round
-          const roundTeeTime = roundTeeTimes[firstRound];
+          const roundTeeTime = roundTeeTimes[firstRound as keyof typeof roundTeeTimes];
           
           if (roundTeeTime) {
             // Use the specific round's tee time
@@ -255,10 +255,11 @@ export async function PUT(
             closesAt = toISO(body.registration_closes);
           } else {
             // Last resort: use registration_closes + 1 hour
-            const regCloses = new Date(toISO(body.registration_closes));
+            const regClosesValue = toISO(body.registration_closes);
+            const regCloses = new Date(regClosesValue || new Date());
             regCloses.setHours(regCloses.getHours() + 1);
             startsAt = regCloses.toISOString();
-            closesAt = toISO(body.registration_closes);
+            closesAt = regClosesValue || new Date().toISOString();
           }
 
           // opens_at is always the event's registration_opens
