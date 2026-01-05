@@ -88,11 +88,11 @@ export async function PUT(
       );
     }
 
-    // Get existing entry (check both competition_id and instance_id)
+    // Get existing entry using competition_id only (works for both InPlay and ONE 2 ONE)
     const { data: existingEntry, error: fetchError } = await supabase
       .from('competition_entries')
       .select('id, status')
-      .or(`competition_id.eq.${competitionId},instance_id.eq.${competitionId}`)
+      .eq('competition_id', competitionId)
       .eq('user_id', user.id)
       .maybeSingle();
 

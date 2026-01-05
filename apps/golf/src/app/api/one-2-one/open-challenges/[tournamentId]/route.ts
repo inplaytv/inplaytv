@@ -9,9 +9,9 @@ export async function GET(
     const { tournamentId } = await params;
     const supabase = await createServerClient();
 
-    // Fetch open instances (waiting for opponent) for this tournament
-    const { data: instances, error } = await supabase
-      .from('competition_instances')
+    // Fetch open competitions (waiting for opponent) for this tournament
+    const { data: competitions, error } = await supabase
+      .from('tournament_competitions')
       .select(`
         id,
         instance_number,
@@ -25,13 +25,14 @@ export async function GET(
           rounds_covered,
           admin_fee_percent
         ),
-        competition_entries!competition_entries_instance_id_fkey!inner (
+        competition_entries!competition_entries_competition_id_fkey!inner (
           id,
           user_id,
           entry_name
         )
       `)
       .eq('tournament_id', tournamentId)
+      .eq('competition_format', 'one2one')
       .eq('status', 'open')
       .lt('current_players', 2)
       .order('created_at', { ascending: false })
@@ -43,9 +44,9 @@ export async function GET(
     }
 
     // Get unique user IDs to fetch profiles
-    const userIds = [...new Set((instances || [])
-      .map((inst: any) => {
-        const entry = Array.isArray(inst.competition_entries) ? inst.competition_entries[0] : inst.competition_entries;
+    const userIds = [...new Set((competitions || [])
+      .map((comp: any) => {
+        const entry = Array.isArray(comp.competition_entries) ? comp.competition_entries[0] : comp.competition_entries;
         return entry?.user_id;
       })
       .filter(Boolean))];
@@ -59,21 +60,21 @@ export async function GET(
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
     // Transform data for frontend
-    const challenges = (instances || []).map((inst: any) => {
-      const entry = Array.isArray(inst.competition_entries) ? inst.competition_entries[0] : inst.competition_entries;
+    const challenges = (competitions || []).map((comp: any) => {
+      const entry = Array.isArray(comp.competition_entries) ? comp.competition_entries[0] : comp.competition_entries;
       const profile = profileMap.get(entry?.user_id);
       
       return {
-        instanceId: inst.id,
-        instanceNumber: inst.instance_number,
-        templateName: inst.competition_templates?.name || 'ONE 2 ONE',
-        shortName: inst.competition_templates?.short_name || '1v1',
-        roundsCovered: inst.competition_templates?.rounds_covered || [],
-        entryFeePennies: inst.entry_fee_pennies,
-        adminFeePercent: inst.competition_templates?.admin_fee_percent || 10,
-        currentPlayers: inst.current_players,
-        maxPlayers: inst.max_players,
-        createdAt: inst.created_at,
+        instanceId: comp.id, // Keep 'instanceId' for frontend compatibility
+        instanceNumber: comp.instance_number,
+        templateName: comp.competition_templates?.name || 'ONE 2 ONE',
+        shortName: comp.competition_templates?.short_name || '1v1',
+        roundsCovered: comp.competition_templates?.rounds_covered || [],
+        entryFeePennies: comp.entry_fee_pennies,
+        adminFeePercent: comp.competition_templates?.admin_fee_percent || 10,
+        currentPlayers: comp.current_players,
+        maxPlayers: comp.max_players,
+        createdAt: comp.created_at,
         challenger: {
           userId: entry?.user_id,
           displayName: profile?.display_name || profile?.username || entry?.entry_name || 'Anonymous',

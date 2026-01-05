@@ -15,7 +15,7 @@ Run these scripts in order:
 **What it creates:**
 - ✅ Tables: events, competitions, wallets, credit_transactions, entries
 - ✅ Constraints: Valid dates, 6 golfers, captain in team, no negative credits
-- ✅ Triggers: Auto-update event status, auto-sync competition timing
+- ✅ Triggers: Auto-update event status (⚠️ Competition timing sync trigger removed - see CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md)
 - ✅ Functions: apply_clubhouse_credits(), create_clubhouse_entry()
 - ✅ Row Level Security policies
 

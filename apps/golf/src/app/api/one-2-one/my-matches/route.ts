@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         total_salary,
         status,
         created_at,
-        instance:instance_id (
+        competition:competition_id (
           id,
           instance_number,
           current_players,
@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
           status,
           reg_close_at,
           winner_entry_id,
+          competition_format,
           template:template_id (
             name,
             short_name,
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq('user_id', user.id)
-      .not('instance_id', 'is', null)
+      .eq('competition.competition_format', 'one2one')
       .order('created_at', { ascending: false });
 
     const { data: entries, error: entriesError } = await query;
@@ -80,19 +81,19 @@ export async function GET(request: NextRequest) {
     // For each match, get opponent info
     const matchesWithOpponents = await Promise.all(
       entries.map(async (entry) => {
-        // Handle nested instance data - it comes as an array
-        const instance = Array.isArray(entry.instance) ? entry.instance[0] : entry.instance;
-        if (!instance) {
+        // Handle nested competition data - it comes as an array
+        const competition = Array.isArray(entry.competition) ? entry.competition[0] : entry.competition;
+        if (!competition) {
           return {
             ...entry,
-            instance,
+            competition,
             opponent: null,
             match_status: 'unknown' as string,
             user_won: false
           };
         }
 
-        // Get other player in this instance
+        // Get other player in this competition
         const { data: opponentEntry } = await supabase
           .from('competition_entries')
           .select(`
@@ -100,27 +101,27 @@ export async function GET(request: NextRequest) {
             entry_name,
             profiles:user_id (username)
           `)
-          .eq('instance_id', instance.id)
+          .eq('competition_id', competition.id)
           .neq('user_id', user.id)
           .in('status', ['submitted', 'paid'])
           .maybeSingle();
 
         // Determine match status for UI
         let matchStatus = 'waiting';
-        if (instance.status === 'cancelled') {
+        if (competition.status === 'cancelled') {
           matchStatus = 'cancelled';
-        } else if (instance.status === 'completed') {
+        } else if (competition.status === 'completed') {
           matchStatus = 'completed';
-        } else if (instance.status === 'full' || instance.current_players === 2) {
+        } else if (competition.status === 'full' || competition.current_players === 2) {
           matchStatus = 'live';
         }
 
         // Check if user won
-        const userWon = instance.winner_entry_id === entry.id;
+        const userWon = competition.winner_entry_id === entry.id;
 
         return {
           ...entry,
-          instance,
+          competition,
           opponent: opponentEntry,
           match_status: matchStatus as string,
           user_won: userWon as boolean

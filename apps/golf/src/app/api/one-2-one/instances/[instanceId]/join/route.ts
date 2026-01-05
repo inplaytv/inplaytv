@@ -7,8 +7,9 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 /**
  * POST /api/one-2-one/instances/[instanceId]/join
- * Join a ONE 2 ONE instance with a team
+ * Join a ONE 2 ONE competition with a team
  * Body: { golfer_ids: string[], captain_golfer_id: string, entry_name?: string }
+ * Note: URL still uses 'instanceId' for backwards compatibility, but queries tournament_competitions
  */
 export async function POST(
   request: NextRequest,
@@ -46,25 +47,26 @@ export async function POST(
       );
     }
 
-    // Get instance details with template
-    const { data: instance, error: instanceError } = await supabase
-      .from('competition_instances')
+    // Get competition details with template
+    const { data: competition, error: competitionError } = await supabase
+      .from('tournament_competitions')
       .select(`
         *,
         template:competition_templates (*)
       `)
       .eq('id', instanceId)
+      .eq('competition_format', 'one2one')
       .single();
 
-    if (instanceError || !instance) {
+    if (competitionError || !competition) {
       return NextResponse.json(
-        { error: 'Instance not found' },
+        { error: 'Competition not found' },
         { status: 404 }
       );
     }
 
-    // Check if instance is open
-    if (instance.status !== 'open') {
+    // Check if competition is open
+    if (competition.status !== 'open') {
       return NextResponse.json(
         { error: 'This match is no longer accepting players' },
         { status: 403 }
@@ -72,7 +74,7 @@ export async function POST(
     }
 
     // Check if already full
-    if (instance.current_players >= instance.max_players) {
+    if (competition.current_players >= competition.max_players) {
       return NextResponse.json(
         { error: 'This match is full' },
         { status: 403 }
@@ -80,9 +82,9 @@ export async function POST(
     }
 
     // Check registration deadline
-    if (instance.reg_close_at) {
+    if (competition.reg_close_at) {
       const now = new Date();
-      const closeDate = new Date(instance.reg_close_at);
+      const closeDate = new Date(competition.reg_close_at);
       if (now >= closeDate) {
         return NextResponse.json(
           { error: 'Registration is closed for this match' },
@@ -95,7 +97,7 @@ export async function POST(
     const { data: creatorEntry, error: creatorError } = await supabase
       .from('competition_entries')
       .select('user_id')
-      .eq('instance_id', instanceId)
+      .eq('competition_id', instanceId)
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle();
@@ -107,12 +109,12 @@ export async function POST(
       );
     }
 
-    // Check if user already joined this instance
+    // Check if user already joined this competition
     const { data: existingEntry, error: existingError } = await supabase
       .from('competition_entries')
       .select('id')
       .eq('user_id', user.id)
-      .eq('instance_id', instanceId)
+      .eq('competition_id', instanceId)
       .maybeSingle();
 
     if (existingError && existingError.code !== 'PGRST116') {
@@ -134,7 +136,7 @@ export async function POST(
     const { data: golfers, error: golfersError } = await supabase
       .from('competition_golfers')
       .select('golfer_id, salary')
-      .eq('tournament_id', instance.tournament_id)
+      .eq('tournament_id', competition.tournament_id)
       .in('golfer_id', golfer_ids);
 
     if (golfersError || !golfers) {
@@ -180,7 +182,7 @@ export async function POST(
     }
 
     // Check if user has enough balance
-    const entryFee = instance.template.entry_fee_pennies || 0;
+    const entryFee = competition.template.entry_fee_pennies || 0;
     if (wallet.balance_pennies < entryFee) {
       return NextResponse.json(
         { error: 'Insufficient wallet balance' },
@@ -197,8 +199,7 @@ export async function POST(
       .from('competition_entries')
       .insert({
         user_id: user.id,
-        competition_id: instance.tournament_id, // Link to tournament for compatibility
-        instance_id: instanceId,
+        competition_id: instanceId,
         entry_name: entry_name || `${user.email?.split('@')[0]}'s Team`,
         total_salary: totalSalary,
         entry_fee_paid: entryFee,
@@ -268,16 +269,16 @@ export async function POST(
         user_id: user.id,
         amount_pennies: -entryFee,
         transaction_type: 'entry_fee',
-        description: `ONE 2 ONE entry: ${instance.template.short_name}`,
+        description: `ONE 2 ONE entry: ${competition.template.short_name}`,
         related_entry_id: entry.id
       });
 
-    // The trigger will automatically update instance.current_players
+    // The trigger will automatically update competition.current_players
     // and status to 'full' if this is the 2nd player
 
-    // Get updated instance to return
-    const { data: updatedInstance } = await supabase
-      .from('competition_instances')
+    // Get updated competition to return
+    const { data: updatedCompetition } = await supabase
+      .from('tournament_competitions')
       .select('*')
       .eq('id', instanceId)
       .single();
@@ -285,8 +286,8 @@ export async function POST(
     return NextResponse.json({
       success: true,
       entry: entry,
-      instance: updatedInstance,
-      message: updatedInstance?.status === 'full' 
+      instance: updatedCompetition, // Keep 'instance' key for frontend compatibility
+      message: updatedCompetition?.status === 'full' 
         ? 'Match is now full! Good luck!'
         : 'Waiting for opponent to join...'
     });

@@ -101,7 +101,7 @@ See [docs/00-PROJECT-STATUS.md](./docs/00-PROJECT-STATUS.md) for details.
 **Key Features**:
 - Credit-based entry system (no real money)
 - Database constraints enforced (6 golfers, captain, unique entries)
-- Triggers for automatic status updates and timing sync
+- Triggers for automatic status updates (timing managed by API routes - see CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md)
 - RPC functions for atomic payment operations
 - Complete admin panel for event management
 

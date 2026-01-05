@@ -641,8 +641,9 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         { slotNumber: 6, golfer: null, isCaptain: false },
       ]);
 
-      alert('Entry submitted successfully!');
-      router.push('/clubhouse/my-entries');
+      // Redirect to confirmation page with competition details
+      const confirmationUrl = `/clubhouse/entry-confirmed?name=${encodeURIComponent(competition.name || 'Competition')}&credits=${competition.entry_credits}`;
+      router.push(confirmationUrl);
     } catch (err: any) {
       console.error('Submit error:', err);
       setError(err.message || 'Failed to submit entry');

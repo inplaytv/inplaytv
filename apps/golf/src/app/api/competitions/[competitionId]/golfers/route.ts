@@ -81,7 +81,7 @@ function calculateSalary(worldRanking: number, fieldPosition: number, totalGolfe
   return roundToClean(salary);
 }
 
-// GET - Fetch golfers available in a competition (supports both tournament_competitions AND competition_instances)
+// GET - Fetch golfers available in a competition (supports both InPlay and ONE 2 ONE via tournament_competitions)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ competitionId: string }> }

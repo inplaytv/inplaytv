@@ -79,11 +79,25 @@ export default function EventsListPage() {
 
   function getStatusColor(status: string) {
     switch (status) {
-      case 'upcoming': return '#94a3b8';
-      case 'open': return '#22c55e';
-      case 'active': return '#f59e0b';
-      case 'completed': return '#64748b';
+      case 'upcoming': return '#94a3b8';     // Gray - Not started yet
+      case 'reg_open': return '#22c55e';     // Green - Registration open
+      case 'open': return '#22c55e';         // Green - Registration open (legacy)
+      case 'live': return '#f59e0b';         // Orange - Tournament in progress
+      case 'active': return '#f59e0b';       // Orange - Tournament in progress (legacy)
+      case 'completed': return '#64748b';    // Dark gray - Finished
       default: return '#94a3b8';
+    }
+  }
+
+  function getStatusLabel(status: string) {
+    switch (status) {
+      case 'upcoming': return 'Upcoming';
+      case 'reg_open': return 'Reg Open';
+      case 'open': return 'Reg Open';        // Legacy - treat as reg_open
+      case 'live': return 'Live';
+      case 'active': return 'Live';          // Legacy - treat as live
+      case 'completed': return 'Completed';
+      default: return status;
     }
   }
 
@@ -126,7 +140,7 @@ export default function EventsListPage() {
                     className={styles.status}
                     style={{ background: getStatusColor(event.status) }}
                   >
-                    {event.status}
+                    {getStatusLabel(event.status)}
                   </span>
                 </div>
 

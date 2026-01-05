@@ -81,40 +81,42 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Look for first available open instance
-    const { data: instances, error: instancesError } = await supabase
-      .from('competition_instances')
+    // Look for first available open competition
+    const { data: competitions, error: competitionsError } = await supabase
+      .from('tournament_competitions')
       .select('*')
       .eq('template_id', templateId)
       .eq('tournament_id', tournamentId)
+      .eq('competition_format', 'one2one')
       .eq('status', 'open')
       .lt('current_players', 2) // Not full
       .order('instance_number')
       .limit(1);
 
-    if (instancesError) {
-      console.error('Error fetching instances:', instancesError);
+    if (competitionsError) {
+      console.error('Error fetching competitions:', competitionsError);
       return NextResponse.json(
-        { error: 'Failed to fetch instances' },
+        { error: 'Failed to fetch competitions' },
         { status: 500 }
       );
     }
 
-    // If we found an available instance, return it
-    if (instances && instances.length > 0) {
+    // If we found an available competition, return it
+    if (competitions && competitions.length > 0) {
       return NextResponse.json({
-        instance: instances[0],
+        instance: competitions[0], // Keep 'instance' key for frontend compatibility
         template: template,
         tournament: tournament
       });
     }
 
-    // No open instances exist, create the first one
-    const { data: newInstance, error: createError } = await supabase
-      .from('competition_instances')
+    // No open competitions exist, create the first one
+    const { data: newCompetition, error: createError } = await supabase
+      .from('tournament_competitions')
       .insert({
         template_id: templateId,
         tournament_id: tournamentId,
+        competition_format: 'one2one',
         instance_number: 1,
         current_players: 0,
         max_players: 2,
@@ -127,18 +129,18 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (createError) {
-      console.error('Error creating instance:', createError);
+      console.error('Error creating competition:', createError);
       return NextResponse.json(
-        { error: 'Failed to create instance' },
+        { error: 'Failed to create competition' },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
-      instance: newInstance,
+      instance: newCompetition, // Keep 'instance' key for frontend compatibility
       template: template,
       tournament: tournament,
-      created: true // Flag to indicate this is a new instance
+      created: true // Flag to indicate this is a new competition
     });
 
   } catch (error) {

@@ -105,8 +105,29 @@ CREATE TRIGGER event_timing_sync
 - [ ] Verify no partial updates (all or nothing)
 - [ ] Test rollback on error
 
+### Lessons Learned from Clubhouse Testing (2026-01-06)
+
+**Discovery**: The simple trigger design doesn't work for multi-round competitions.
+
+Clubhouse testing revealed:
+- Simple trigger sets ALL competitions to same `closes_at` value
+- But each competition needs different timing based on its `rounds_covered`
+- Round 1 comp closes at `round1_tee_time - 15min`
+- Round 2 comp closes at `round2_tee_time - 15min` (DIFFERENT)
+- Trigger overwrites correct API-calculated timing
+
+**Solution in Clubhouse**: API-based approach (no trigger)
+- `POST /api/clubhouse/events` - Creates competitions with round-specific timing
+- `PUT /api/clubhouse/events/[id]` - Updates each competition based on `rounds_covered`
+- Working successfully, trigger removed 2026-01-06
+
+See: [CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md](CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md)
+
 ### Backport to Main System
-**Option A: Database Triggers (Recommended)**
+
+**⚠️ DO NOT backport simple trigger** - same issue would occur in InPlay.
+
+**Option A: Round-Aware Trigger (Complex but Atomic)**
 ```sql
 CREATE OR REPLACE FUNCTION sync_inplay_competition_timing()
 RETURNS TRIGGER AS $$
@@ -131,11 +152,14 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-**Option B: Keep API but use RPC call**
-Replace fetch() with direct supabase.rpc() call in same transaction.
+**Option B: API-Based Approach (Proven Working in Clubhouse)**
+Use same pattern as Clubhouse - calculate timing in API route.
+
+**Option C: Keep Current Lifecycle Manager**
+If it's working, don't fix it. Test thoroughly before changing.
 
 **Files to update:**
-- `apps/admin/src/app/api/tournament-lifecycle/[id]/registration/route.ts` (remove fetch, add trigger or RPC)
+- `apps/admin/src/app/api/tournament-lifecycle/[id]/registration/route.ts` (if needed)
 
 ---
 

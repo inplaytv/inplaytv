@@ -149,6 +149,10 @@ CREATE TRIGGER clubhouse_event_status_auto_update
   EXECUTE FUNCTION update_clubhouse_event_status();
 
 -- Sync competition timing
+-- ⚠️ REMOVED 2026-01-06 - See CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md
+-- Trigger incompatible with round-specific competition timing.
+-- API routes handle timing correctly instead.
+/*
 CREATE FUNCTION sync_clubhouse_competition_timing()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -167,6 +171,7 @@ CREATE TRIGGER clubhouse_event_timing_sync
   ON clubhouse_events
   FOR EACH ROW
   EXECUTE FUNCTION sync_clubhouse_competition_timing();
+*/
 
 -- Initialize wallet
 CREATE FUNCTION init_clubhouse_wallet()

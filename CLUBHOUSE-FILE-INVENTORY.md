@@ -100,7 +100,7 @@
 5. **Database Triggers**
    - Not tested: Do they actually fire?
    - `update_clubhouse_event_status()` - Does status auto-update?
-   - `sync_clubhouse_competition_timing()` - Do competitions sync when event dates change?
+   - `sync_clubhouse_competition_timing()` - ⚠️ REMOVED 2026-01-06 (incompatible with round-specific timing, see CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md)
    - `init_clubhouse_wallet()` - Do new users get wallets?
 
 6. **RPC Functions**

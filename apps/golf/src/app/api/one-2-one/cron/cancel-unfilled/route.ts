@@ -10,7 +10,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
  */
 async function handleEndedTournamentInstances(supabase: any, now: string) {
   const { data: tournamentInstances, error: tournamentError } = await supabase
-    .from('competition_instances')
+    .from('tournament_competitions')
     .select(`
       id,
       instance_number,
@@ -23,6 +23,7 @@ async function handleEndedTournamentInstances(supabase: any, now: string) {
         status
       )
     `)
+    .eq('competition_format', 'one2one')
     .in('status', ['open', 'pending'])
     .lt('current_players', 2);
 
@@ -43,7 +44,7 @@ async function handleEndedTournamentInstances(supabase: any, now: string) {
         console.log(`⚠️  Safety net: Cancelling challenge ${instance.id} from ended tournament: ${instance.tournaments.name}`);
 
         await supabase
-          .from('competition_instances')
+          .from('tournament_competitions')
           .update({
             status: 'cancelled',
             cancelled_at: now,
@@ -57,7 +58,7 @@ async function handleEndedTournamentInstances(supabase: any, now: string) {
           const { data: entries } = await supabase
             .from('competition_entries')
             .select('id, user_id, entry_fee_paid')
-            .eq('instance_id', instance.id)
+            .eq('competition_id', instance.id)
             .in('status', ['submitted', 'paid']);
 
           if (entries) {
@@ -137,8 +138,9 @@ export async function POST(request: NextRequest) {
     // STEP 1: Delete abandoned 'pending' instances (older than 30 minutes)
     console.log('🧹 Cleaning up abandoned pending instances...');
     const { data: pendingInstances, error: pendingError } = await supabase
-      .from('competition_instances')
+      .from('tournament_competitions')
       .select('id, instance_number, created_at')
+      .eq('competition_format', 'one2one')
       .eq('status', 'pending')
       .lt('created_at', thirtyMinutesAgo);
 
@@ -148,7 +150,7 @@ export async function POST(request: NextRequest) {
       
       for (const instance of pendingInstances) {
         const { error: deleteError } = await supabase
-          .from('competition_instances')
+          .from('tournament_competitions')
           .delete()
           .eq('id', instance.id);
         
@@ -164,8 +166,9 @@ export async function POST(request: NextRequest) {
     // STEP 2: Cancel 'open' instances past reg_close_at (PRIMARY REFUND TRIGGER)
     console.log('⏰ Checking for challenges past registration close time...');
     const { data: instances, error: instancesError } = await supabase
-      .from('competition_instances')
+      .from('tournament_competitions')
       .select('*')
+      .eq('competition_format', 'one2one')
       .eq('status', 'open')
       .lt('reg_close_at', now)
       .lt('current_players', 2);
@@ -196,7 +199,7 @@ export async function POST(request: NextRequest) {
         : 'Registration closed - opponent not found';
 
       const { error: updateError } = await supabase
-        .from('competition_instances')
+        .from('tournament_competitions')
         .update({
           status: 'cancelled',
           cancelled_at: now,
@@ -205,9 +208,9 @@ export async function POST(request: NextRequest) {
         .eq('id', instance.id);
 
       if (updateError) {
-        console.error(`Error cancelling instance ${instance.id}:`, updateError);
+        console.error(`Error cancelling competition ${instance.id}:`, updateError);
         results.push({
-          instance_id: instance.id,
+          competition_id: instance.id,
           status: 'error',
           error: updateError.message
         });
@@ -222,11 +225,11 @@ export async function POST(request: NextRequest) {
         const { data: entries, error: entriesError } = await supabase
           .from('competition_entries')
           .select('id, user_id, entry_fee_paid')
-          .eq('instance_id', instance.id)
+          .eq('competition_id', instance.id)
           .in('status', ['submitted', 'paid']);
 
         if (entriesError) {
-          console.error(`Error fetching entries for instance ${instance.id}:`, entriesError);
+          console.error(`Error fetching entries for competition ${instance.id}:`, entriesError);
           continue;
         }
 
@@ -256,7 +259,7 @@ export async function POST(request: NextRequest) {
       }
 
       results.push({
-        instance_id: instance.id,
+        competition_id: instance.id,
         instance_number: instance.instance_number,
         players: instance.current_players,
         status: 'cancelled',

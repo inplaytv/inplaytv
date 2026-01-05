@@ -101,6 +101,14 @@ export async function PUT(
     const supabase = createAdminClient(); // Use admin client to bypass RLS
     const body = await req.json();
 
+    console.log('📥 PUT Request Body:', JSON.stringify(body, null, 2));
+    console.log('🎯 Round Tee Times Received:', {
+      round1: body.round1_tee_time,
+      round2: body.round2_tee_time,
+      round3: body.round3_tee_time,
+      round4: body.round4_tee_time,
+    });
+
     // Helper to convert datetime-local to ISO 8601
     const toISO = (dateStr: string) => {
       if (!dateStr) return null;
@@ -113,7 +121,6 @@ export async function PUT(
       name: body.name,
       description: body.description,
       location: body.location,
-      end_date: toISO(body.end_date),
       linked_tournament_id: body.linked_tournament_id || null, // Option A: Tournament linking
     };
 
@@ -126,22 +133,64 @@ export async function PUT(
     if (body.round1_tee_time) {
       // New format: use round tee times
       updateData.start_date = toISO(body.round1_tee_time);
+      updateData.end_date = toISO(body.end_date);
       updateData.round1_tee_time = toISO(body.round1_tee_time);
       updateData.round2_tee_time = toISO(body.round2_tee_time);
       updateData.round3_tee_time = toISO(body.round3_tee_time);
       updateData.round4_tee_time = toISO(body.round4_tee_time);
-      if (body.registration_opens) {
-        updateData.registration_opens_at = toISO(body.registration_opens);
-      }
+      updateData.registration_opens_at = toISO(body.registration_opens);
+      
       // Auto-calculate reg close as Round 1 - 15min
       const round1 = new Date(body.round1_tee_time);
       round1.setMinutes(round1.getMinutes() - 15);
       updateData.registration_closes_at = round1.toISOString();
+      
+      // Validate all date relationships for valid_date_range constraint
+      const regOpens = new Date(updateData.registration_opens_at);
+      const regCloses = new Date(updateData.registration_closes_at);
+      const startDate = new Date(updateData.start_date);
+      const endDate = new Date(updateData.end_date);
+      
+      console.log('📅 Date Validation:');
+      console.log('  registration_opens_at:', updateData.registration_opens_at);
+      console.log('  registration_closes_at:', updateData.registration_closes_at);
+      console.log('  start_date:', updateData.start_date);
+      console.log('  end_date:', updateData.end_date);
+      
+      if (regCloses <= regOpens) {
+        throw new Error('Registration close must be after registration open');
+      }
+      if (startDate < regCloses) {
+        throw new Error('Event start must be at or after registration close');
+      }
+      if (endDate <= startDate) {
+        throw new Error('End date must be after start date');
+      }
+      
+      console.log('✅ All date validations passed');
+      
     } else if (body.start_date) {
       // Old format: use single start date
       updateData.start_date = toISO(body.start_date);
+      updateData.end_date = toISO(body.end_date);
       updateData.registration_opens_at = toISO(body.registration_opens);
       updateData.registration_closes_at = toISO(body.registration_closes);
+      
+      // Validate all date relationships
+      const regOpens = new Date(updateData.registration_opens_at);
+      const regCloses = new Date(updateData.registration_closes_at);
+      const startDate = new Date(updateData.start_date);
+      const endDate = new Date(updateData.end_date);
+      
+      if (regCloses <= regOpens) {
+        throw new Error('Registration close must be after registration open');
+      }
+      if (startDate < regCloses) {
+        throw new Error('Event start must be at or after registration close');
+      }
+      if (endDate <= startDate) {
+        throw new Error('End date must be after start date');
+      }
     }
 
     // Update event
@@ -163,23 +212,80 @@ export async function PUT(
     if (competitions && competitions.length > 0) {
       console.log('🔧 Updating ALL', competitions.length, 'competitions with golfer_group_id:', body.assigned_golfer_group_id);
       
-      // Update ALL competitions, not just the first one
-      const { error: compError } = await supabase
+      // For bulk update of common fields (entry_credits, max_entries, opens_at, golfer_group)
+      // But we need to update starts_at individually based on each competition's rounds_covered
+      
+      // First, get all competitions with their rounds_covered
+      const { data: fullComps } = await supabase
         .from('clubhouse_competitions')
-        .update({
-          entry_credits: body.entry_credits,
-          max_entries: body.max_entries,
-          opens_at: toISO(body.registration_opens),
-          closes_at: toISO(body.registration_closes),
-          assigned_golfer_group_id: body.assigned_golfer_group_id || null,
-        })
-        .eq('event_id', id); // Update by event_id to catch ALL competitions
+        .select('id, rounds_covered')
+        .eq('event_id', id);
 
-      if (compError) {
-        console.error('❌ Competition update error:', compError);
-        throw compError;
+      if (fullComps && fullComps.length > 0) {
+        console.log('📋 Updating each competition individually with correct timing...');
+        
+        // Store the round tee times from the updated body (AFTER event update)
+        const roundTeeTimes = {
+          1: body.round1_tee_time ? toISO(body.round1_tee_time) : null,
+          2: body.round2_tee_time ? toISO(body.round2_tee_time) : null,
+          3: body.round3_tee_time ? toISO(body.round3_tee_time) : null,
+          4: body.round4_tee_time ? toISO(body.round4_tee_time) : null,
+        };
+
+        // Update each competition with its specific timing based on rounds_covered
+        for (const comp of fullComps) {
+          const firstRound = comp.rounds_covered[0]; // Get first round in array
+          let startsAt;
+          let closesAt;
+          let opensAt;
+
+          // Get the tee time for THIS competition's first round
+          const roundTeeTime = roundTeeTimes[firstRound];
+          
+          if (roundTeeTime) {
+            // Use the specific round's tee time
+            startsAt = roundTeeTime;
+            // Calculate closes_at as 15 minutes before starts_at
+            const startDate = new Date(startsAt);
+            startDate.setMinutes(startDate.getMinutes() - 15);
+            closesAt = startDate.toISOString();
+          } else if (body.start_date) {
+            // Fallback to event start_date
+            startsAt = toISO(body.start_date);
+            closesAt = toISO(body.registration_closes);
+          } else {
+            // Last resort: use registration_closes + 1 hour
+            const regCloses = new Date(toISO(body.registration_closes));
+            regCloses.setHours(regCloses.getHours() + 1);
+            startsAt = regCloses.toISOString();
+            closesAt = toISO(body.registration_closes);
+          }
+
+          // opens_at is always the event's registration_opens
+          opensAt = toISO(body.registration_opens);
+
+          console.log(`🔧 ${comp.rounds_covered.length > 1 ? 'All Rounds' : `Round ${firstRound}`}: opens=${opensAt}, closes=${closesAt}, starts=${startsAt}`);
+
+          const { error: compError } = await supabase
+            .from('clubhouse_competitions')
+            .update({
+              entry_credits: body.entry_credits,
+              max_entries: body.max_entries,
+              opens_at: opensAt,
+              closes_at: closesAt,
+              starts_at: startsAt,
+              assigned_golfer_group_id: body.assigned_golfer_group_id || null,
+            })
+            .eq('id', comp.id);
+
+          if (compError) {
+            console.error(`❌ Error updating competition ${comp.id}:`, compError);
+            throw compError;
+          }
+        }
+        
+        console.log('✅ All competitions updated with different close times based on rounds');
       }
-      console.log('✅ All competitions updated successfully');
       
       // Verify the update by reading back
       const { data: verifyComps } = await supabase

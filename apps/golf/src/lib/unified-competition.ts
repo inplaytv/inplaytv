@@ -2,8 +2,11 @@
  * Unified Competition Utilities
  * 
  * This library provides shared functions that work with BOTH:
- * - InPlay Competitions (tournament_competitions table, competition_id)
- * - ONE 2 ONE Challenges (competition_instances table, instance_id)
+ * - InPlay Competitions (tournament_competitions.competition_format = 'inplay')
+ * - ONE 2 ONE Challenges (tournament_competitions.competition_format = 'one2one')
+ * 
+ * BOTH types now use the same table: tournament_competitions
+ * BOTH types use competition_id in competition_entries (NO instance_id)
  * 
  * Goal: Eliminate duplicate code and ensure consistent behavior across both systems
  */
@@ -37,8 +40,7 @@ export interface UnifiedCompetition {
 export interface UnifiedEntry {
   id: string;
   userId: string;
-  competitionId?: string | null;
-  instanceId?: string | null;
+  competitionId: string;
   entryName: string | null;
   totalSalary: number;
   entryFeePaid: number;
@@ -60,11 +62,11 @@ export function getCompetitionId(item: any): string | null {
 }
 
 /**
- * Determine if item is InPlay or ONE 2 ONE based on which ID is present
+ * Determine if item is InPlay or ONE 2 ONE based on competition_format field
  */
 export function getCompetitionType(item: any): CompetitionType | null {
-  if (item?.competition_id) return 'inplay';
-  if (item?.instance_id) return 'one2one';
+  if (item?.competition_format === 'inplay') return 'inplay';
+  if (item?.competition_format === 'one2one') return 'one2one';
   return null;
 }
 
@@ -72,32 +74,32 @@ export function getCompetitionType(item: any): CompetitionType | null {
  * Check if an item is an InPlay competition
  */
 export function isInPlayCompetition(item: any): boolean {
-  return item?.competition_type_id !== null && 
-         item?.competition_type_id !== undefined &&
-         (item?.rounds_covered === null || item?.rounds_covered === undefined);
+  return item?.competition_format === 'inplay' && 
+         item?.competition_type_id !== null && 
+         item?.competition_type_id !== undefined;
 }
 
 /**
  * Check if an item is a ONE 2 ONE competition
  */
 export function isOne2OneCompetition(item: any): boolean {
-  return (item?.competition_type_id === null || item?.competition_type_id === undefined) &&
+  return item?.competition_format === 'one2one' &&
          item?.rounds_covered !== null && 
          item?.rounds_covered !== undefined;
 }
 
 /**
- * Check if an entry is for InPlay
+ * Check if an entry is for InPlay (checks parent competition)
  */
 export function isInPlayEntry(entry: any): boolean {
-  return entry?.competition_id !== null && entry?.competition_id !== undefined;
+  return entry?.competition?.competition_format === 'inplay';
 }
 
 /**
- * Check if an entry is for ONE 2 ONE
+ * Check if an entry is for ONE 2 ONE (checks parent competition)
  */
 export function isOne2OneEntry(entry: any): boolean {
-  return entry?.instance_id !== null && entry?.instance_id !== undefined;
+  return entry?.competition?.competition_format === 'one2one';
 }
 
 // ============================================================================
@@ -194,9 +196,9 @@ export async function fetchCompetitionDetails(
     };
   }
 
-  // Try ONE 2 ONE
+  // Try ONE 2 ONE format in tournament_competitions
   const { data: one2one, error: one2oneError } = await supabase
-    .from('competition_instances')
+    .from('tournament_competitions')
     .select(`
       id,
       tournament_id,
@@ -213,6 +215,7 @@ export async function fetchCompetitionDetails(
       )
     `)
     .eq('id', id)
+    .eq('competition_format', 'one2one')
     .single();
 
 
@@ -274,7 +277,6 @@ export async function fetchUserEntry(
     id: data.id,
     userId: data.user_id,
     competitionId: data.competition_id,
-    instanceId: data.instance_id,
     entryName: data.entry_name,
     totalSalary: data.total_salary,
     entryFeePaid: data.entry_fee_paid,
@@ -294,11 +296,11 @@ export async function fetchUserEntry(
  * Fetches from tournament_golfers table (source of truth)
  */
 export async function fetchAvailableGolfers(
-  competitionIdOrInstanceId: string,
+  competitionId: string,
   supabase: SupabaseClient
 ) {
   // First, get competition details to find the tournament
-  const competition = await fetchCompetitionDetails(competitionIdOrInstanceId, supabase);
+  const competition = await fetchCompetitionDetails(competitionId, supabase);
   
   if (!competition) {
     throw new Error('Competition not found');
@@ -570,20 +572,20 @@ export function getStatusBadge(competition: UnifiedCompetition): {
 // ============================================================================
 
 /**
- * Build entry data for submission - works for both types
+ * Build entry data for submission - works for both InPlay and ONE 2 ONE
  */
 export function buildEntryData(
   userId: string,
-  competitionId: string | null,
-  instanceId: string | null,
+  competitionId: string,
   entryName: string,
   totalSalary: number,
   entryFeePaid: number,
   captainGolferId: string,
   status: 'draft' | 'submitted' = 'submitted'
 ) {
-  const baseData = {
+  return {
     user_id: userId,
+    competition_id: competitionId,
     entry_name: entryName,
     total_salary: totalSalary,
     entry_fee_paid: entryFeePaid,
@@ -591,15 +593,6 @@ export function buildEntryData(
     status,
     submitted_at: status === 'submitted' ? new Date().toISOString() : null,
   };
-
-  // Add appropriate ID field
-  if (competitionId) {
-    return { ...baseData, competition_id: competitionId, instance_id: null };
-  } else if (instanceId) {
-    return { ...baseData, competition_id: null, instance_id: instanceId };
-  }
-
-  throw new Error('Must provide either competitionId or instanceId');
 }
 
 /**

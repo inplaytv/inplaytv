@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -300,9 +302,7 @@ export default function EventDetailPage() {
                   Reg Closes
                 </div>
                 <div style={{ fontWeight: 600, color: 'white' }}>
-                  {new Date(event.reg_close_at).toLocaleString('en-US', { 
-                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' 
-                  })}
+                  15 Minutes before Tee-Off
                 </div>
               </div>
               <div>
@@ -339,26 +339,6 @@ export default function EventDetailPage() {
             }}>
               Status: {event.status} | Reg Open: {isRegistrationOpen ? 'Yes' : 'No'} | Credits: {userCredits}/{event.entry_credits} | Entered: {hasEntered ? 'Yes' : 'No'} | Can Enter: {canEnter ? 'Yes' : 'No'}
             </div>
-
-            {hasEntered && (
-              <div
-                style={{
-                  marginTop: '1rem',
-                  padding: '0.75rem 1rem',
-                  background: 'rgba(16, 185, 129, 0.2)',
-                  border: '1px solid rgba(16, 185, 129, 0.4)',
-                  borderRadius: '8px',
-                  color: '#10b981',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <span>✓</span> Already entered
-              </div>
-            )}
 
             {!canEnter && event.status !== 'open' && !hasEntered && (
               <div
@@ -419,10 +399,10 @@ export default function EventDetailPage() {
                   const compCloses = new Date(comp.closes_at);
                   const compStarts = new Date(comp.starts_at);
                   const isCompRegistrationOpen = now >= compOpens && now < compCloses;
-                  const compHasStarted = compStarts <= now;
+                  const compHasClosed = now >= compCloses; // Registration has closed
                   
-                  // Can enter if: registration is open, hasn't started, and have credits (unlimited entries allowed)
-                  const canEnterThisComp = isCompRegistrationOpen && !compHasStarted && userCredits >= event.entry_credits;
+                  // Can enter if: registration is open and have credits (unlimited entries allowed)
+                  const canEnterThisComp = isCompRegistrationOpen && userCredits >= event.entry_credits;
                   
                   return (
                   <div
@@ -536,9 +516,9 @@ export default function EventDetailPage() {
                         <CountdownClock targetDate={comp.closes_at} />
                       </div>
                       <div>
-                        <div style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.5rem', fontWeight: 600 }}>Starts</div>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.5rem', fontWeight: 600 }}>Registration Closes</div>
                         <div style={{ fontWeight: 700, color: 'white' }}>
-                          {new Date(comp.starts_at).toLocaleString('en-US', { 
+                          {new Date(comp.closes_at).toLocaleString('en-US', { 
                             month: 'short', 
                             day: 'numeric', 
                             hour: 'numeric', 
@@ -555,9 +535,12 @@ export default function EventDetailPage() {
                         style={{
                           flex: 1,
                           padding: '0.875rem',
-                          background: canEnterThisComp 
-                            ? 'linear-gradient(135deg, #228b22, #32cd32)' 
-                            : 'rgba(100, 100, 100, 0.3)',
+                          background: compHasClosed
+                            ? 'rgba(239, 68, 68, 0.2)'
+                            : canEnterThisComp 
+                              ? 'linear-gradient(135deg, #228b22, #32cd32)' 
+                              : 'rgba(100, 100, 100, 0.3)',
+                          border: compHasClosed ? '1px solid rgba(239, 68, 68, 0.4)' : 'none',
                           color: 'white',
                           borderRadius: '10px',
                           textDecoration: 'none',
@@ -565,7 +548,7 @@ export default function EventDetailPage() {
                           fontSize: '0.9375rem',
                           textAlign: 'center',
                           transition: 'all 0.2s',
-                          opacity: canEnterThisComp ? 1 : 0.6,
+                          opacity: canEnterThisComp ? 1 : 0.9,
                           cursor: canEnterThisComp ? 'pointer' : 'not-allowed',
                         }}
                         onClick={(e) => {
@@ -584,7 +567,7 @@ export default function EventDetailPage() {
                           }
                         }}
                       >
-                        {compHasStarted ? '🔒 Closed' : '🏌️ Build Team'}
+                        {compHasClosed ? '🔒 Closed' : '🏌️ Build Team'}
                       </Link>
                       <Link
                         href={`/clubhouse/competitions/${comp.id}`}

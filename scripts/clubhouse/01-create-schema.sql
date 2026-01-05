@@ -188,17 +188,28 @@ CREATE TRIGGER clubhouse_event_status_auto_update
   EXECUTE FUNCTION update_clubhouse_event_status();
 
 -- Function: Auto-sync competition timing when event timing changes
+-- ⚠️ REMOVED 2026-01-06 - Incompatible with round-specific competition timing
+-- See: CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md for full explanation
+--
+-- This trigger was designed assuming all competitions share same timing,
+-- but testing revealed Clubhouse has 5 competitions per event with
+-- different round-specific timing (Round 1 closes at round1_tee_time - 15min,
+-- Round 2 closes at round2_tee_time - 15min, etc.)
+--
+-- Timing is now handled correctly in API routes:
+--   - apps/golf/src/app/api/clubhouse/events/route.ts (POST)
+--   - apps/golf/src/app/api/clubhouse/events/[id]/route.ts (PUT)
+--
+/*
 CREATE OR REPLACE FUNCTION sync_clubhouse_competition_timing()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Update all competitions for this event
   UPDATE clubhouse_competitions
   SET 
     opens_at = NEW.registration_opens_at,
     closes_at = NEW.registration_closes_at,
     starts_at = NEW.start_date
   WHERE event_id = NEW.id;
-  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -209,6 +220,7 @@ CREATE TRIGGER clubhouse_event_timing_sync
   ON clubhouse_events
   FOR EACH ROW
   EXECUTE FUNCTION sync_clubhouse_competition_timing();
+*/
 
 -- Function: Initialize wallet for new users
 CREATE OR REPLACE FUNCTION init_clubhouse_wallet()

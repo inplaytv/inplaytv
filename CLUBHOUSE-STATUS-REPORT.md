@@ -18,7 +18,7 @@
 
 **Triggers Working**:
 - Auto-update event status based on dates
-- Auto-sync competition timing when event dates change
+- Competition timing calculated in API routes (trigger-based sync removed after testing - see CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md)
 - Auto-initialize wallet for new users
 
 **RPC Functions Working**:

@@ -41,7 +41,7 @@ export async function POST(
       );
     }
 
-    // Get competition details for entry fee and validation (supports both tournament_competitions AND competition_instances)
+    // Get competition details for entry fee and validation (supports both InPlay and ONE 2 ONE via tournament_competitions)
     let competition: any = null;
     let isInstance = false;
     
@@ -64,35 +64,36 @@ export async function POST(
       isInstance = false;
       // Regular Competition - Multiple entries allowed
     } else {
-      // Try competition_instances (ONE 2 ONE - limit 1 entry per user)
+      // Try tournament_competitions with ONE 2 ONE format (limit 1 entry per user)
       isInstance = true;
       
-      const { data: instanceData, error: instanceError } = await supabase
-        .from('competition_instances')
+      const { data: one2oneData, error: one2oneError } = await supabase
+        .from('tournament_competitions')
         .select(`
           reg_close_at,
           start_at,
           tournament_id,
           status,
           entry_fee_pennies,
-          competition_templates!competition_instances_template_id_fkey (
+          competition_templates (
             entry_fee_pennies
           ),
-          tournaments!competition_instances_tournament_id_fkey (
+          tournaments (
             start_date
           )
         `)
         .eq('id', competitionId)
+        .eq('competition_format', 'one2one')
         .maybeSingle();
 
-      if (instanceData) {
-        console.log('🔍 ONE 2 ONE Instance status check:', { 
-          instanceId: competitionId,
-          currentStatus: instanceData.status,
+      if (one2oneData) {
+        console.log('🔍 ONE 2 ONE Competition status check:', { 
+          competitionId: competitionId,
+          currentStatus: one2oneData.status,
           submissionStatus: status 
         });
 
-        // ⚠️ ONE 2 ONE PROTECTION: Check if user already has an entry for THIS instance
+        // ⚠️ ONE 2 ONE PROTECTION: Check if user already has an entry for THIS competition
         // ONE 2 ONE allows max 1 entry per user per competition
         const { data: existingEntry, error: existingError } = await supabase
           .from('competition_entries')
@@ -109,11 +110,11 @@ export async function POST(
           );
         }
 
-        const template: any = instanceData.competition_templates;
-        const tournament: any = instanceData.tournaments;
+        const template: any = one2oneData.competition_templates;
+        const tournament: any = one2oneData.tournaments;
         competition = {
-          entry_fee_pennies: instanceData.entry_fee_pennies || template?.entry_fee_pennies || 0,
-          reg_close_at: instanceData.reg_close_at,
+          entry_fee_pennies: one2oneData.entry_fee_pennies || template?.entry_fee_pennies || 0,
+          reg_close_at: one2oneData.reg_close_at,
           tournaments: tournament,
         };
       }

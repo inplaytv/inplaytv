@@ -33,26 +33,27 @@ export async function GET(
       );
     }
 
-    // For each template, get its instances for this tournament
+    // For each template, get its competitions for this tournament
     const templatesWithInstances = await Promise.all(
       templates.map(async (template) => {
-        // Get all open instances for this template/tournament
-        const { data: instances, error: instancesError } = await supabase
-          .from('competition_instances')
+        // Get all open competitions for this template/tournament
+        const { data: competitions, error: competitionsError } = await supabase
+          .from('tournament_competitions')
           .select('id, instance_number, current_players, max_players, status, reg_close_at')
           .eq('template_id', template.id)
           .eq('tournament_id', tournamentId)
+          .eq('competition_format', 'one2one')
           .eq('status', 'open')
           .order('instance_number');
 
-        if (instancesError) {
-          console.error('Error fetching instances:', instancesError);
+        if (competitionsError) {
+          console.error('Error fetching competitions:', competitionsError);
           return { ...template, instances: [] };
         }
 
         return {
           ...template,
-          instances: instances || []
+          instances: competitions || [] // Keep 'instances' key for frontend compatibility
         };
       })
     );

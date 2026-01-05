@@ -277,29 +277,40 @@ CREATE TRIGGER event_status_auto_update
   EXECUTE FUNCTION update_event_status();
 ```
 
-### Function 2: Copy timing to competitions when event changes
+### Function 2: Competition Timing Management
+
+**⚠️ UPDATE 2026-01-06**: Timing sync trigger removed after testing.
+
+**Original Design** (trigger-based):
 ```sql
+-- REMOVED - Incompatible with round-specific competition timing
+-- See CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md
+/*
 CREATE OR REPLACE FUNCTION sync_competition_timing()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- When event timing changes, update all competitions
   UPDATE clubhouse_competitions
   SET 
     opens_at = NEW.registration_opens_at,
     closes_at = NEW.registration_closes_at,
     starts_at = NEW.start_date
   WHERE event_id = NEW.id;
-  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
-CREATE TRIGGER event_timing_sync
-  AFTER UPDATE OF registration_opens_at, registration_closes_at, start_date
-  ON clubhouse_events
-  FOR EACH ROW
-  EXECUTE FUNCTION sync_competition_timing();
+*/
 ```
+
+**Why Removed**: Trigger assumed all competitions share same timing, but each competition needs to close at its specific round's tee time minus 15 minutes.
+
+**Current Implementation** (API-based):
+Timing calculated in `apps/golf/src/app/api/clubhouse/events/[id]/route.ts`:
+- Reads each competition's `rounds_covered` array
+- Maps to corresponding `round{N}_tee_time` from event
+- Calculates `closes_at` as tee time - 15min
+- Updates each competition individually
+
+**Result**: Each competition has correct round-specific timing.
 
 ### Function 3: Credit wallet updates (atomic)
 ```sql

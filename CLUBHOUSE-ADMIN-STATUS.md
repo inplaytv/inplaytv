@@ -251,7 +251,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 Admin can:
 - ✅ Create events with dates and registration windows
 - ✅ View all events in list with status badges
-- ✅ Edit event dates (triggers auto-sync competitions)
+- ✅ Edit event dates (API calculates round-specific competition timing - trigger removed, see CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md)
 - ✅ Delete events (cascades to competitions and entries)
 - ✅ Grant credits to any user by email
 - ✅ See success/error messages for all operations

@@ -172,6 +172,26 @@ export default function CreateEventPage() {
     setLoading(true);
     setError('');
 
+    // Validate golfer group selection
+    if (!formData.assigned_golfer_group_id) {
+      const confirmed = window.confirm(
+        '⚠️ WARNING: No Golfer Group Selected\n\n' +
+        'Creating an event without a golfer group will add ALL 759 golfers to the team builder, ' +
+        'which creates a poor user experience.\n\n' +
+        'We STRONGLY recommend:\n' +
+        '1. Cancel this form\n' +
+        '2. Click "Import Golfers" to import from a tournament\n' +
+        '3. Or click "View Groups" to create a custom group\n' +
+        '4. Then return here and select the group\n\n' +
+        'Do you want to continue WITHOUT a golfer group? (Not recommended)'
+      );
+      
+      if (!confirmed) {
+        setLoading(false);
+        return;
+      }
+    }
+
     // Validate dates
     const round1 = new Date(formData.round1_tee_time);
     const round2 = new Date(formData.round2_tee_time);

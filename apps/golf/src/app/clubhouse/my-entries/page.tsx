@@ -201,28 +201,6 @@ export default function MyEntriesPage() {
           </Link>
         </div>
 
-        {/* Filters */}
-        <div className={styles.filters}>
-          <button 
-            className={`${styles.filterBtn} ${filter === 'all' ? styles.active : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            All ({entries.length})
-          </button>
-          <button 
-            className={`${styles.filterBtn} ${filter === 'active' ? styles.active : ''}`}
-            onClick={() => setFilter('active')}
-          >
-            Active ({entries.filter(e => e.competition.event.status === 'open' || e.competition.event.status === 'active').length})
-          </button>
-          <button 
-            className={`${styles.filterBtn} ${filter === 'completed' ? styles.active : ''}`}
-            onClick={() => setFilter('completed')}
-          >
-            Completed ({entries.filter(e => e.competition.event.status === 'completed').length})
-          </button>
-        </div>
-
         {/* Entries Grid */}
         {filteredEntries.length === 0 ? (
           <div className={styles.empty}>
@@ -247,7 +225,11 @@ export default function MyEntriesPage() {
                 return acc;
               }, {} as {[key: string]: Entry[]});
 
-              return Object.entries(groupedEntries).map(([competitionId, compEntries]) => {
+              // Convert to array and sort by entry count (descending - most entries first)
+              const sortedCompetitions = Object.entries(groupedEntries)
+                .sort(([, aEntries], [, bEntries]) => bEntries.length - aEntries.length);
+
+              return sortedCompetitions.map(([competitionId, compEntries]) => {
                 const currentIndex = activeEntryIndex[competitionId] || 0;
                 const entry = compEntries[currentIndex];
                 const totalEntries = compEntries.length;
@@ -257,8 +239,10 @@ export default function MyEntriesPage() {
                     <div className={styles.cardContainer}>
                       {/* Left Side - Event/Competition Details */}
                       <div className={styles.detailsPanel}>
-                        <div className={styles.eventBadge}>
-                          {getStatusBadge(entry.competition.event.status)}
+                        <div className={styles.miniFilters}>
+                          <div className={styles.miniFilter}>All ({entries.length})</div>
+                          <div className={styles.miniFilter}>Active ({entries.filter(e => e.competition.event.status === 'open' || e.competition.event.status === 'active').length})</div>
+                          <div className={styles.miniFilter}>Completed ({entries.filter(e => e.competition.event.status === 'completed').length})</div>
                         </div>
                         <h3 className={styles.eventName}>{entry.competition.event.name}</h3>
                         <p className={styles.compName}>{entry.competition.name}</p>
@@ -272,11 +256,11 @@ export default function MyEntriesPage() {
                             </div>
                           </div>
                           <div className={styles.metaItem}>
-                            <i className="fas fa-calendar"></i>
+                            <i className="fas fa-users"></i>
                             <div>
-                              <span className={styles.metaLabel}>Entered</span>
+                              <span className={styles.metaLabel}>Entries</span>
                               <span className={styles.metaValue}>
-                                {new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                {totalEntries}/50
                               </span>
                             </div>
                           </div>

@@ -7,7 +7,8 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 /**
  * GET /api/one-2-one/instances/[instanceId]
- * Get details of a specific ONE 2 ONE instance with entries
+ * Get details of a specific ONE 2 ONE competition with entries
+ * Note: URL still uses 'instanceId' for backwards compatibility, but queries tournament_competitions
  */
 export async function GET(
   request: NextRequest,
@@ -17,25 +18,26 @@ export async function GET(
     const supabase = await createServerClient();
     const { instanceId } = await params;
 
-    // Get instance with template and tournament info
-    const { data: instance, error: instanceError } = await supabase
-      .from('competition_instances')
+    // Get competition with template and tournament info
+    const { data: competition, error: competitionError } = await supabase
+      .from('tournament_competitions')
       .select(`
         *,
         template:competition_templates (*),
         tournament:tournaments (id, name, slug, start_date, status)
       `)
       .eq('id', instanceId)
+      .eq('competition_format', 'one2one')
       .single();
 
-    if (instanceError || !instance) {
+    if (competitionError || !competition) {
       return NextResponse.json(
-        { error: 'Instance not found' },
+        { error: 'Competition not found' },
         { status: 404 }
       );
     }
 
-    // Get entries for this instance
+    // Get entries for this competition
     const { data: entries, error: entriesError } = await supabase
       .from('competition_entries')
       .select(`
@@ -47,7 +49,7 @@ export async function GET(
         created_at,
         profiles:user_id (username)
       `)
-      .eq('instance_id', instanceId)
+      .eq('competition_id', instanceId)
       .in('status', ['submitted', 'paid']);
 
     if (entriesError) {
@@ -64,10 +66,10 @@ export async function GET(
     const userInMatch = user ? entries?.some(e => e.user_id === user.id) : false;
 
     return NextResponse.json({
-      instance,
+      instance: competition, // Keep 'instance' key for frontend compatibility
       entries: entries || [],
       user_in_match: userInMatch,
-      spots_remaining: instance.max_players - instance.current_players
+      spots_remaining: competition.max_players - competition.current_players
     });
 
   } catch (error) {

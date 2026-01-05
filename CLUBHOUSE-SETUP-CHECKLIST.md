@@ -121,7 +121,7 @@
 Before backporting to main system, verify:
 
 - [ ] **Status automation works**: Event status updates automatically based on dates
-- [ ] **Competition sync works**: Competition timing syncs when event dates change
+- [x] **Competition sync works**: Competition timing calculated correctly in API (trigger-based sync removed - see CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md)
 - [ ] **Atomic operations work**: Credits deduct atomically with entry creation
 - [ ] **Constraints work**: Invalid data rejected by database
 - [ ] **No manual scripts needed**: Zero interventions for 3 consecutive events
