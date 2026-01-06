@@ -32,15 +32,20 @@ async function fetchFromDataGolf(): Promise<UpcomingTournament[]> {
     if (pgaRes.ok) {
       const pgaData = await pgaRes.json();
       // Don't filter here - let the outer filter handle date filtering
-      pgaData.schedule.forEach((t: any) => {
+      pgaData.schedule.forEach((t: any, index: number) => {
         // Calculate end date as 4 days after start (typical golf tournament)
         const startDate = new Date(t.start_date);
         const endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 4);
         const endDateString = endDate.toISOString().split('T')[0];
         
+        // Use event_id if available, otherwise use index to ensure unique keys
+        const eventId = t.event_id && t.event_id !== 'TBD' 
+          ? t.event_id 
+          : `${t.start_date}-${index}`;
+        
         tournaments.push({
-          id: `pga-${t.event_id}`,
+          id: `pga-${eventId}`,
           name: t.event_name,
           tour: 'PGA',
           startDate: t.start_date,
@@ -60,15 +65,20 @@ async function fetchFromDataGolf(): Promise<UpcomingTournament[]> {
     if (euroRes.ok) {
       const euroData = await euroRes.json();
       // Don't filter here - let the outer filter handle date filtering
-      euroData.schedule.forEach((t: any) => {
+      euroData.schedule.forEach((t: any, index: number) => {
         // Calculate end date as 4 days after start (typical golf tournament)
         const startDate = new Date(t.start_date);
         const endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 4);
         const endDateString = endDate.toISOString().split('T')[0];
         
+        // Use event_id if available, otherwise use index to ensure unique keys
+        const eventId = t.event_id && t.event_id !== 'TBD' 
+          ? t.event_id 
+          : `${t.start_date}-${index}`;
+        
         tournaments.push({
-          id: `euro-${t.event_id}`,
+          id: `euro-${eventId}`,
           name: t.event_name,
           tour: 'euro',
           startDate: t.start_date,

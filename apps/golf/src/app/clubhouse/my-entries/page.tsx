@@ -37,20 +37,45 @@ export default function MyEntriesPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [activeEntryIndex, setActiveEntryIndex] = useState<{[competitionId: string]: number}>({});
+  const [backgroundImage, setBackgroundImage] = useState<string>('');
+  const [backgroundOpacity, setBackgroundOpacity] = useState<number>(0.15);
+  const [backgroundOverlay, setBackgroundOverlay] = useState<number>(0.4);
 
   useEffect(() => {
     if (user) {
       fetchEntries();
     }
+    loadBackground();
   }, [user]);
+
+  async function loadBackground() {
+    try {
+      const response = await fetch('/api/settings/page-background?page=clubhouse_my_entries_background');
+      const data = await response.json();
+      if (data.backgroundUrl && data.backgroundUrl !== 'none') {
+        setBackgroundImage(data.backgroundUrl);
+        setBackgroundOpacity(data.opacity ?? 0.15);
+        setBackgroundOverlay(data.overlay ?? 0.4);
+      }
+    } catch (error) {
+      console.error('Error loading background:', error);
+    }
+  }
 
   async function fetchEntries() {
     const supabase = createClient();
     
-    // Fetch entries first
+    // Fetch entries with picks joined
     const { data: entriesData, error: entriesError } = await supabase
       .from('clubhouse_entries')
-      .select('*')
+      .select(`
+        *,
+        clubhouse_entry_picks (
+          golfer_id,
+          is_captain,
+          pick_order
+        )
+      `)
       .eq('user_id', user!.id)
       .order('created_at', { ascending: false });
 
@@ -96,8 +121,10 @@ export default function MyEntriesPage() {
       return;
     }
 
-    // Get all golfer IDs from all entries
-    const allGolferIds = [...new Set(entriesData.flatMap(e => e.golfer_ids))];
+    // Get all golfer IDs from all entry picks
+    const allGolferIds = [...new Set(entriesData.flatMap((e: any) => 
+      (e.clubhouse_entry_picks || []).map((p: any) => p.golfer_id)
+    ))];
 
     // Fetch golfer names
     const { data: golfers } = await supabase
@@ -106,22 +133,30 @@ export default function MyEntriesPage() {
       .in('id', allGolferIds);
 
     // Map data together
-    const enrichedEntries = entriesData.map(entry => {
+    const enrichedEntries = entriesData.map((entry: any) => {
       const competition = competitions?.find(c => c.id === entry.competition_id);
       const event = events?.find(e => e.id === competition?.event_id);
       
-      // Map golfer names
-      const entryGolfers = entry.golfer_ids.map((golferId: string) => {
-        const golfer = golfers?.find(g => g.id === golferId);
-        return {
-          id: golferId,
-          name: golfer ? `${golfer.first_name} ${golfer.last_name}` : 'Unknown',
-          isCaptain: golferId === entry.captain_id
-        };
-      });
+      // Map golfer names from picks
+      const picks = entry.clubhouse_entry_picks || [];
+      const captainPick = picks.find((p: any) => p.is_captain);
+      
+      const entryGolfers = picks
+        .sort((a: any, b: any) => a.pick_order - b.pick_order)
+        .map((pick: any) => {
+          const golfer = golfers?.find(g => g.id === pick.golfer_id);
+          return {
+            id: pick.golfer_id,
+            name: golfer ? `${golfer.first_name} ${golfer.last_name}` : 'Unknown',
+            isCaptain: pick.is_captain
+          };
+        });
       
       return {
         ...entry,
+        golfer_ids: picks.map((p: any) => p.golfer_id),
+        captain_id: captainPick?.golfer_id || null,
+        credits_paid: entry.entry_fee_paid || 0,
         golfers: entryGolfers,
         competition: {
           id: competition?.id || entry.competition_id,
@@ -186,6 +221,40 @@ export default function MyEntriesPage() {
   return (
     <RequireAuth>
       <div className={styles.container}>
+        {/* Background Image */}
+        {backgroundImage && (
+          <>
+            <div 
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundImage: `url(${backgroundImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                opacity: backgroundOpacity,
+                zIndex: 0,
+                pointerEvents: 'none'
+              }}
+            />
+            <div 
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'black',
+                opacity: backgroundOverlay,
+                zIndex: 1,
+                pointerEvents: 'none'
+              }}
+            />
+          </>
+        )}
         {/* Header */}
         <div className={styles.header}>
           <div>

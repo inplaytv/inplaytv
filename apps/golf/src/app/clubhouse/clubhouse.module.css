@@ -1,10 +1,56 @@
-/* Clubhouse - Premium Golf Club Aesthetic */
+/* ============================================
+   CLUBHOUSE LANDING PAGE - EXECUTIVE THEME
+   Premium glassmorphic design with dark mode
+   ============================================ */
 
+/* ============================================
+   VARIABLES & FOUNDATIONS
+   ============================================ */
+:root {
+  --color-navy-900: #0a1628;
+  --color-navy-800: #0f1e33;
+  --color-navy-700: #1a2942;
+  --color-navy-600: #243654;
+  
+  --color-gold-500: #d4af37;
+  --color-gold-400: #f0c452;
+  --color-gold-300: #ffd966;
+  
+  --color-emerald-500: #10b981;
+  --color-emerald-400: #34d399;
+  --color-emerald-300: #6ee7b7;
+  
+  --color-slate-400: #94a3b8;
+  --color-slate-300: #cbd5e1;
+  --color-slate-200: #e2e8f0;
+  
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-hover-bg: rgba(255, 255, 255, 0.1);
+  --glass-hover-border: rgba(212, 175, 55, 0.3);
+  
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+  
+  --transition-fast: 0.2s ease;
+  --transition-base: 0.3s ease;
+  --transition-slow: 0.5s ease;
+}
+
+/* ============================================
+   CONTAINER & LAYOUT
+   ============================================ */
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1e3a1e 0%, #0d1f0d 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-navy-900) 0%,
+    var(--color-navy-800) 50%,
+    var(--color-navy-700) 100%
+  );
+  padding: 2rem;
   position: relative;
-  overflow-x: hidden;
 }
 
 .container::before {
@@ -13,119 +59,237 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 60vh;
+  bottom: 0;
   background: 
-    radial-gradient(ellipse at top, rgba(156, 204, 101, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at bottom right, rgba(218, 165, 32, 0.08) 0%, transparent 50%);
+    radial-gradient(circle at 20% 20%, rgba(212, 175, 55, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
   pointer-events: none;
-  z-index: 0;
 }
 
-/* Loading State */
+/* ============================================
+   LOADING STATE
+   ============================================ */
 .loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  color: #cda45e;
+  min-height: 60vh;
+  gap: 1.5rem;
+}
+
+.loading p {
+  color: var(--color-slate-300);
+  font-size: 1.125rem;
+  font-weight: 500;
 }
 
 .spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid rgba(205, 164, 94, 0.1);
-  border-top-color: #cda45e;
+  width: 60px;
+  height: 60px;
+  border: 4px solid var(--glass-border);
+  border-top-color: var(--color-gold-400);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 1rem;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-/* Hero Section - Gold/Green Theme */
+/* ============================================
+   QUICK ACTIONS HEADER
+   ============================================ */
+.quickActions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 3rem;
+  padding: 1.25rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+}
+
+.quickActions::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-gold-500),
+    transparent
+  );
+  opacity: 0.3;
+}
+
+.actionBtn {
+  padding: 0.875rem 2rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  transition: all var(--transition-base);
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.actionBtn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transform: translate(-50%, -50%);
+  transition: width var(--transition-base), height var(--transition-base);
+}
+
+.actionBtn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.actionBtn i {
+  font-size: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.actionBtn span {
+  position: relative;
+  z-index: 1;
+}
+
+.actionBtnPrimary {
+  background: linear-gradient(135deg, #d4af37 0%, #f0c452 100%);
+  color: var(--color-navy-900);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+.actionBtnPrimary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+}
+
+.actionBtnSecondary {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--color-slate-200);
+  border-color: var(--glass-border);
+}
+
+.actionBtnSecondary:hover {
+  background: var(--glass-hover-bg);
+  border-color: var(--glass-hover-border);
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   HERO SECTION
+   ============================================ */
 .hero {
   position: relative;
-  height: 60vh;
-  min-height: 500px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: 
-    linear-gradient(135deg, rgba(26, 47, 26, 0.9) 0%, rgba(15, 31, 15, 0.95) 100%),
-    url('https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1920&h=1080&fit=crop') center/cover;
-  overflow: hidden;
+  padding: 4rem 2rem;
   margin-bottom: 3rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  z-index: 10;
 }
 
 .heroOverlay {
   position: absolute;
-  inset: 0;
-  background: 
-    radial-gradient(circle at center, transparent 0%, rgba(15, 31, 15, 0.4) 100%),
-    linear-gradient(to bottom, transparent 0%, rgba(15, 31, 15, 0.8) 100%);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(212, 175, 55, 0.08) 0%,
+    rgba(16, 185, 129, 0.08) 100%
+  );
+  pointer-events: none;
 }
 
 .heroContent {
   position: relative;
-  z-index: 1;
-  text-align: center;
-  padding: 2rem;
+  z-index: 2;
   max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .clubBadge {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 1.5rem;
-  background: linear-gradient(135deg, #daa520 0%, #b8860b 100%);
-  border-radius: 50%;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: 
-    0 0 0 4px rgba(218, 165, 32, 0.25),
-    0 0 0 8px rgba(218, 165, 32, 0.12),
-    0 8px 32px rgba(218, 165, 32, 0.4);
-  animation: badgePulse 3s ease-in-out infinite;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 100px;
+  color: var(--color-gold-400);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
 }
 
 .clubBadge i {
-  font-size: 2rem;
-  color: #fff;
-}
-
-@keyframes badgePulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 4px rgba(205, 164, 94, 0.2), 0 0 0 8px rgba(205, 164, 94, 0.1), 0 8px 32px rgba(205, 164, 94, 0.3); }
-  50% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(205, 164, 94, 0.3), 0 0 0 12px rgba(205, 164, 94, 0.15), 0 12px 48px rgba(205, 164, 94, 0.4); }
+  font-size: 1rem;
 }
 
 .heroTitle {
-  font-size: 3.5rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #daa520 0%, #fff 50%, #daa520 100%);
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #fff 0%, var(--color-slate-200) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 1rem;
-  letter-spacing: -1px;
-  text-shadow: 0 4px 12px rgba(218, 165, 32, 0.4);
 }
 
 .heroSubtitle {
   font-size: 1.25rem;
-  color: #d4d4d8;
-  margin-bottom: 3rem;
-  font-weight: 300;
-  letter-spacing: 0.5px;
+  color: var(--color-slate-300);
+  margin: 0 0 2.5rem 0;
+  line-height: 1.6;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .heroStats {
   display: flex;
-  gap: 2rem;
   justify-content: center;
+  gap: 3rem;
   flex-wrap: wrap;
 }
 
@@ -133,30 +297,30 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1.5rem 2rem;
-  background: rgba(205, 164, 94, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(205, 164, 94, 0.2);
-  border-radius: 16px;
-  transition: all 0.3s ease;
+  padding: 1.25rem 1.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  transition: all var(--transition-base);
 }
 
 .stat:hover {
-  background: rgba(205, 164, 94, 0.15);
-  border-color: rgba(205, 164, 94, 0.3);
-  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(212, 175, 55, 0.3);
+  transform: translateY(-2px);
 }
 
 .statIcon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #cda45e 0%, #b8935a 100%);
-  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--color-gold-500), var(--color-gold-400));
+  border-radius: 12px;
+  color: var(--color-navy-900);
   font-size: 1.25rem;
-  color: #fff;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25);
 }
 
 .statContent {
@@ -164,506 +328,460 @@
 }
 
 .statValue {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #cda45e;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
   line-height: 1;
   margin-bottom: 0.25rem;
 }
 
 .statLabel {
   font-size: 0.875rem;
-  color: #a1a1aa;
+  color: var(--color-slate-400);
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
 }
 
-/* Club Bar */
+/* ============================================
+   CLUB INFO BAR
+   ============================================ */
 .clubBar {
-  max-width: 1200px;
-  margin: 0 auto 3rem;
-  padding: 1.5rem 2rem;
-  background: rgba(205, 164, 94, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(205, 164, 94, 0.2);
-  border-radius: 16px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 2rem;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  margin-bottom: 3rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 10;
 }
 
 .clubInfo {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .clubLogo {
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, #cda45e 0%, #b8935a 100%);
-  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--color-emerald-500), var(--color-emerald-400));
+  border-radius: 14px;
   color: #fff;
-  box-shadow: 0 4px 12px rgba(205, 164, 94, 0.3);
+  font-size: 1.5rem;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .clubDetails h3 {
   font-size: 1.25rem;
-  color: #cda45e;
-  margin-bottom: 0.25rem;
-  font-weight: 600;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.25rem 0;
 }
 
 .clubDetails p {
-  font-size: 0.875rem;
-  color: #a1a1aa;
+  font-size: 0.9375rem;
+  color: var(--color-slate-400);
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .clubDetails p i {
-  color: #cda45e;
+  color: var(--color-gold-400);
 }
 
 .joinClubBtn {
-  padding: 0.875rem 1.5rem;
-  background: linear-gradient(135deg, #daa520 0%, #b8860b 100%);
-  border: none;
-  border-radius: 8px;
-  color: #fff;
+  padding: 0.875rem 1.75rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  color: var(--color-slate-200);
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(218, 165, 32, 0.4);
+  gap: 0.625rem;
+  transition: all var(--transition-base);
 }
 
 .joinClubBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(205, 164, 94, 0.4);
+  background: var(--glass-hover-bg);
+  border-color: var(--glass-hover-border);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Sections */
+.joinClubBtn i {
+  font-size: 1rem;
+}
+
+/* ============================================
+   SECTIONS
+   ============================================ */
 .howItWorks,
 .tournaments,
 .proShops {
-  max-width: 1200px;
-  margin: 0 auto 4rem;
-  padding: 0 2rem;
+  margin-bottom: 4rem;
   position: relative;
-  z-index: 1;
+  z-index: 10;
 }
 
 .sectionHeader {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
 }
 
 .sectionTitle {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #daa520;
-  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 0.75rem;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.75rem 0;
+  letter-spacing: -0.01em;
 }
 
 .sectionTitle i {
-  font-size: 2rem;
+  color: var(--color-gold-400);
+  font-size: 1.75rem;
 }
 
 .sectionSubtitle {
   font-size: 1.125rem;
-  color: #a1a1aa;
-  font-weight: 300;
+  color: var(--color-slate-300);
+  margin: 0;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/* How It Works Grid */
+/* ============================================
+   HOW IT WORKS SECTION
+   ============================================ */
 .stepsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
-  margin-top: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
 }
 
 .step {
   position: relative;
-  padding: 2rem;
-  background: rgba(205, 164, 94, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(205, 164, 94, 0.1);
+  padding: 2rem 1.5rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
 }
 
 .step:hover {
-  background: rgba(205, 164, 94, 0.1);
-  border-color: rgba(205, 164, 94, 0.2);
-  transform: translateY(-8px);
+  background: var(--glass-hover-bg);
+  border-color: var(--glass-hover-border);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
 }
 
 .stepNumber {
   position: absolute;
-  top: -1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #cda45e 0%, #b8935a 100%);
-  border-radius: 50%;
+  top: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 50%;
+  color: var(--color-gold-400);
   font-weight: 700;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(205, 164, 94, 0.3);
+  font-size: 1rem;
 }
 
 .stepIcon {
-  width: 80px;
-  height: 80px;
-  margin: 1rem auto;
-  background: rgba(205, 164, 94, 0.1);
-  border-radius: 50%;
+  width: 64px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
-  color: #cda45e;
+  margin: 0 auto 1.25rem;
+  background: linear-gradient(135deg, var(--color-gold-500), var(--color-gold-400));
+  border-radius: 14px;
+  color: var(--color-navy-900);
+  font-size: 1.75rem;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25);
 }
 
 .step h3 {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
+  font-weight: 700;
   color: #fff;
-  margin-bottom: 0.75rem;
-  font-weight: 600;
+  margin: 0 0 0.75rem 0;
 }
 
 .step p {
-  color: #a1a1aa;
-  line-height: 1.6;
   font-size: 0.9375rem;
+  color: var(--color-slate-400);
+  margin: 0;
+  line-height: 1.6;
 }
 
-/* Tournaments Grid - Full Width Professional Cards */
+/* ============================================
+   TOURNAMENT CARDS
+   ============================================ */
 .tournamentsGrid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
   gap: 1.5rem;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 .tournamentCard {
-  background: linear-gradient(135deg, rgba(26, 47, 26, 0.3) 0%, rgba(15, 31, 15, 0.5) 100%);
-  backdrop-filter: blur(30px);
-  border: 2px solid rgba(218, 165, 32, 0.3);
-  border-radius: 16px;
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  display: block;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  padding: 2rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .tournamentCard:hover {
-  border-color: rgba(218, 165, 32, 0.6);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(218, 165, 32, 0.2), 0 10px 30px rgba(0, 0, 0, 0.8);
+  background: var(--glass-hover-bg);
+  border-color: var(--glass-hover-border);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
 }
 
-/* Card Header - Competition Badge */
-.cardHeader {
-  display: none;
-}
-
-.competitionBadge {
-  padding: 0.625rem 1.25rem;
-  background: linear-gradient(135deg, #daa520 0%, #b8860b 100%);
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: #fff;
-  white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.75px;
-  box-shadow: 0 4px 12px rgba(218, 165, 32, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.clubBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, rgba(218, 165, 32, 0.2) 0%, rgba(184, 134, 11, 0.3) 100%);
-  border: 2px solid rgba(218, 165, 32, 0.6);
-  border-radius: 8px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: #daa520;
-  text-transform: uppercase;
-  letter-spacing: 0.75px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(218, 165, 32, 0.3);
-  white-space: nowrap;
-}
-
-.clubBadge i {
-  font-size: 0.875rem;
-  color: #daa520;
-}
-
-/* Card Content - Image + Info Layout */
-.cardContent {
-  display: none;
-}
-
-.tournamentImage {
-  display: none;
-}
-
-.tournamentImage img {
-  display: none;
-}
-
-.tournamentCard:hover .tournamentImage img {
-  display: none;
-}
-
-.eventTitle {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #ffffff;
-  margin: 0 0 0.5rem;
-  letter-spacing: -0.02em;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  line-height: 1.2;
-}
-
-.tournamentInfo {
-  padding: 1.5rem;
+.tournamentHeader {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
-.tournamentLocation,
-.tournamentDates {
-  font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.85);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-}
-
-.tournamentLocation i,
-.tournamentDates i {
-  color: #daa520;
-  width: 16px;
-  font-size: 0.8125rem;
-  text-align: center;
-}
-
-.cardStats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0;
-  margin: 0 0 0.75rem 0;
-  padding: 0;
-  background: rgba(218, 165, 32, 0.12);
-  border-radius: 8px;
-  border: 2px solid rgba(218, 165, 32, 0.3);
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.cardStat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 0.375rem;
-  padding: 0.625rem 0.5rem;
-  border-right: 1px solid rgba(218, 165, 32, 0.2);
-  transition: all 0.3s ease;
-}
-
-.cardStat:last-child {
-  border-right: none;
-}
-
-.cardStat:hover {
-  background: rgba(218, 165, 32, 0.18);
-  transform: scale(1.05);
-}
-
-.cardStat i {
-  color: #daa520;
-  font-size: 1.125rem;
-  filter: drop-shadow(0 2px 4px rgba(218, 165, 32, 0.4));
-}
-
-.statValue {
-  font-size: 1.125rem;
-  font-weight: 700;
+.tournamentInfo h2 {
   color: #fff;
-  line-height: 1;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-}
-
-.statLabel {
-  font-size: 0.6875rem;
-  color: rgba(255, 255, 255, 0.85);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 700;
-}
-
-/* Competition Stats Grid - Match Tournaments Page */
-.competitionStats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin: 1.5rem 0;
-  padding: 1.25rem;
-  background: rgba(218, 165, 32, 0.05);
-  border: 1px solid rgba(218, 165, 32, 0.15);
-  border-radius: 12px;
-}
-
-.competitionStat {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
-}
-
-.competitionStat i {
+  margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
-  color: #daa520;
-  width: 32px;
-  text-align: center;
-}
-
-.statValue {
-  font-size: 1.125rem;
   font-weight: 700;
-  color: #fff;
-  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
-.statLabel {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-}
-
-.enterBtn {
+.tournamentInfo p {
+  color: var(--color-slate-400);
+  margin: 0;
+  font-size: 0.9375rem;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
-  width: 100%;
-  padding: 0.75rem 1.25rem;
-  background: linear-gradient(135deg, #daa520 0%, #b8860b 100%);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.tournamentInfo p i {
+  color: var(--color-gold-400);
+}
+
+.statusBadge {
+  padding: 0.5rem 1rem;
   border-radius: 8px;
-  color: #fff;
+  font-size: 0.8125rem;
   font-weight: 700;
-  font-size: 0.9375rem;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  text-decoration: none;
-  text-align: center;
-  box-shadow: 0 4px 16px rgba(218, 165, 32, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  letter-spacing: 0.75px;
+  white-space: nowrap;
+}
+
+.statusOpen {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--color-emerald-400);
+}
+
+.statusClosed {
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: var(--color-slate-400);
+}
+
+.tournamentStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.statBox {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  transition: all var(--transition-fast);
+}
+
+.statBox:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.statBoxLabel {
+  color: var(--color-slate-400);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.statBoxValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.statBoxValue span {
+  font-size: 0.875rem;
+  margin-left: 0.25rem;
+  opacity: 0.7;
+}
+
+.statBoxGold {
+  border-color: rgba(212, 175, 55, 0.2);
+}
+
+.statBoxGold .statBoxValue {
+  color: var(--color-gold-400);
+}
+
+.statBoxGreen {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.statBoxGreen .statBoxValue {
+  color: var(--color-emerald-400);
+}
+
+.statBoxYellow {
+  border-color: rgba(234, 179, 8, 0.2);
+}
+
+.statBoxYellow .statBoxValue {
+  color: #fbbf24;
+}
+
+.statBoxRed {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.statBoxRed .statBoxValue {
+  color: #f87171;
+}
+
+.tournamentAction {
   margin-top: auto;
 }
 
-.enterBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(218, 165, 32, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  background: linear-gradient(135deg, #e5b43a 0%, #c59422 100%);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.enterBtn:active {
-  transform: translateY(0);
-}
-
-.enterBtn i {
-  font-size: 1rem;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-}
-
-/* Pro Shops Grid */
-.shopsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
-}
-
-.shopCard {
-  padding: 2rem 1.5rem;
-  background: rgba(205, 164, 94, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(205, 164, 94, 0.1);
-  border-radius: 16px;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.shopCard:hover {
-  background: rgba(205, 164, 94, 0.1);
-  border-color: rgba(205, 164, 94, 0.2);
-  transform: translateY(-4px);
-}
-
-.shopIcon {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 1rem;
-  background: rgba(205, 164, 94, 0.1);
-  border-radius: 50%;
+.viewDetailsBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  color: #cda45e;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--color-emerald-500), var(--color-emerald-400));
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.viewDetailsBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+}
+
+/* ============================================
+   PRO SHOPS SECTION
+   ============================================ */
+.shopsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.shopCard {
+  padding: 2rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  text-align: center;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.shopCard:hover {
+  background: var(--glass-hover-bg);
+  border-color: var(--glass-hover-border);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.shopIcon {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  background: linear-gradient(135deg, var(--color-gold-500), var(--color-gold-400));
+  border-radius: 16px;
+  color: var(--color-navy-900);
+  font-size: 2rem;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25);
 }
 
 .shopCard h4 {
   font-size: 1.125rem;
+  font-weight: 700;
   color: #fff;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
+  margin: 0 0 0.5rem 0;
 }
 
 .shopCard p {
-  font-size: 0.875rem;
-  color: #a1a1aa;
-  margin-bottom: 1rem;
+  font-size: 0.9375rem;
+  color: var(--color-slate-400);
+  margin: 0 0 1rem 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -671,7 +789,7 @@
 }
 
 .shopCard p i {
-  color: #cda45e;
+  color: var(--color-gold-400);
 }
 
 .shopBadge {
@@ -679,191 +797,297 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(205, 164, 94, 0.1);
-  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 100px;
+  color: var(--color-emerald-400);
   font-size: 0.8125rem;
-  color: #cda45e;
   font-weight: 600;
 }
 
-/* Modal */
+/* ============================================
+   MODAL
+   ============================================ */
 .modal {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
   z-index: 1000;
-  padding: 2rem;
+  animation: fadeIn var(--transition-base);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modalContent {
   max-width: 480px;
   width: 100%;
   padding: 2.5rem;
-  background: linear-gradient(135deg, #1a2f1a 0%, #0f1f0f 100%);
-  border: 1px solid rgba(205, 164, 94, 0.2);
-  border-radius: 24px;
+  background: var(--color-navy-800);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
   position: relative;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp var(--transition-base);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modalClose {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 1.25rem;
+  right: 1.25rem;
   width: 36px;
   height: 36px;
-  background: rgba(205, 164, 94, 0.1);
-  border: 1px solid rgba(205, 164, 94, 0.2);
-  border-radius: 8px;
-  color: #cda45e;
-  font-size: 1rem;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--color-slate-300);
+  font-size: 1.125rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .modalClose:hover {
-  background: rgba(205, 164, 94, 0.2);
-  border-color: rgba(205, 164, 94, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .modalContent h2 {
   font-size: 1.75rem;
-  color: #cda45e;
-  margin-bottom: 0.5rem;
   font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.75rem 0;
 }
 
 .modalContent > p {
-  color: #a1a1aa;
-  margin-bottom: 2rem;
+  font-size: 1rem;
+  color: var(--color-slate-400);
+  margin: 0 0 1.5rem 0;
 }
 
 .modalInput {
   width: 100%;
   padding: 1rem;
-  background: rgba(205, 164, 94, 0.05);
-  border: 1px solid rgba(205, 164, 94, 0.2);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
   color: #fff;
   font-size: 1rem;
   margin-bottom: 1.5rem;
-  transition: all 0.3s ease;
+  transition: all var(--transition-fast);
 }
 
 .modalInput:focus {
   outline: none;
-  border-color: rgba(205, 164, 94, 0.5);
-  background: rgba(205, 164, 94, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--color-gold-400);
 }
 
 .modalInput::placeholder {
-  color: #71717a;
+  color: var(--color-slate-400);
 }
 
 .modalBtn {
   width: 100%;
   padding: 1rem;
-  background: linear-gradient(135deg, #cda45e 0%, #b8935a 100%);
+  background: linear-gradient(135deg, var(--color-gold-500), var(--color-gold-400));
   border: none;
-  border-radius: 8px;
-  color: #fff;
-  font-weight: 600;
+  border-radius: 10px;
+  color: var(--color-navy-900);
+  font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.3s ease;
+  gap: 0.625rem;
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25);
 }
 
 .modalBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(205, 164, 94, 0.4);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.35);
 }
 
 .modalFooter {
-  margin-top: 1.5rem;
-  text-align: center;
   font-size: 0.875rem;
-  color: #71717a;
+  color: var(--color-slate-400);
+  margin: 1rem 0 0 0;
+  text-align: center;
 }
 
-/* Responsive Design */
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Tablet (768px - 1024px) */
 @media (max-width: 1024px) {
-  .tournamentCard {
-    grid-template-columns: 240px 1fr;
-    max-height: 220px;
-  }
-
-  .cardStats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0;
-  }
-
-  .cardStat {
-    padding: 0.625rem 0.5rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .heroTitle {
-    font-size: 2.5rem;
+  .container {
+    padding: 1.5rem;
   }
 
   .heroStats {
-    gap: 1rem;
+    gap: 1.5rem;
   }
 
   .stat {
-    flex: 1 1 auto;
-    min-width: calc(50% - 0.5rem);
-    padding: 1rem 1.5rem;
+    padding: 1rem 1.25rem;
   }
 
-  .clubBar {
-    flex-direction: column;
-    text-align: center;
+  .stepsGrid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 
-  .clubInfo {
-    flex-direction: column;
-    width: 100%;
+  .tournamentsGrid {
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  }
+}
+
+/* Mobile (<768px) */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
   }
 
-  .joinClubBtn {
-    width: 100%;
-    justify-content: center;
+  .quickActions {
+    padding: 1rem;
+    gap: 0.75rem;
   }
 
-  .sectionTitle {
+  .actionBtn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  .hero {
+    padding: 2.5rem 1.5rem;
+  }
+
+  .heroTitle {
     font-size: 2rem;
   }
 
-  .stepsGrid,
+  .heroSubtitle {
+    font-size: 1rem;
+  }
+
+  .heroStats {
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .stat {
+    width: 100%;
+  }
+
+  .clubBar {
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+
+  .clubInfo {
+    gap: 1rem;
+  }
+
+  .clubLogo {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+
+  .clubDetails h3 {
+    font-size: 1.125rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.5rem;
+  }
+
+  .sectionTitle i {
+    font-size: 1.375rem;
+  }
+
+  .stepsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .tournamentsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .tournamentCard {
+    padding: 1.5rem;
+  }
+
+  .tournamentStats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .shopsGrid {
     grid-template-columns: 1fr;
   }
 
-  .tournamentCard {
+  .modalContent {
+    padding: 2rem;
+  }
+}
+
+/* Extra Small (<480px) */
+@media (max-width: 480px) {
+  .quickActions {
+    flex-direction: column;
+  }
+
+  .actionBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .heroStats {
+    gap: 0.75rem;
+  }
+
+  .stat {
+    padding: 0.875rem 1rem;
+  }
+
+  .statIcon {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .statValue {
+    font-size: 1.5rem;
+  }
+
+  .tournamentStats {
     grid-template-columns: 1fr;
-    min-height: auto;
   }
-
-  .tournamentImage {
-    height: 200px;
-  }
-
-  .cardStats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .eventTitle {
-    font-size: 1.25rem;
+}

@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS clubhouse_events (
   CONSTRAINT valid_date_range CHECK (end_date > start_date),
   CONSTRAINT valid_registration_window CHECK (
     registration_closes_at > registration_opens_at AND
-    registration_closes_at <= start_date
+    registration_closes_at <= end_date  -- Closes before event ENDS (last round tee-off)
   )
 );
 

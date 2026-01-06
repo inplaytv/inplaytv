@@ -1,14 +1,12 @@
 'use client';
 
 import RequireAuth from '@/components/RequireAuth';
-import Header from '@/components/Header';
 
 export const dynamic = 'force-dynamic';
 
 function NotificationsPageContent() {
   return (
     <>
-      <Header />
       <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '2rem', color: '#fff' }}>
           Notifications

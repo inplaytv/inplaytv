@@ -42,26 +42,28 @@
 
 ### ONE 2 ONE Challenges  
 **Table:** `tournament_instances`
-- ONE 2 ONE challenge instances
-- Uses `instance_id` in competition_entries
-
 ### Competition Entries
 **Table:** `competition_entries`
-- User entries for competitions
+- User entries for competitions (both InPlay and ONE 2 ONE)
 - Columns:
   - `user_id` → references auth.users(id)
-  - `competition_id` → references tournament_competitions(id) [InPlay]
-  - `instance_id` → references tournament_instances(id) [ONE 2 ONE]
+  - `competition_id` → references tournament_competitions(id)
+  - `entry_name` TEXT - Optional team name
   - `captain_golfer_id` → references golfers(id)
+  - `total_salary` INTEGER - Sum of golfer salaries
+  - `entry_fee_paid` INTEGER - Amount paid in pennies
+  - `status` TEXT - 'draft', 'submitted', 'paid', 'cancelled'
 
-**Table:** `competition_entry_picks`
+**Table:** `entry_picks`
 - Individual golfer selections for an entry
 - Columns:
   - `entry_id` → references competition_entries(id)
   - `golfer_id` → references golfers(id)
   - `slot_position` → 1-6 for team position
-  - `salary` → golfer's salary cost
-  - `is_captain` → boolean
+  - `salary_at_selection` → golfer's salary when picked (frozen)
+  - PRIMARY KEY: (entry_id, golfer_id)
+
+**IMPORTANT**: Both InPlay and ONE 2 ONE use the same `competition_entries` table. They are distinguished by the `competition_format` field in `tournament_competitions`, NOT by separate tables or columns.
 
 ## Data Flow for InPlay Competitions
 
@@ -197,6 +199,136 @@ WHERE ce.id = :entry_id;
 | Entry restriction | assigned_golfer_group_id | No group restriction |
 | Competition types | Full Course, Beat The Cut, etc. | Head-to-head matchups |
 | Multiple per tournament | Yes (6+ competitions) | Yes (multiple instances) |
+
+---
+
+## Clubhouse System (Testing Ground)
+
+### Purpose
+Isolated testing environment for validating fixes before backporting to InPlay/ONE 2 ONE. All tables use `clubhouse_*` prefix for guaranteed isolation.
+
+### Clubhouse Events
+**Table:** `clubhouse_events`
+- Similar to `tournaments` but simplified for testing
+- Key columns:
+  - `name`, `slug`, `description`, `venue`, `location`
+  - `start_date TIMESTAMPTZ`, `end_date TIMESTAMPTZ`
+  - `registration_opens_at TIMESTAMPTZ`, `registration_closes_at TIMESTAMPTZ`
+  - `round1_tee_time`, `round2_tee_time`, `round3_tee_time`, `round4_tee_time` (all TIMESTAMPTZ)
+  - `status` → 'upcoming', 'open', 'active', 'completed'
+- **Critical constraint:** `registration_closes_at <= end_date` (NOT start_date)
+  - **Why:** Golf tournaments accept entries until 15min before LAST round
+  - **Example:** 4-day tournament Jan 5-8 can accept entries until Jan 8 at 06:45
+
+### Clubhouse Competitions
+**Table:** `clubhouse_competitions`
+- Multiple competitions per event (like InPlay types)
+- Key columns:
+  - `event_id` → references clubhouse_events(id)
+  - `name`, `description`
+  - `entry_credits INTEGER` (NOT "credits") - Entry cost in credits
+  - `max_entries INTEGER` - Capacity limit
+  - `prize_pool_credits INTEGER`
+  - `assigned_golfer_group_id` → references golfer_groups(id) (shared with InPlay!)
+  - `opens_at`, `closes_at`, `starts_at`, `ends_at` (all TIMESTAMPTZ)
+  - `status` → 'upcoming', 'open', 'active', 'completed'
+- **No `rounds_covered` column** - Simplified from original design
+
+### Clubhouse Wallets
+**Table:** `clubhouse_wallets`
+- Credit-based payment system
+- Key columns:
+  - `user_id` → references auth.users(id)
+  - `balance_credits INTEGER` (NOT "credits") - Current balance
+  - `created_at`, `updated_at`
+
+### Clubhouse Transactions
+**Table:** `clubhouse_credit_transactions`
+- Immutable audit log of all credit movements
+- Key columns:
+  - `wallet_id` → references clubhouse_wallets(id)
+  - `user_id` → references auth.users(id)
+  - `amount_credits INTEGER` - Positive for credit, negative for debit
+  - `transaction_type` → 'topup', 'entry', 'refund', 'prize'
+  - `description TEXT` - Human-readable explanation
+  - `balance_after INTEGER` - Balance snapshot after transaction
+
+### Clubhouse Entries
+**Table:** `clubhouse_entries`
+- User entries for clubhouse competitions
+- Key columns:
+  - `competition_id` → references clubhouse_competitions(id)
+  - `user_id` → references auth.users(id)
+  - `entry_fee_paid INTEGER` (NOT "entry_credits")
+  - `total_score DECIMAL`, `position INTEGER`
+  - `prize_credits INTEGER`
+  - `status` → 'active', 'withdrawn', 'disqualified'
+
+### Clubhouse Entry Picks
+**Table:** `clubhouse_entry_picks`
+- Individual golfer selections (6 per entry, 1 captain)
+- Key columns:
+  - `entry_id` → references clubhouse_entries(id)
+  - `golfer_id` → references golfers(id) (shared with InPlay!)
+  - `is_captain BOOLEAN`
+  - `pick_order INTEGER` (1-6)
+
+### Clubhouse Integration with Main System
+
+**Shared Resources:**
+- ✅ Uses same `golfers` table (read-only)
+- ✅ Uses same `golfer_groups` system for field restrictions
+- ✅ Uses same `auth.users` for authentication
+
+**Isolated Resources:**
+- ❌ Separate event/competition tables (clubhouse_events, clubhouse_competitions)
+- ❌ Separate wallet/transaction tables
+- ❌ Separate entries/picks tables
+
+**Data Flow:**
+```
+1. Admin assigns golfer group to Clubhouse competition
+   ↓
+2. Clubhouse uses assigned_golfer_group_id to filter available golfers
+   ↓
+3. User creates entry with 6 golfers from group
+   ↓
+4. clubhouse_entries + clubhouse_entry_picks created
+   ↓
+5. Credits deducted from clubhouse_wallets
+```
+
+### Column Name Reference (Common Mistakes)
+
+| ❌ Wrong Column | ✅ Correct Column | Table |
+|----------------|-------------------|-------|
+| `credits` | `balance_credits` | clubhouse_wallets |
+| `entry_credits` | `entry_fee_paid` | clubhouse_entries |
+| `rounds_covered` | (doesn't exist) | clubhouse_competitions |
+| `start_date` in constraint | `end_date` | clubhouse_events |
+
+### Registration Timing Logic
+
+**Key Insight:** Golf tournaments accept entries until 15 minutes before the LAST round tee-off, NOT the first round.
+
+**Example:**
+- Tournament: Jan 5-8 (4 days)
+- Round 1: Jan 5 at 07:00
+- Round 4: Jan 8 at 07:00 (LAST round)
+- Registration closes: Jan 8 at 06:45 (15 min before Round 4)
+
+**API Logic:**
+```typescript
+// Calculate registration close time
+const lastRound = event.round4_tee_time || event.round3_tee_time; // Use highest round available
+const regCloseTime = new Date(lastRound.getTime() - 15 * 60 * 1000); // Subtract 15 minutes
+```
+
+**Files Using This Logic:**
+- `apps/golf/src/app/api/clubhouse/events/route.ts`
+- `apps/golf/src/app/api/clubhouse/events/[id]/route.ts`
+
+---
 
 ## Related Documentation
 - See `TOURNAMENT-GOLFERS-COMPLETE.md` for golfer management

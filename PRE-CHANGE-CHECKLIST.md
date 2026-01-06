@@ -21,8 +21,23 @@ grep -r "registrationOpens" apps/admin/src/app/clubhouse/
 ```bash
 # Before changing API code, verify schema has the columns
 grep "column_name" scripts/clubhouse/01-create-schema.sql
-# Or check the actual Supabase schema
+# Or check the actual Supabase schema via SQL Editor
+
+# Common schema mismatches found:
+# ❌ Frontend looks for 'credits' but schema has 'balance_credits'
+# ❌ Frontend looks for 'rounds_covered' but column doesn't exist
+# ❌ API uses start_date but schema calls it start_at
+
+# ALWAYS check column names match between:
+# 1. Schema SQL file
+# 2. API route SELECT queries
+# 3. Frontend TypeScript interfaces
 ```
+
+**Recent Example (Jan 6, 2026)**:
+- Clubhouse wallet column: `balance_credits` (NOT `credits`)
+- Fixed in: `apps/golf/src/app/clubhouse/events/page.tsx` line 86
+- Fixed in: `apps/golf/src/app/clubhouse/events/[id]/page.tsx` line 95
 
 ## 4. Verify Isolation
 ```bash

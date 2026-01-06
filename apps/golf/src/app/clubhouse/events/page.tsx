@@ -19,6 +19,23 @@ interface Event {
   end_date: string;
 }
 
+// Helper function to calculate time remaining
+function getTimeRemaining(dateString: string): string {
+  const now = new Date();
+  const target = new Date(dateString);
+  const diff = target.getTime() - now.getTime();
+  
+  if (diff <= 0) return 'Closed';
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 export default function ClubhouseEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,10 +43,18 @@ export default function ClubhouseEventsPage() {
   const [backgroundImage, setBackgroundImage] = useState<string>('');
   const [backgroundOpacity, setBackgroundOpacity] = useState<number>(0.15);
   const [backgroundOverlay, setBackgroundOverlay] = useState<number>(0.4);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     loadData();
     loadBackground();
+    
+    // Update countdown every minute
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // 60 seconds
+    
+    return () => clearInterval(timer);
   }, []);
 
   async function loadBackground() {
@@ -52,13 +77,18 @@ export default function ClubhouseEventsPage() {
     // Load user credits
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { data: wallet } = await supabase
+      const { data: wallet, error: walletError } = await supabase
         .from('clubhouse_wallets')
-        .select('credits')
+        .select('balance_credits')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle(); // Returns null if no rows instead of error
       
-      if (wallet) setUserCredits(wallet.credits);
+      if (wallet) {
+        setUserCredits(wallet.balance_credits);
+      } else if (walletError) {
+        console.warn('Wallet query error:', walletError);
+      }
+      // If no wallet exists, userCredits stays at 0
     }
 
     // Load events (add timestamp to force fresh data)
@@ -205,17 +235,41 @@ export default function ClubhouseEventsPage() {
                         padding: '0.5rem 1rem',
                         background: event.status === 'open' 
                           ? 'rgba(34, 197, 94, 0.1)' 
-                          : 'rgba(148, 163, 184, 0.1)',
-                        border: `1px solid ${event.status === 'open' 
-                          ? 'rgba(34, 197, 94, 0.3)' 
-                          : 'rgba(148, 163, 184, 0.3)'}`,
-                        color: event.status === 'open' ? '#22c55e' : '#94a3b8',
+                          : event.status === 'active'
+                          ? 'rgba(234, 179, 8, 0.1)'
+                          : event.status === 'completed'
+                          ? 'rgba(148, 163, 184, 0.1)'
+                          : 'rgba(99, 102, 241, 0.1)',
+                        border: `1px solid ${
+                          event.status === 'open' 
+                            ? 'rgba(34, 197, 94, 0.3)' 
+                            : event.status === 'active'
+                            ? 'rgba(234, 179, 8, 0.3)'
+                            : event.status === 'completed'
+                            ? 'rgba(148, 163, 184, 0.3)'
+                            : 'rgba(99, 102, 241, 0.3)'
+                        }`,
+                        color: event.status === 'open' 
+                          ? '#22c55e' 
+                          : event.status === 'active'
+                          ? '#eab308'
+                          : event.status === 'completed'
+                          ? '#94a3b8'
+                          : '#6366f1',
                         borderRadius: '8px',
                         fontSize: '0.875rem',
                         fontWeight: 600,
                         textTransform: 'uppercase',
                       }}>
-                        {event.status}
+                        {event.status === 'open' 
+                          ? '🟢 Open (Registration)' 
+                          : event.status === 'active'
+                          ? '🔴 Active (Playing)'
+                          : event.status === 'completed'
+                          ? '✓ Completed'
+                          : event.status === 'upcoming'
+                          ? '⏳ Upcoming'
+                          : event.status}
                       </div>
                     </div>
 
@@ -276,7 +330,7 @@ export default function ClubhouseEventsPage() {
                         </div>
                       </div>
 
-                      {/* Event Start */}
+                      {/* Tournament Start Date */}
                       <div style={{
                         padding: '1rem',
                         background: 'rgba(234, 179, 8, 0.1)',
@@ -290,22 +344,24 @@ export default function ClubhouseEventsPage() {
                           textTransform: 'uppercase',
                           marginBottom: '0.5rem',
                         }}>
-                          Event Start
+                          🏌️ Tournament Starts
                         </div>
                         <div style={{ 
                           color: '#eab308', 
                           fontSize: '0.95rem',
                           fontWeight: 600,
                         }}>
-                          {new Date(event.start_date).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
+                          {event.start_date && !isNaN(new Date(event.start_date).getTime())
+                            ? new Date(event.start_date).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric',
+                                year: 'numeric',
+                              })
+                            : 'TBA'}
                         </div>
                       </div>
 
-                      {/* Reg Closes */}
+                      {/* Registration Closes - WITH COUNTDOWN */}
                       <div style={{
                         padding: '1rem',
                         background: 'rgba(239, 68, 68, 0.1)',
@@ -319,18 +375,35 @@ export default function ClubhouseEventsPage() {
                           textTransform: 'uppercase',
                           marginBottom: '0.5rem',
                         }}>
-                          Reg Closes
+                          ⏰ Registration Closes
                         </div>
-                        <div style={{ 
-                          color: '#ef4444', 
-                          fontSize: '0.95rem',
-                          fontWeight: 600,
-                        }}>
-                          {new Date(event.registration_closes).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric',
-                          })}
-                        </div>
+                        {event.registration_closes && !isNaN(new Date(event.registration_closes).getTime()) ? (
+                          <>
+                            <div style={{ 
+                              color: '#ef4444', 
+                              fontSize: '1.25rem',
+                              fontWeight: 700,
+                              marginBottom: '0.25rem',
+                            }}>
+                              {getTimeRemaining(event.registration_closes)}
+                            </div>
+                            <div style={{ 
+                              color: '#64748b', 
+                              fontSize: '0.75rem',
+                            }}>
+                              {new Date(event.registration_closes).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })}
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ color: '#ef4444', fontSize: '0.95rem', fontWeight: 600 }}>
+                            TBA
+                          </div>
+                        )}
                       </div>
                     </div>
 

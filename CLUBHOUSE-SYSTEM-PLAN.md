@@ -33,49 +33,73 @@
 ### ✅ COMPLETED SO FAR
 
 **Phase 1: Foundation (DONE)**
-1. ✅ Database Schema Created (`scripts/clubhouse/01-create-schema.sql`)
-   - Tables: `clubhouse_events`, `clubhouse_competitions`, `clubhouse_wallets`, `clubhouse_credit_transactions`, `clubhouse_entries`
-   - Auto-status triggers
-   - Credit transaction RPC functions
-   - Status: **Created but NOT applied to Supabase yet**
+1. ✅ Database Schema Applied to Supabase (`scripts/clubhouse/NUCLEAR-CLEAN-RESET.sql`)
+   - Tables: `clubhouse_events`, `clubhouse_competitions`, `clubhouse_wallets`, `clubhouse_credit_transactions`, `clubhouse_entries`, `clubhouse_entry_picks`
+   - Correct columns: `balance_credits` (not credits), NO `rounds_covered`
+   - Correct constraint: `registration_closes_at <= end_date` (not start_date)
+   - Auto-status triggers: Not implemented yet
+   - Credit transaction RPC functions: Not implemented yet
+   - Status: **✅ DEPLOYED AND WORKING**
 
-2. ✅ Admin Pages Built (`apps/golf/src/app/clubhouse/admin/`)
+2. ✅ Test Data Populated (`scripts/clubhouse/populate-test-data.sql`)
+   - 3 events: Spring Masters, Desert Classic, Coastal Links
+   - 15 competitions total (5 per event)
+   - Correct registration timing: Closes 15min before Round 4 (LAST round)
+   - Status: **✅ LOADED AND VERIFIED**
+
+3. ✅ Admin Pages Built (`apps/golf/src/app/clubhouse/admin/`)
    - Dashboard (`/clubhouse/admin`)
    - Events list (`/clubhouse/admin/events`)
-   - Create event form (`/clubhouse/admin/events/create`) - **Just compacted UI**
+   - Create event form (`/clubhouse/admin/events/create`)
    - Credits grant (`/clubhouse/admin/credits`)
    - Entries list (`/clubhouse/admin/entries`)
    - Persistent sidebar navigation ✅
 
-3. ✅ User Pages Built (`apps/golf/src/app/clubhouse/`)
+4. ✅ User Pages Built (`apps/golf/src/app/clubhouse/`)
    - Landing page (`/clubhouse`)
-   - Events list (`/clubhouse/events`) - **Not tested yet**
-   - Event details (`/clubhouse/events/[id]`) - **Not tested yet**
+   - Events list (`/clubhouse/events`) - **✅ WORKING**
+   - Event details (`/clubhouse/events/[id]`) - **✅ WORKING**
    - Wallet page (`/clubhouse/wallet`) - **Not tested yet**
 
-4. ✅ API Routes Created (`apps/golf/src/app/api/clubhouse/`)
-   - Events CRUD (`/api/clubhouse/events`)
+5. ✅ API Routes Created (`apps/golf/src/app/api/clubhouse/`)
+   - Events CRUD (`/api/clubhouse/events`) - **✅ WORKING**
    - Credits grant (`/api/clubhouse/credits/grant`)
    - Entries (`/api/clubhouse/entries`)
    - Users list (`/api/clubhouse/users`)
-   - Status: **Not tested - no database yet**
+   - Status: **✅ TESTED AND WORKING**
 
-5. ✅ Navigation Updated
+6. ✅ Navigation Updated
    - Added "Club Tournaments" link to clubhouse menu
    - Fixed credits link to `/clubhouse/wallet`
 
-6. ✅ Team Builder Duplicated
+7. ✅ Team Builder Duplicated
    - Exact InPlay copy at `/clubhouse/build-team/[competitionId]`
    - Teal color scheme applied
 
-### ⚠️ CURRENT ISSUE
-**Database Schema Not Applied**
-- Error: `Could not find the 'description' column of 'clubhouse_events' in the schema cache`
-- **Fix**: Run `apply-clubhouse-schema.ps1` to copy schema, then paste into Supabase SQL Editor
+### ✅ CRITICAL FIX COMPLETED (Jan 6, 2026)
+
+**Registration Timing Logic Fixed**
+- **Problem**: Registration was closing at tournament START (Round 1 tee-off)
+- **Solution**: Registration now closes 15min before LAST round (Round 4 tee-off)
+- **Why**: Multi-day tournaments accept entries throughout the event until the final round
+- **Schema**: Changed constraint from `registration_closes_at <= start_date` to `<= end_date`
+- **API**: Updated to use `round4_tee_time` instead of `round1_tee_time`
+- **Files Fixed**:
+  - `apps/golf/src/app/api/clubhouse/events/route.ts`
+  - `apps/golf/src/app/api/clubhouse/events/[id]/route.ts`
+  - `apps/golf/src/app/clubhouse/events/page.tsx`
+  - `apps/golf/src/app/clubhouse/events/[id]/page.tsx`
+  - `scripts/clubhouse/NUCLEAR-CLEAN-RESET.sql`
+  - `scripts/clubhouse/01-create-schema.sql`
+  - `scripts/clubhouse/02-clean-install.sql`
+
+**Column Name Fixes**
+- Wallet: `balance_credits` (NOT `credits`)
+- Competition: Removed `rounds_covered` column (doesn't exist in schema)
 
 ### 🔄 NEXT STEPS (In Order)
 
-**Step 1: Deploy Database Schema** (IMMEDIATE)
+**Step 1: Test User Flows** (IMMEDIATE)
 ```powershell
 # Run this in PowerShell:
 .\apply-clubhouse-schema.ps1

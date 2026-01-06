@@ -15,7 +15,10 @@ const VALID_PAGE_KEYS = [
   'leaderboards_page_background',
   'one2one_page_background',
   'clubhouse_page_background',
-  'clubhouse_events_list_background'
+  'clubhouse_events_list_background',
+  'clubhouse_landing_background',
+  'clubhouse_my_entries_background',
+  'clubhouse_leaderboard_background'
 ];
 
 const DEFAULT_BACKGROUNDS: Record<string, string> = {
@@ -25,7 +28,10 @@ const DEFAULT_BACKGROUNDS: Record<string, string> = {
   leaderboards_page_background: '/backgrounds/golf-04.jpg',
   one2one_page_background: '/backgrounds/golf-05.jpg',
   clubhouse_page_background: '/backgrounds/golf-06.jpg',
-  clubhouse_events_list_background: '/backgrounds/golf-01.jpg'
+  clubhouse_events_list_background: '/backgrounds/golf-01.jpg',
+  clubhouse_landing_background: '/backgrounds/golf-06.jpg',
+  clubhouse_my_entries_background: '/backgrounds/golf-02.jpg',
+  clubhouse_leaderboard_background: '/backgrounds/golf-04.jpg'
 };
 
 export async function GET(request: NextRequest) {

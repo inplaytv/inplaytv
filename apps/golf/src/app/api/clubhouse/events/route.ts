@@ -31,7 +31,6 @@ export async function GET() {
         registration_closes_at,
         start_date,
         end_date,
-        default_golfer_group_id,
         clubhouse_competitions (
           entry_credits,
           max_entries,
@@ -80,6 +79,12 @@ export async function GET() {
         entry_credits: firstComp?.entry_credits || 0,
         max_entries: firstComp?.max_entries || 0,
         current_entries: currentEntries,
+        // Frontend expects these field names for date parsing
+        registration_opens: event.registration_opens_at,
+        registration_closes: event.registration_closes_at,
+        start_date: event.start_date,
+        end_date: event.end_date,
+        // Also include snake_case for consistency
         reg_open_at: event.registration_opens_at,
         reg_close_at: event.registration_closes_at,
         start_at: event.start_date,
@@ -164,7 +169,7 @@ export async function POST(req: NextRequest) {
         start_date: toISO(body.round1_tee_time), // Event starts with Round 1
         end_date: toISO(body.end_date),
         registration_opens_at: toISO(body.registration_opens),
-        registration_closes_at: subtract15Minutes(body.round1_tee_time), // Default to Round 1 - 15min
+        registration_closes_at: subtract15Minutes(body.round4_tee_time), // Closes 15min before LAST round tee-off
         round1_tee_time: toISO(body.round1_tee_time),
         round2_tee_time: toISO(body.round2_tee_time),
         round3_tee_time: toISO(body.round3_tee_time),

@@ -26,7 +26,6 @@ interface Event {
 interface Competition {
   id: string;
   name: string;
-  rounds_covered: number[];
   entry_credits: number;
   max_entries: number;
   opens_at: string;
@@ -71,35 +70,36 @@ export default function EventDetailPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Load event
+    // Load event with competitions
+    let eventData = null;
     const res = await fetch(`/api/clubhouse/events/${eventId}`);
     if (res.ok) {
-      const data = await res.json();
-      setEvent(data);
+      eventData = await res.json();
+      setEvent(eventData);
+      // Use competitions from API response
+      if (eventData.competitions) {
+        setCompetitions(eventData.competitions);
+      }
     }
 
-    // Load competitions for this event
-    const { data: comps } = await supabase
-      .from('clubhouse_competitions')
-      .select('id, name, rounds_covered, entry_credits, max_entries, opens_at, closes_at, starts_at')
-      .eq('event_id', eventId)
-      .order('rounds_covered');
-
-    if (comps) setCompetitions(comps);
-
-    if (user) {
-      // Load user credits
-      const { data: wallet } = await supabase
+    if (user && eventData) {
+      // Load user credits (create wallet if doesn't exist)
+      const { data: wallet, error: walletError } = await supabase
         .from('clubhouse_wallets')
-        .select('credits')
+        .select('balance_credits')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle(); // Returns null if no rows instead of error
 
-      if (wallet) setUserCredits(wallet.credits);
+      if (wallet) {
+        setUserCredits(wallet.balance_credits);
+      } else if (walletError) {
+        console.warn('Wallet query error:', walletError);
+      }
+      // If no wallet exists, userCredits stays at 0 (initial state)
 
       // Check if user already entered any competition in this event
-      if (comps && comps.length > 0) {
-        const competitionIds = comps.map(c => c.id);
+      if (eventData.competitions && eventData.competitions.length > 0) {
+        const competitionIds = eventData.competitions.map((c: any) => c.id);
         const { data: entries } = await supabase
           .from('clubhouse_entries')
           .select('id')
@@ -202,78 +202,45 @@ export default function EventDetailPage() {
               <div
                 style={{
                   padding: '0.5rem 1rem',
-                  background: event.status === 'active' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255, 255, 255, 0.2)',
+                  background: event.status === 'open' 
+                    ? 'rgba(34, 197, 94, 0.2)' 
+                    : event.status === 'active'
+                    ? 'rgba(234, 179, 8, 0.2)'
+                    : event.status === 'completed'
+                    ? 'rgba(148, 163, 184, 0.2)'
+                    : 'rgba(99, 102, 241, 0.2)',
+                  border: `1px solid ${
+                    event.status === 'open' 
+                      ? 'rgba(34, 197, 94, 0.4)' 
+                      : event.status === 'active'
+                      ? 'rgba(234, 179, 8, 0.4)'
+                      : event.status === 'completed'
+                      ? 'rgba(148, 163, 184, 0.4)'
+                      : 'rgba(99, 102, 241, 0.4)'
+                  }`,
                   borderRadius: '8px',
                   fontSize: '0.75rem',
                   fontWeight: 700,
                   textTransform: 'uppercase',
-                  color: 'white',
+                  color: event.status === 'open' 
+                    ? '#22c55e' 
+                    : event.status === 'active'
+                    ? '#eab308'
+                    : event.status === 'completed'
+                    ? '#94a3b8'
+                    : '#6366f1',
                   letterSpacing: '0.5px',
                 }}
               >
-                {event.status}
-              </div>
-            </div>
-
-            {/* Stats Grid - Compact */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(3, 1fr)', 
-              gap: '1rem',
-              marginBottom: '1rem',
-            }}>
-              <div
-                style={{
-                  padding: '1rem',
-                  background: 'rgba(20, 184, 166, 0.15)',
-                  backdropFilter: 'blur(10px)',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(20, 184, 166, 0.3)',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.25rem', fontWeight: 600 }}>
-                  Entry Cost
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#daa520' }}>
-                  {event.entry_credits}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: '1rem',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  backdropFilter: 'blur(10px)',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.25rem', fontWeight: 600 }}>
-                  Entries
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white' }}>
-                  {event.current_entries}/{event.max_entries}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: '1rem',
-                  background: 'rgba(234, 179, 8, 0.15)',
-                  backdropFilter: 'blur(10px)',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(234, 179, 8, 0.3)',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.25rem', fontWeight: 600 }}>
-                  Your Balance
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#eab308' }}>
-                  {userCredits}
-                </div>
+                {event.status === 'open' 
+                  ? '🟢 Open (Registration)' 
+                  : event.status === 'active'
+                  ? '🔴 Active (Playing)'
+                  : event.status === 'completed'
+                  ? '✓ Completed'
+                  : event.status === 'upcoming'
+                  ? '⏳ Upcoming'
+                  : event.status}
               </div>
             </div>
 
@@ -376,7 +343,7 @@ export default function EventDetailPage() {
           </div>
 
           {/* Competitions Section */}
-          {competitions.length > 0 && (
+          {competitions && competitions.length > 0 && (
             <div>
               <h2 style={{ 
                 fontSize: '2rem', 
@@ -393,16 +360,17 @@ export default function EventDetailPage() {
                 gap: '2rem',
               }}>
                 {competitions.map((comp) => {
-                  // Check competition-level timing
+                  // Check competition-level timing using COMPETITION's own timing
                   const now = new Date();
-                  const compOpens = new Date(comp.opens_at);
-                  const compCloses = new Date(comp.closes_at);
-                  const compStarts = new Date(comp.starts_at);
-                  const isCompRegistrationOpen = now >= compOpens && now < compCloses;
-                  const compHasClosed = now >= compCloses; // Registration has closed
+                  const compOpens = comp.opens_at ? new Date(comp.opens_at) : null;
+                  const compCloses = comp.closes_at ? new Date(comp.closes_at) : null;
+                  
+                  const isCompRegistrationOpen = compOpens && compCloses && now >= compOpens && now < compCloses;
+                  const compHasClosed = compCloses && now >= compCloses;
+                  const compNotYetOpen = compOpens && now < compOpens;
                   
                   // Can enter if: registration is open and have credits (unlimited entries allowed)
-                  const canEnterThisComp = isCompRegistrationOpen && userCredits >= event.entry_credits;
+                  const canEnterThisComp = isCompRegistrationOpen && userCredits >= comp.entry_credits;
                   
                   return (
                   <div
@@ -426,33 +394,44 @@ export default function EventDetailPage() {
                       e.currentTarget.style.boxShadow = '0 8px 32px 0 rgba(0, 0, 0, 0.37)';
                     }}
                   >
-                    <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <h3 style={{ 
-                        margin: '0 0 0.5rem 0', 
+                        margin: 0, 
                         fontSize: '1.5rem', 
                         fontWeight: 700, 
                         color: 'white',
                         lineHeight: '1.3',
                       }}>
-                        {comp.name || `${event.name} - Round${comp.rounds_covered.length > 1 ? 's' : ''} ${comp.rounds_covered.join(', ')}`}
+                        {comp.name}
                       </h3>
                       <div style={{ 
                         display: 'inline-block',
                         padding: '0.5rem 1rem',
-                        background: 'rgba(20, 184, 166, 0.2)',
+                        background: compHasClosed 
+                          ? 'rgba(239, 68, 68, 0.15)' 
+                          : isCompRegistrationOpen 
+                          ? 'rgba(34, 197, 94, 0.15)' 
+                          : 'rgba(234, 179, 8, 0.15)',
+                        border: compHasClosed
+                          ? '1px solid rgba(239, 68, 68, 0.3)'
+                          : isCompRegistrationOpen
+                          ? '1px solid rgba(34, 197, 94, 0.3)'
+                          : '1px solid rgba(234, 179, 8, 0.3)',
                         borderRadius: '8px',
-                        fontSize: '0.875rem',
-                        color: '#daa520',
+                        fontSize: '0.8125rem',
+                        color: compHasClosed ? '#ef4444' : isCompRegistrationOpen ? '#22c55e' : '#eab308',
                         fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
                       }}>
-                        Round{comp.rounds_covered.length > 1 ? 's' : ''} {comp.rounds_covered.join(', ')}
+                        {compHasClosed ? 'Registration Closed' : isCompRegistrationOpen ? 'Registration Open' : 'Opens Soon'}
                       </div>
                     </div>
 
-                    {/* Three Stat Boxes */}
+                    {/* Two Stat Boxes */}
                     <div style={{ 
                       display: 'grid', 
-                      gridTemplateColumns: '1fr 1fr 1fr', 
+                      gridTemplateColumns: '1fr 1fr', 
                       gap: '1rem',
                       marginBottom: '1.5rem',
                     }}>
@@ -485,23 +464,6 @@ export default function EventDetailPage() {
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>Players</div>
                       </div>
-
-                      <div style={{ 
-                        padding: '1rem',
-                        background: 'rgba(99, 102, 241, 0.15)',
-                        borderRadius: '12px',
-                        textAlign: 'center',
-                      }}>
-                        <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.5rem', fontWeight: 600 }}>
-                          Status
-                        </div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#818cf8' }}>
-                          {event.status === 'active' ? '🔴' : '🟢'}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-                          {event.status === 'active' ? 'Live' : 'Open'}
-                        </div>
-                      </div>
                     </div>
 
                     <div style={{ 
@@ -512,19 +474,36 @@ export default function EventDetailPage() {
                       marginBottom: '1.5rem',
                     }}>
                       <div>
-                        <div style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.5rem', fontWeight: 600 }}>Closes In</div>
-                        <CountdownClock targetDate={comp.closes_at} />
+                        <div style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.5rem', fontWeight: 600 }}>Registration Opens</div>
+                        <div style={{ fontWeight: 700, color: isCompRegistrationOpen ? '#22c55e' : 'white' }}>
+                          {isCompRegistrationOpen ? (
+                            <span style={{ color: '#22c55e' }}>✓ Open Now</span>
+                          ) : (
+                            new Date(comp.opens_at).toLocaleString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              hour: 'numeric', 
+                              minute: '2-digit' 
+                            })
+                          )}
+                        </div>
                       </div>
                       <div>
-                        <div style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.5rem', fontWeight: 600 }}>Registration Closes</div>
-                        <div style={{ fontWeight: 700, color: 'white' }}>
-                          {new Date(comp.closes_at).toLocaleString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric', 
-                            hour: 'numeric', 
-                            minute: '2-digit' 
-                          })}
+                        <div style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.5rem', fontWeight: 600 }}>
+                          {compHasClosed ? 'Registration Closed' : 'Closes In'}
                         </div>
+                        {compHasClosed ? (
+                          <div style={{ fontWeight: 700, color: '#ef4444' }}>
+                            {new Date(comp.closes_at).toLocaleString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              hour: 'numeric', 
+                              minute: '2-digit' 
+                            })}
+                          </div>
+                        ) : (
+                          <CountdownClock targetDate={comp.closes_at} />
+                        )}
                       </div>
                     </div>
 
@@ -548,26 +527,22 @@ export default function EventDetailPage() {
                           fontSize: '0.9375rem',
                           textAlign: 'center',
                           transition: 'all 0.2s',
-                          opacity: canEnterThisComp ? 1 : 0.9,
                           cursor: canEnterThisComp ? 'pointer' : 'not-allowed',
+                          opacity: compHasClosed || !canEnterThisComp ? 0.6 : 1,
                         }}
                         onClick={(e) => {
                           if (!canEnterThisComp) e.preventDefault();
                         }}
-                        onMouseEnter={(e) => {
-                          if (canEnterThisComp) {
-                            e.currentTarget.style.background = 'linear-gradient(135deg, #1a6b1a, #28a428)';
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (canEnterThisComp) {
-                              e.currentTarget.style.background = 'linear-gradient(135deg, #228b22, #32cd32)';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                          }
-                        }}
                       >
-                        {compHasClosed ? '🔒 Closed' : '🏌️ Build Team'}
+                        {compHasClosed 
+                          ? '🔒 Registration Closed' 
+                          : compNotYetOpen
+                          ? '⏳ Opens Soon'
+                          : canEnterThisComp 
+                            ? '🏌️ Build Your Team' 
+                            : userCredits < comp.entry_credits
+                            ? '💎 Need More Credits'
+                            : '📝 Build Your Team'}
                       </Link>
                       <Link
                         href={`/clubhouse/competitions/${comp.id}`}
@@ -616,6 +591,29 @@ export default function EventDetailPage() {
                 );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* No Competitions Message */}
+          {(!competitions || competitions.length === 0) && (
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '16px',
+                padding: '3rem 2rem',
+                textAlign: 'center',
+                marginTop: '2rem',
+              }}
+            >
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏌️</div>
+              <h3 style={{ color: 'white', fontSize: '1.5rem', marginBottom: '0.5rem' }}>
+                No Competitions Available
+              </h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1rem' }}>
+                Competitions will be added soon. Check back later!
+              </p>
             </div>
           )}
         </div>

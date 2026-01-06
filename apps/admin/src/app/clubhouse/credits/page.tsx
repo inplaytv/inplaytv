@@ -189,7 +189,7 @@ export default function ClubhouseCreditsPage() {
                 {filteredUsers.map(user => (
                   <option key={user.id} value={user.id}>
                     {user.profiles?.display_name || user.email} ({user.email})
-                    {wallets[user.id] ? ` - ${wallets[user.id].credits} credits` : ' - No wallet'}
+                    {wallets[user.id] ? ` - ${(wallets[user.id] as any).balance_credits} credits` : ' - No wallet'}
                   </option>
                 ))}
               </select>
@@ -250,7 +250,7 @@ export default function ClubhouseCreditsPage() {
                   <div className={styles.walletBalance}>
                     {wallet ? (
                       <>
-                        <span className={styles.credits}>{wallet.credits}</span>
+                        <span className={styles.credits}>{(wallet as any).balance_credits}</span>
                         <span className={styles.creditsLabel}>credits</span>
                       </>
                     ) : (

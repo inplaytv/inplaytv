@@ -107,9 +107,46 @@ CREATE TRIGGER event_timing_sync
 
 ### Lessons Learned from Clubhouse Testing (2026-01-06)
 
-**Discovery**: The simple trigger design doesn't work for multi-round competitions.
+**✅ RESOLVED: Registration Closes at START Instead of END**
 
-Clubhouse testing revealed:
+**Discovery**: Database constraint `registration_closes_at <= start_date` blocked multi-day tournaments.
+
+**Problem Flow**:
+1. Multi-day tournament: Jan 5-8 (start on Jan 5, end on Jan 8)
+2. Registration should close: Jan 8 at 06:45 (15min before Round 4 tee-off at 07:00)
+3. Constraint checked: Jan 8 06:45 <= Jan 5? **FALSE** ❌
+4. Database rejected insert/update
+
+**Root Cause**: 
+- Constraint assumed registration closes BEFORE tournament starts
+- But golf tournaments accept entries until FINAL round (after event starts)
+- API was using `round1_tee_time - 15min` instead of `round4_tee_time - 15min`
+
+**Solution**:
+1. Changed constraint: `registration_closes_at <= end_date` (not start_date)
+2. Changed API logic: Use `round4_tee_time` (LAST round) instead of `round1_tee_time`
+3. Fixed data types: Use TIMESTAMPTZ (not DATE) to allow time-of-day in constraint checks
+
+**Files Fixed in Clubhouse**:
+- `scripts/clubhouse/NUCLEAR-CLEAN-RESET.sql` (line 46) - Constraint corrected
+- `scripts/clubhouse/01-create-schema.sql` (line 46) - Constraint corrected
+- `scripts/clubhouse/02-clean-install.sql` (line 58) - Constraint corrected
+- `apps/golf/src/app/api/clubhouse/events/route.ts` (line 173) - Use round4_tee_time
+- `apps/golf/src/app/api/clubhouse/events/[id]/route.ts` (lines 143-146) - Use round4_tee_time
+- `apps/golf/src/app/clubhouse/events/page.tsx` - Status badges and countdown timers
+- `apps/golf/src/app/clubhouse/events/[id]/page.tsx` - Registration validation
+
+**Validation**:
+- ✅ 3-round event (Desert Classic): Closes 15min before Round 3
+- ✅ 4-round event (Spring Masters): Closes 15min before Round 4
+- ✅ Constraint allows registration_closes_at = end_date minus 15min
+- ✅ Frontend displays accurate countdown timers
+
+---
+
+**Discovery**: Simple trigger design doesn't work for multi-round competitions.
+
+Clubhouse testing revealed trigger issues:
 - Simple trigger sets ALL competitions to same `closes_at` value
 - But each competition needs different timing based on its `rounds_covered`
 - Round 1 comp closes at `round1_tee_time - 15min`
@@ -120,8 +157,6 @@ Clubhouse testing revealed:
 - `POST /api/clubhouse/events` - Creates competitions with round-specific timing
 - `PUT /api/clubhouse/events/[id]` - Updates each competition based on `rounds_covered`
 - Working successfully, trigger removed 2026-01-06
-
-See: [CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md](CLUBHOUSE-TIMING-TRIGGER-ANALYSIS.md)
 
 ### Backport to Main System
 

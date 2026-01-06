@@ -133,15 +133,16 @@ export async function POST(request: NextRequest) {
         timezone: timezone,
         admin_fee_percent: 10.00,
         is_visible: true,
-        registration_open_date: regOpenDate.toISOString(),
-        registration_close_date: regCloseDate.toISOString(),
+        registration_opens_at: regOpenDate.toISOString(),
+        registration_closes_at: regCloseDate.toISOString(),
       })
       .select()
       .single();
     
     if (tournamentError || !createdTournament) {
       console.error('❌ Tournament creation error:', tournamentError);
-      throw new Error('Failed to create tournament');
+      console.error('❌ Full error details:', JSON.stringify(tournamentError, null, 2));
+      throw new Error(`Failed to create tournament: ${tournamentError?.message || 'Unknown database error'}`);
     }
     
     console.log('✅ Tournament created:', createdTournament.id);
@@ -163,6 +164,7 @@ export async function POST(request: NextRequest) {
       return {
         tournament_id: createdTournament.id,
         competition_type_id: competitionTypeId,
+        competition_format: 'inplay', // 🚨 CRITICAL: Mark as InPlay competition
         entry_fee_pennies: entryFeePennies,
         entrants_cap: comp.entrantsCap,
         admin_fee_percent: comp.adminFeePercent,
@@ -288,12 +290,16 @@ export async function POST(request: NextRequest) {
     // This would be done based on golfer rankings and competition type
     console.log('💰 Salary calculation would happen here');
     
-    // Step 7: Update tournament status based on registration dates
-    const { error: statusUpdateError } = await supabase.rpc('auto_update_tournament_statuses');
-    if (statusUpdateError) {
-      console.warn('⚠️ Failed to auto-update tournament status:', statusUpdateError);
-    } else {
-      console.log('✅ Tournament status auto-updated');
+    // Step 7: Update tournament status based on registration dates (skip if function doesn't exist)
+    try {
+      const { error: statusUpdateError } = await supabase.rpc('auto_update_tournament_statuses');
+      if (statusUpdateError) {
+        console.warn('⚠️ Failed to auto-update tournament status (non-fatal):', statusUpdateError.message);
+      } else {
+        console.log('✅ Tournament status auto-updated');
+      }
+    } catch (err) {
+      console.warn('⚠️ RPC function not available (non-fatal):', err);
     }
     
     return NextResponse.json({
@@ -308,10 +314,19 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('❌ Error creating tournament:', error);
+    
+    // Log detailed error information
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Failed to create tournament' 
+        error: error instanceof Error ? error.message : 'Failed to create tournament',
+        details: error instanceof Error ? error.stack : String(error)
       },
       { status: 500 }
     );

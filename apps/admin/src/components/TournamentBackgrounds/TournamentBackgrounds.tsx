@@ -15,20 +15,23 @@ export default function TournamentBackgrounds() {
   const [currentBackground, setCurrentBackground] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'tournaments' | 'lobby' | 'entries' | 'leaderboards' | 'one2one' | 'clubhouse' | 'clubhouse_events_list'>('tournaments');
+  const [activeTab, setActiveTab] = useState<'tournaments' | 'lobby' | 'entries' | 'leaderboards' | 'one2one' | 'clubhouse' | 'clubhouse_events_list' | 'clubhouse_landing' | 'clubhouse_my_entries' | 'clubhouse_leaderboard'>('tournaments');
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [pageBackgrounds, setPageBackgrounds] = useState<Record<string, string>>({});
   const [opacity, setOpacity] = useState<number>(0.15);
   const [overlay, setOverlay] = useState<number>(0.4);
 
   const tabs = [
-    { id: 'tournaments' as const, label: 'Tournaments Page', description: 'Background for /tournaments page', pageKey: 'tournament_page_background' },
-    { id: 'lobby' as const, label: 'Lobby/Home Page', description: 'Background for main lobby', pageKey: 'lobby_page_background' },
-    { id: 'entries' as const, label: 'My Entries Page', description: 'Background for /entries page', pageKey: 'entries_page_background' },
-    { id: 'leaderboards' as const, label: 'Leaderboards Page', description: 'Background for /leaderboards', pageKey: 'leaderboards_page_background' },
-    { id: 'one2one' as const, label: 'ONE 2 ONE Page', description: 'Background for /one-2-one', pageKey: 'one2one_page_background' },
-    { id: 'clubhouse' as const, label: 'Clubhouse Page', description: 'Background for /clubhouse/events', pageKey: 'clubhouse_page_background' },
-    { id: 'clubhouse_events_list' as const, label: 'Clubhouse Events List', description: 'Background for /clubhouse/events list page', pageKey: 'clubhouse_events_list_background' }
+    { id: 'lobby' as const, label: 'Lobby', description: 'Main lobby / home page', pageKey: 'lobby_page_background' },
+    { id: 'tournaments' as const, label: 'Tournaments', description: '/tournaments page', pageKey: 'tournament_page_background' },
+    { id: 'entries' as const, label: 'My Entries', description: '/entries page', pageKey: 'entries_page_background' },
+    { id: 'leaderboards' as const, label: 'Leaderboards', description: '/leaderboards page', pageKey: 'leaderboards_page_background' },
+    { id: 'one2one' as const, label: 'ONE 2 ONE', description: '/one-2-one page', pageKey: 'one2one_page_background' },
+    { id: 'clubhouse_landing' as const, label: 'Clubhouse Home', description: '/clubhouse landing page', pageKey: 'clubhouse_landing_background' },
+    { id: 'clubhouse' as const, label: 'Clubhouse Events', description: '/clubhouse/events page', pageKey: 'clubhouse_page_background' },
+    { id: 'clubhouse_events_list' as const, label: 'Clubhouse List', description: '/clubhouse/events list', pageKey: 'clubhouse_events_list_background' },
+    { id: 'clubhouse_my_entries' as const, label: 'Clubhouse Entries', description: '/clubhouse/my-entries page', pageKey: 'clubhouse_my_entries_background' },
+    { id: 'clubhouse_leaderboard' as const, label: 'Clubhouse Leaderboard', description: '/clubhouse/leaderboard page', pageKey: 'clubhouse_leaderboard_background' }
   ];
 
   useEffect(() => {

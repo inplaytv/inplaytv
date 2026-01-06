@@ -32,7 +32,6 @@ interface ClubhouseEvent {
     name: string;
     entry_credits: number;
     max_entries: number;
-    rounds_covered: number[] | null;
   }[];
 }
 
@@ -43,10 +42,28 @@ export default function ClubhousePage() {
   const [clubhouseEvents, setClubhouseEvents] = useState<ClubhouseEvent[]>([]);
   const [creditsBalance, setCreditsBalance] = useState(0);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState<string>('');
+  const [backgroundOpacity, setBackgroundOpacity] = useState<number>(0.15);
+  const [backgroundOverlay, setBackgroundOverlay] = useState<number>(0.4);
 
   useEffect(() => {
     loadClubData();
+    loadBackground();
   }, []);
+
+  async function loadBackground() {
+    try {
+      const response = await fetch('/api/settings/page-background?page=clubhouse_landing_background');
+      const data = await response.json();
+      if (data.backgroundUrl && data.backgroundUrl !== 'none') {
+        setBackgroundImage(data.backgroundUrl);
+        setBackgroundOpacity(data.opacity ?? 0.15);
+        setBackgroundOverlay(data.overlay ?? 0.4);
+      }
+    } catch (error) {
+      console.error('Error loading background:', error);
+    }
+  }
 
   async function loadClubData() {
     // For now, mock data - will integrate with real club system
@@ -77,8 +94,7 @@ export default function ClubhousePage() {
           id,
           name,
           entry_credits,
-          max_entries,
-          rounds_covered
+          max_entries
         )
       `)
       .order('start_date', { ascending: true })
@@ -119,73 +135,53 @@ export default function ClubhousePage() {
   return (
     <RequireAuth>
       <div className={styles.container}>
+        {/* Background Image */}
+        {backgroundImage && (
+          <>
+            <div 
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundImage: `url(${backgroundImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                opacity: backgroundOpacity,
+                zIndex: 0,
+                pointerEvents: 'none'
+              }}
+            />
+            <div 
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'black',
+                opacity: backgroundOverlay,
+                zIndex: 1,
+                pointerEvents: 'none'
+              }}
+            />
+          </>
+        )}
         {/* Quick Actions Header */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '1rem', 
-          marginBottom: '2rem', 
-          padding: '1rem',
-          background: 'rgba(255, 255, 255, 0.05)',
-          borderRadius: '12px',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          flexWrap: 'wrap',
-          justifyContent: 'center'
-        }}>
-          <Link href="/clubhouse/events" style={{
-            padding: '0.75rem 1.5rem',
-            background: 'linear-gradient(135deg, #b19cd9 0%, #9575cd 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '10px',
-            fontWeight: 600,
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.3s ease'
-          }}>
+        <div className={styles.quickActions}>
+          <Link href="/clubhouse/events" className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}>
             <i className="fas fa-calendar-alt"></i>
-            Browse Events
+            <span>Browse Events</span>
           </Link>
-          <Link href="/clubhouse/my-entries" style={{
-            padding: '0.75rem 1.5rem',
-            background: 'rgba(255, 255, 255, 0.08)',
-            color: 'white',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: '10px',
-            fontWeight: 600,
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.3s ease',
-            backdropFilter: 'blur(10px)'
-          }}>
+          <Link href="/clubhouse/my-entries" className={`${styles.actionBtn} ${styles.actionBtnSecondary}`}>
             <i className="fas fa-clipboard-list"></i>
-            My Entries
+            <span>My Entries</span>
           </Link>
-          <Link href="/clubhouse/wallet" style={{
-            padding: '0.75rem 1.5rem',
-            background: 'rgba(255, 255, 255, 0.08)',
-            color: 'white',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: '10px',
-            fontWeight: 600,
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.3s ease',
-            backdropFilter: 'blur(10px)'
-          }}>
+          <Link href="/clubhouse/wallet" className={`${styles.actionBtn} ${styles.actionBtnSecondary}`}>
             <i className="fas fa-wallet"></i>
-            My Wallet
+            <span>My Wallet</span>
           </Link>
         </div>
 
@@ -195,7 +191,7 @@ export default function ClubhousePage() {
           <div className={styles.heroContent}>
             <div className={styles.clubBadge}>
               <i className="fas fa-shield-alt"></i>
-              <span style={{ marginLeft: '0.5rem', fontWeight: 700 }}>VIP Member</span>
+              VIP Member
             </div>
             <h1 className={styles.heroTitle}>Welcome to the Clubhouse</h1>
             <p className={styles.heroSubtitle}>
@@ -309,183 +305,60 @@ export default function ClubhousePage() {
             </p>
           </div>
 
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))',
-            gap: '1.5rem',
-          }}>
+          <div className={styles.tournamentsGrid}>
             {clubhouseEvents.map((event) => {
               const totalCompetitions = event.competitions.length;
               
               return (
                 <div
                   key={event.id}
-                  style={{
-                    padding: '2rem',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '16px',
-                    transition: 'all 0.3s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                    e.currentTarget.style.borderColor = 'rgba(218, 165, 32, 0.3)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
+                  className={styles.tournamentCard}
                 >
                   {/* Event Header */}
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'flex-start',
-                    marginBottom: '1.5rem',
-                    gap: '1rem',
-                    flexWrap: 'wrap',
-                  }}>
-                    <div>
-                      <h2 style={{ 
-                        color: '#fff', 
-                        margin: '0 0 0.5rem 0',
-                        fontSize: '1.5rem',
-                        fontWeight: 700,
-                      }}>
-                        {event.name}
-                      </h2>
-                      <p style={{ 
-                        color: '#94a3b8', 
-                        margin: 0,
-                        fontSize: '0.95rem',
-                      }}>
+                  <div className={styles.tournamentHeader}>
+                    <div className={styles.tournamentInfo}>
+                      <h2>{event.name}</h2>
+                      <p>
+                        <i className="fas fa-map-marker-alt"></i>
                         {event.location || 'Location TBD'}
                       </p>
                     </div>
-                    <div style={{ 
-                      padding: '0.5rem 1rem',
-                      background: event.status === 'open' 
-                        ? 'rgba(34, 197, 94, 0.1)' 
-                        : 'rgba(148, 163, 184, 0.1)',
-                      border: `1px solid ${event.status === 'open' 
-                        ? 'rgba(34, 197, 94, 0.3)' 
-                        : 'rgba(148, 163, 184, 0.3)'}`,
-                      color: event.status === 'open' ? '#22c55e' : '#94a3b8',
-                      borderRadius: '8px',
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                    }}>
+                    <div className={`${styles.statusBadge} ${event.status === 'open' ? styles.statusOpen : styles.statusClosed}`}>
                       {event.status}
                     </div>
                   </div>
 
                   {/* Stats Grid */}
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                    gap: '1rem',
-                  }}>
+                  <div className={styles.tournamentStats}>
                     {/* Entry Cost */}
-                    <div style={{
-                      padding: '1rem',
-                      background: 'rgba(218, 165, 32, 0.1)',
-                      border: '1px solid rgba(218, 165, 32, 0.2)',
-                      borderRadius: '12px',
-                    }}>
-                      <div style={{ 
-                        color: '#64748b', 
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        marginBottom: '0.5rem',
-                      }}>
-                        Entry Cost
-                      </div>
-                      <div style={{ 
-                        color: '#228b22', 
-                        fontSize: '1.5rem',
-                        fontWeight: 700,
-                      }}>
+                    <div className={`${styles.statBox} ${styles.statBoxGold}`}>
+                      <div className={styles.statBoxLabel}>Entry Cost</div>
+                      <div className={styles.statBoxValue}>
                         {event.entry_credits}
-                        <span style={{ fontSize: '0.875rem', marginLeft: '0.25rem' }}>credits</span>
+                        <span>credits</span>
                       </div>
                     </div>
 
                     {/* Competitions */}
-                    <div style={{
-                      padding: '1rem',
-                      background: 'rgba(34, 139, 34, 0.1)',
-                      border: '1px solid rgba(34, 139, 34, 0.2)',
-                      borderRadius: '12px',
-                    }}>
-                      <div style={{ 
-                        color: '#64748b', 
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        marginBottom: '0.5rem',
-                      }}>
-                        Competitions
-                      </div>
-                      <div style={{ 
-                        color: '#228b22', 
-                        fontSize: '1.5rem',
-                        fontWeight: 700,
-                      }}>
+                    <div className={`${styles.statBox} ${styles.statBoxGreen}`}>
+                      <div className={styles.statBoxLabel}>Competitions</div>
+                      <div className={styles.statBoxValue}>
                         {totalCompetitions}
                       </div>
                     </div>
 
                     {/* Max Entries */}
-                    <div style={{
-                      padding: '1rem',
-                      background: 'rgba(234, 179, 8, 0.1)',
-                      border: '1px solid rgba(234, 179, 8, 0.2)',
-                      borderRadius: '12px',
-                    }}>
-                      <div style={{ 
-                        color: '#64748b', 
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        marginBottom: '0.5rem',
-                      }}>
-                        Max Entries
-                      </div>
-                      <div style={{ 
-                        color: '#eab308', 
-                        fontSize: '1.5rem',
-                        fontWeight: 700,
-                      }}>
+                    <div className={`${styles.statBox} ${styles.statBoxYellow}`}>
+                      <div className={styles.statBoxLabel}>Max Entries</div>
+                      <div className={styles.statBoxValue}>
                         {event.max_entries}
                       </div>
                     </div>
 
                     {/* Event Dates */}
-                    <div style={{
-                      padding: '1rem',
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1px solid rgba(239, 68, 68, 0.2)',
-                      borderRadius: '12px',
-                    }}>
-                      <div style={{ 
-                        color: '#64748b', 
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        marginBottom: '0.5rem',
-                      }}>
-                        Event Dates
-                      </div>
-                      <div style={{ 
-                        color: '#ef4444', 
-                        fontSize: '0.95rem',
-                        fontWeight: 600,
-                      }}>
+                    <div className={`${styles.statBox} ${styles.statBoxRed}`}>
+                      <div className={styles.statBoxLabel}>Event Dates</div>
+                      <div className={styles.statBoxValue}>
                         {new Date(event.start_date).toLocaleDateString('en-US', { 
                           month: 'short', 
                           day: 'numeric'
@@ -498,25 +371,13 @@ export default function ClubhousePage() {
                   </div>
 
                   {/* Action Button */}
-                  <div style={{ marginTop: '1.5rem' }}>
+                  <div className={styles.tournamentAction}>
                     <Link 
                       href={`/clubhouse/events/${event.id}`}
-                      style={{ textDecoration: 'none' }}
+                      className={styles.viewDetailsBtn}
                     >
-                      <div style={{
-                        padding: '0.875rem',
-                        background: 'linear-gradient(135deg, #228b22, #daa520)',
-                        border: 'none',
-                        borderRadius: '10px',
-                        color: '#fff',
-                        fontWeight: 600,
-                        fontSize: '1rem',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                      }}>
-                        📋 View Event Details
-                      </div>
+                      <i className="fas fa-clipboard-list"></i>
+                      View Event Details
                     </Link>
                   </div>
                 </div>

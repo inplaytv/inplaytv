@@ -691,7 +691,7 @@ tournament_competitions (InPlay + ONE 2 ONE unified)
     ↓ (receives)
 competition_entries
     ↓ (contains)
-competition_entry_picks → golfers
+entry_picks → golfers
 ```
 
 ### Key Tables
@@ -799,7 +799,7 @@ competition_entries {
 
 **8. Entry Picks**
 ```sql
-competition_entry_picks {
+entry_picks {
   id            UUID PRIMARY KEY
   entry_id      → competition_entries.id
   golfer_id     → golfers.id
@@ -1419,7 +1419,7 @@ Scoring:
 │ B. Check wallet balance              │
 │ C. wallet_apply(-entry_fee)          │
 │ D. Create competition_entries        │
-│ E. Create competition_entry_picks    │
+│ E. Create entry_picks                │
 │ F. Increment current_players         │
 └────────┬─────────────────────────────┘
          │

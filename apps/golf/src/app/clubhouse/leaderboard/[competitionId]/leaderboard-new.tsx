@@ -41,7 +41,6 @@ interface Competition {
   name: string;
   entry_credits: number;
   prize_credits: number;
-  rounds_covered: number[];
   event: {
     id: string;
     name: string;
@@ -62,12 +61,30 @@ export default function ModernLeaderboardPage() {
   const [allCompetitions, setAllCompetitions] = useState<Competition[]>([]);
   const [selectedRound, setSelectedRound] = useState<string>(competitionId);
   const [allEvents, setAllEvents] = useState<Array<{id: string, name: string, slug: string}>>([]);
+  const [backgroundImage, setBackgroundImage] = useState<string>('');
+  const [backgroundOpacity, setBackgroundOpacity] = useState<number>(0.15);
+  const [backgroundOverlay, setBackgroundOverlay] = useState<number>(0.4);
 
   useEffect(() => {
     fetchLeaderboard();
+    loadBackground();
     const interval = setInterval(fetchLeaderboard, 30000); // Refresh every 30s
     return () => clearInterval(interval);
   }, [selectedRound]);
+
+  async function loadBackground() {
+    try {
+      const response = await fetch('/api/settings/page-background?page=clubhouse_leaderboard_background');
+      const data = await response.json();
+      if (data.backgroundUrl && data.backgroundUrl !== 'none') {
+        setBackgroundImage(data.backgroundUrl);
+        setBackgroundOpacity(data.opacity ?? 0.15);
+        setBackgroundOverlay(data.overlay ?? 0.4);
+      }
+    } catch (error) {
+      console.error('Error loading background:', error);
+    }
+  }
 
   async function fetchLeaderboard() {
     try {
@@ -90,9 +107,9 @@ export default function ModernLeaderboardPage() {
       // Fetch all competitions for round selector
       const { data: allCompsData } = await supabase
         .from('clubhouse_competitions')
-        .select('id, name, rounds_covered')
+        .select('id, name')
         .eq('event_id', compData.event_id)
-        .order('rounds_covered');
+        .order('created_at');
 
       if (allCompsData) {
         setAllCompetitions(allCompsData as any);
@@ -123,10 +140,17 @@ export default function ModernLeaderboardPage() {
         event: eventData || { id: '', name: '', status: '' }
       });
 
-      // Fetch entries
+      // Fetch entries with picks
       const { data: entriesData } = await supabase
         .from('clubhouse_entries')
-        .select('*')
+        .select(`
+          *,
+          clubhouse_entry_picks (
+            golfer_id,
+            is_captain,
+            pick_order
+          )
+        `)
         .eq('competition_id', selectedRound)
         .eq('status', 'active');
 
@@ -146,8 +170,10 @@ export default function ModernLeaderboardPage() {
 
       const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
-      // Fetch golfers
-      const allGolferIds = [...new Set(entriesData.flatMap(e => e.golfer_ids))];
+      // Fetch golfers from entry picks
+      const allGolferIds = [...new Set(entriesData.flatMap((e: any) => 
+        (e.clubhouse_entry_picks || []).map((p: any) => p.golfer_id)
+      ))];
       const { data: golfers } = await supabase
         .from('golfers')
         .select('id, first_name, last_name')
@@ -173,11 +199,16 @@ export default function ModernLeaderboardPage() {
       }
 
       // Build leaderboard with real fantasy scores
-      const enrichedEntries = entriesData.map((entry, idx) => {
+      const enrichedEntries = entriesData.map((entry: any, idx) => {
         const profile = profileMap.get(entry.user_id);
         const entryScoring = scoringData.entries?.find((e: any) => e.entryId === entry.id);
         
-        const golferScores = entry.golfer_ids.map((id: string) => {
+        // Get golfer IDs and captain from picks
+        const picks = entry.clubhouse_entry_picks || [];
+        const golferIds = picks.map((p: any) => p.golfer_id);
+        const captainPick = picks.find((p: any) => p.is_captain);
+        
+        const golferScores = golferIds.map((id: string) => {
           const golfer = golferMap.get(id);
           const golferScoring = entryScoring?.golfers?.find((g: any) => g.golferId === id);
           return {
@@ -185,7 +216,7 @@ export default function ModernLeaderboardPage() {
             name: golfer?.name || 'Unknown',
             score: golferScoring?.score || 0,
             fantasyPoints: golferScoring?.fantasyPoints || 0,
-            isCaptain: id === entry.captain_id,
+            isCaptain: id === captainPick?.golfer_id,
             position: golferScoring?.position || '—',
             thru: golferScoring?.thru || '—'
           };
@@ -194,8 +225,8 @@ export default function ModernLeaderboardPage() {
         return {
           id: entry.id,
           user_id: entry.user_id,
-          golfer_ids: entry.golfer_ids,
-          captain_id: entry.captain_id,
+          golfer_ids: golferIds,
+          captain_id: captainPick?.golfer_id || null,
           user: profile || { display_name: 'Unknown', username: 'unknown' },
           golfers: golferScores,
           total_score: golferScores.reduce((sum: number, g: GolferScore) => sum + g.score, 0),
@@ -220,9 +251,8 @@ export default function ModernLeaderboardPage() {
   }
 
   const getRoundLabel = (comp: Competition) => {
-    if (!comp.rounds_covered || comp.rounds_covered.length === 4) return 'All Rounds';
-    if (comp.rounds_covered.length === 1) return `Round ${comp.rounds_covered[0]}`;
-    return `Rounds ${comp.rounds_covered.join(', ')}`;
+    // For clubhouse, just use the competition name
+    return comp.name;
   };
 
   if (loading && !competition) {
@@ -241,6 +271,40 @@ export default function ModernLeaderboardPage() {
   return (
     <RequireAuth>
       <div className={styles.pageContainer}>
+        {/* Background Image */}
+        {backgroundImage && (
+          <>
+            <div 
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundImage: `url(${backgroundImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                opacity: backgroundOpacity,
+                zIndex: 0,
+                pointerEvents: 'none'
+              }}
+            />
+            <div 
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'black',
+                opacity: backgroundOverlay,
+                zIndex: 1,
+                pointerEvents: 'none'
+              }}
+            />
+          </>
+        )}
         {/* Compact Header - Always Visible */}
         <div className={styles.compactHeader}>
           <div className={styles.topBar}>
@@ -371,7 +435,7 @@ export default function ModernLeaderboardPage() {
                   <p>No entries yet for this round</p>
                   <div className={styles.emptyActions}>
                     <Link href={`/clubhouse/build-team/${competition.id}`} className={styles.enterBtnSmall}>
-                      Enter Competition
+                      Build Your Team
                     </Link>
                   </div>
                 </div>

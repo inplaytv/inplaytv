@@ -385,65 +385,26 @@ Organized by date and purpose:
 - `ONE-2-ONE-REFUND-SYSTEM.md` - Automatic refund logic
 - Root `.md` files document historical fixes and features (reference for patterns)
 
-## ONE 2 ONE vs InPlay Competitions
+## 📝 DOCUMENTATION NOTE: Unified System (Updated Jan 2026)
 
-### Two Completely Separate Systems
-**CRITICAL**: These are **mutually exclusive** competition types with different data models:
+**REMOVED SECTION**: "ONE 2 ONE vs InPlay Competitions - Two Completely Separate Systems"
 
-| Feature | InPlay Competitions | ONE 2 ONE Challenges |
-|---------|-------------------|---------------------|
-| **Table** | `tournament_competitions` | `competition_instances` |
-| **Entry Link** | `competition_id` (NOT NULL) | `instance_id` (NOT NULL) |
-| **Constraint** | `instance_id` MUST be NULL | `competition_id` MUST be NULL |
-| **Players** | Unlimited (up to `entrants_cap`) | Exactly 2 (head-to-head) |
-| **Creation** | Admin pre-creates | User-triggered, auto-spawn |
-| **Team Size** | 6 golfers + 1 captain | 6 golfers + 1 captain (same) |
-| **Detection** | `competition_type_id` NOT NULL | `rounds_covered` NOT NULL |
-| **URL Pattern** | `/tournaments/[slug]` | `/one-2-one/[slug]` |
+**Why Removed**: This section described an **obsolete two-table architecture** that contradicted the actual unified system documented at the top of this file. The old documentation claimed:
+- ❌ InPlay used `tournament_competitions` table
+- ❌ ONE 2 ONE used `competition_instances` table  
+- ❌ Entries used `instance_id` column for ONE 2 ONE
 
-### Entry Creation Flow Differences
+**Current Reality** (see "UNIFIED COMPETITION SYSTEM" section above):
+- ✅ **Both InPlay AND ONE 2 ONE use the SAME table**: `tournament_competitions`
+- ✅ **No `competition_instances` table exists** (was unified in previous migration)
+- ✅ **No `instance_id` column exists** (all entries use `competition_id`)
+- ✅ **Only difference**: `competition_format` field ('inplay' vs 'one2one')
 
-**InPlay (Standard):**
-1. User selects competition from list
-2. Builds 6-golfer team in team builder
-3. Submits entry → `competition_entries` created with `competition_id`
-4. Entry immediately active
+**What Caused This**: The cleanup script and AI tournament creator were failing because they referenced the old `competition_instances` table. After fixing these issues (Jan 6, 2026), we discovered this conflicting documentation that could have led to similar bugs in the future.
 
-**ONE 2 ONE (Challenge-based):**
-1. User selects tournament + round template
-2. System creates `competition_instances` record with `status: 'pending'`
-3. User builds 6-golfer team
-4. Clicks "Purchase Scorecard" → Instance activated to `status: 'open'`
-5. Submits entry → `competition_entries` created with `instance_id`
-6. Challenge appears on Challenge Board
-7. Second player joins → Instance becomes `status: 'full'`, auto-spawns next instance
+**Reference**: See `VERIFICATION-REPORT-2026-01-05.md` for details on the 68 references that were removed during the unification migration.
 
-### Code Detection Pattern
-```typescript
-// Type guards in apps/golf/src/lib/competition-utils.ts
-function isInPlayCompetition(item: any): boolean {
-  return item.competition_type_id !== null && item.rounds_covered === undefined;
-}
-
-function isOne2OneTemplate(item: any): boolean {
-  return item.rounds_covered !== null && item.competition_type_id === undefined;
-}
-
-// Database query pattern
-const { data: entry } = await supabase
-  .from('competition_entries')
-  .select('*')
-  .eq(isOne2One ? 'instance_id' : 'competition_id', id);
-```
-
-### Critical Validation Rule
-**NEVER** set both `competition_id` and `instance_id` on same entry - database constraint will fail:
-```sql
-CHECK (
-  (competition_id IS NOT NULL AND instance_id IS NULL) OR
-  (competition_id IS NULL AND instance_id IS NOT NULL)
-)
-```
+**For Historical Context**: If you need to understand the old two-table system, see archived documentation in `docs/ONE-2-ONE-IMPLEMENTATION.md` (marked as historical reference only).
 
 ## Scoring Service Package
 

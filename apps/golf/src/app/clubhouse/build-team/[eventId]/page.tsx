@@ -189,7 +189,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         console.log('💰 Checking wallet for user:', user.id);
         const { data: walletData, error: walletError } = await supabase
           .from('clubhouse_wallets')
-          .select('credits')
+          .select('balance_credits')
           .eq('user_id', user.id)
           .single();
         
@@ -205,7 +205,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
           }
         }
         
-        const userCredits = walletData?.credits || 0;
+        const userCredits = walletData?.balance_credits || 0;
         setUserBalance(userCredits);
         console.log('💰 User credits:', userCredits, 'Entry cost:', mappedCompetition.entry_credits);
 
@@ -611,6 +611,12 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         return;
       }
 
+      // Get user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+
       // CREATE MODE: Use create_clubhouse_entry RPC function
       console.log('🚀 Calling create_clubhouse_entry with:', {
         p_user_id: (await supabase.auth.getUser()).data.user?.id,
@@ -643,7 +649,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
       ]);
 
       // Redirect to confirmation page with competition details
-      const confirmationUrl = `/clubhouse/entry-confirmed?name=${encodeURIComponent(competition.name || 'Competition')}&credits=${competition.entry_credits}`;
+      const confirmationUrl = `/clubhouse/entry-confirmed?name=${encodeURIComponent(competition.event_name || 'Competition')}&credits=${competition.entry_credits}`;
       router.push(confirmationUrl);
     } catch (err: any) {
       console.error('Submit error:', err);

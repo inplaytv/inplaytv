@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
 import './profile.css';
 
 interface ProfileData {

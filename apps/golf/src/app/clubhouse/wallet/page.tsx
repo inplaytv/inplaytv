@@ -6,9 +6,10 @@ import RequireAuth from '@/components/RequireAuth';
 
 interface Transaction {
   id: string;
-  credits: number;
+  amount_credits: number;
   balance_after: number;
-  reason: string;
+  description: string;
+  transaction_type: string;
   created_at: string;
 }
 
@@ -30,11 +31,11 @@ export default function ClubhouseWalletPage() {
     // Load current balance
     const { data: wallet } = await supabase
       .from('clubhouse_wallets')
-      .select('credits')
+      .select('balance_credits')
       .eq('user_id', user.id)
       .single();
 
-    if (wallet) setCredits(wallet.credits);
+    if (wallet) setCredits(wallet.balance_credits);
 
     // Load transactions
     const { data: txns } = await supabase
@@ -105,7 +106,7 @@ export default function ClubhouseWalletPage() {
               >
                 <div>
                   <div style={{ fontWeight: 600, color: '#111827', marginBottom: '0.25rem' }}>
-                    {txn.reason}
+                    {txn.description}
                   </div>
                   <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                     {new Date(txn.created_at).toLocaleString()}
@@ -117,11 +118,11 @@ export default function ClubhouseWalletPage() {
                     style={{
                       fontSize: '1.25rem',
                       fontWeight: 700,
-                      color: txn.credits > 0 ? '#059669' : '#dc2626',
+                      color: txn.amount_credits > 0 ? '#059669' : '#dc2626',
                       marginBottom: '0.25rem',
                     }}
                   >
-                    {txn.credits > 0 ? '+' : ''}{txn.credits}
+                    {txn.amount_credits > 0 ? '+' : ''}{txn.amount_credits}
                   </div>
                   <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                     Balance: {txn.balance_after}

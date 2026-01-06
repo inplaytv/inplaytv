@@ -557,10 +557,142 @@ grep -r "reg_open_at" apps/golf/src/app/clubhouse/**/*.tsx
 
 ---
 
-**Report Generated:** January 5, 2026  
-**Verification Scope:** Entire golf app + planning documents + database schema  
-**Files Analyzed:** 35+ files  
-**Lines Reviewed:** 20,000+ lines of code  
-**Commands Executed:** 8 grep searches, 10 file reads
+## UPDATE: January 6, 2026 - Clubhouse System Deployed
 
-**Next Report:** After Clubhouse schema deployment and testing
+### Status: ✅ DATABASE DEPLOYED AND WORKING
+
+**Completed Actions:**
+1. ✅ Database schema deployed via NUCLEAR-CLEAN-RESET.sql
+2. ✅ Test data populated (3 events, 15 competitions)
+3. ✅ API routes tested and working
+4. ✅ Frontend pages tested and working
+5. ✅ Registration timing logic fixed
+
+### Critical Fixes Applied
+
+**Fix 1: Registration Closes at Tournament END (Not Start)**
+- **Problem**: Constraint `registration_closes_at <= start_date` blocked multi-day tournaments
+- **Solution**: Changed to `registration_closes_at <= end_date`
+- **Logic**: Golf tournaments accept entries until 15min before LAST round (not first round)
+- **API Change**: Use `round4_tee_time` instead of `round1_tee_time`
+- **Result**: ✅ Multi-day tournaments now work correctly
+
+**Fix 2: Column Name Mismatches**
+- **Wallet**: Schema has `balance_credits` not `credits`
+- **Competition**: No `rounds_covered` column exists
+- **Files Fixed**: 
+  - `apps/golf/src/app/clubhouse/events/page.tsx`
+  - `apps/golf/src/app/clubhouse/events/[id]/page.tsx`
+- **Result**: ✅ API queries now match schema
+
+**Fix 3: JSX Build Error**
+- **Problem**: Duplicate Link elements with orphaned style attributes
+- **File**: `apps/golf/src/app/clubhouse/events/[id]/page.tsx` line 619
+- **Result**: ✅ Build successful
+
+### Verification Results
+
+**Database Verification:**
+```sql
+-- Events populated correctly
+SELECT COUNT(*) FROM clubhouse_events;
+-- Result: 3 events
+
+-- Competitions created correctly  
+SELECT COUNT(*) FROM clubhouse_competitions;
+-- Result: 15 competitions (5 per event)
+
+-- Constraint verified correct
+SELECT pg_get_constraintdef(oid) 
+FROM pg_constraint 
+WHERE conrelid = 'clubhouse_events'::regclass 
+  AND conname = 'valid_registration_window';
+-- Result: (registration_closes_at <= end_date) ✅
+```
+
+**API Verification:**
+```bash
+curl http://localhost:3003/api/clubhouse/events
+# Result: 200 OK, returns 3 events with competitions ✅
+```
+
+**Frontend Verification:**
+- ✅ Events list page loads (http://localhost:3003/clubhouse/events)
+- ✅ Event detail page loads with competitions
+- ✅ Countdown timers display correctly
+- ✅ Status badges show correct registration windows
+
+### Schema Reference
+
+**Clubhouse Tables (All Deployed):**
+```sql
+clubhouse_events (
+  registration_closes_at TIMESTAMPTZ,
+  end_date TIMESTAMPTZ,
+  CONSTRAINT valid_registration_window 
+    CHECK (registration_closes_at <= end_date) ✅
+)
+
+clubhouse_competitions (
+  entry_credits INTEGER NOT NULL, -- NOT "credits"
+  max_entries INTEGER NOT NULL,
+  assigned_golfer_group_id UUID, -- For golfer filtering
+  -- NO rounds_covered column
+)
+
+clubhouse_wallets (
+  balance_credits INTEGER NOT NULL -- NOT "credits"
+)
+
+clubhouse_entries (
+  entry_fee_paid INTEGER
+)
+
+clubhouse_entry_picks (
+  -- Standard picks table
+)
+
+clubhouse_credit_transactions (
+  -- Audit log
+)
+```
+
+### Files Modified (Since Jan 5 Report)
+
+**Schema Files:**
+- `scripts/clubhouse/NUCLEAR-CLEAN-RESET.sql` - Complete reset with correct schema
+- `scripts/clubhouse/populate-test-data.sql` - Test data with correct timing
+- `scripts/clubhouse/01-create-schema.sql` - Constraint fixed
+- `scripts/clubhouse/02-clean-install.sql` - Constraint fixed
+
+**API Routes:**
+- `apps/golf/src/app/api/clubhouse/events/route.ts` - Use round4_tee_time, remove non-existent columns
+- `apps/golf/src/app/api/clubhouse/events/[id]/route.ts` - Use round4_tee_time, fixed validation
+
+**Frontend Pages:**
+- `apps/golf/src/app/clubhouse/events/page.tsx` - Fixed wallet column name, added countdown
+- `apps/golf/src/app/clubhouse/events/[id]/page.tsx` - Fixed column names, removed JSX error
+
+**Documentation:**
+- `CLUBHOUSE-SYSTEM-PLAN.md` - Updated completion status
+- `SYSTEMATIC-FIX-PLAN.md` - Added registration timing fix details
+- `PRE-CHANGE-CHECKLIST.md` - Added schema verification examples
+
+### Lessons Learned
+
+1. **Always verify column names** between schema and queries
+2. **Registration timing** for golf is complex - must close before LAST round, not first
+3. **Database constraints** must match business logic (closes <= end_date, not start_date)
+4. **TIMESTAMPTZ vs DATE** matters for time-of-day constraint checks
+5. **No Prisma schema exists** - this project uses Supabase directly
+
+---
+
+**Report Generated:** January 5, 2026  
+**Updated:** January 6, 2026 (Clubhouse Deployment)  
+**Verification Scope:** Entire golf app + planning documents + database schema + Clubhouse system  
+**Files Analyzed:** 50+ files  
+**Lines Reviewed:** 25,000+ lines of code  
+**Commands Executed:** 15+ grep searches, 20+ file reads, 3 database deployments
+
+**Status:** Clubhouse system deployed and working. Ready for user flow testing.

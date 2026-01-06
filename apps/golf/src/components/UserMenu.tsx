@@ -15,6 +15,7 @@ export default function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [balance, setBalance] = useState<number>(0);
+  const [credits, setCredits] = useState<number>(0);
 
   useEffect(() => {
     if (user) {
@@ -33,14 +34,24 @@ export default function UserMenu() {
       .single();
     setProfile(profileData);
 
-    // Load wallet balance
+    // Load InPlay wallet balance (money)
     const { data: walletData } = await supabase
       .from('wallets')
       .select('balance_cents')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     if (walletData) {
       setBalance(walletData.balance_cents);
+    }
+
+    // Load Clubhouse wallet balance (credits)
+    const { data: creditsData } = await supabase
+      .from('clubhouse_wallets')
+      .select('balance_credits')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (creditsData) {
+      setCredits(creditsData.balance_credits);
     }
   }
 
@@ -56,24 +67,44 @@ export default function UserMenu() {
   const toggleDropdown = () => setIsOpen(!isOpen);
 
   return (
-    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-      {/* Balance pill */}
-      <Link href="/wallet" style={{ textDecoration: 'none' }}>
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
+      {/* InPlay Money Balance */}
+      <Link href="/wallet" style={{ textDecoration: 'none', flexShrink: 0 }}>
         <div style={{
           background: 'rgba(102, 126, 234, 0.2)',
           border: '1px solid rgba(102, 126, 234, 0.4)',
           borderRadius: '20px',
-          padding: '0.5rem 1rem',
+          padding: '0.35rem 0.7rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem',
+          gap: '0.35rem',
           cursor: 'pointer',
           transition: 'all 0.2s',
+          whiteSpace: 'nowrap',
         }}>
-          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#fff' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#fff' }}>
             {formatPounds(balance)}
           </span>
-          <span style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.6)' }}>💰</span>
+        </div>
+      </Link>
+
+      {/* Clubhouse Credits Balance */}
+      <Link href="/clubhouse/wallet" style={{ textDecoration: 'none', flexShrink: 0 }}>
+        <div style={{
+          background: 'rgba(16, 185, 129, 0.2)',
+          border: '1px solid rgba(16, 185, 129, 0.4)',
+          borderRadius: '20px',
+          padding: '0.35rem 0.7rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          whiteSpace: 'nowrap',
+        }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>
+            {credits.toLocaleString()}c
+          </span>
         </div>
       </Link>
 
@@ -152,9 +183,9 @@ export default function UserMenu() {
             {/* Menu Items */}
             <div style={{ padding: '8px' }}>
               <MenuLink href="/profile" icon="👤" onClick={() => setIsOpen(false)}>My Profile</MenuLink>
-              <MenuLink href="/wallet" icon="💰" onClick={() => setIsOpen(false)}>Wallet</MenuLink>
+              <MenuLink href="/wallet" icon="💰" onClick={() => setIsOpen(false)}>InPlay Wallet</MenuLink>
+              <MenuLink href="/clubhouse/wallet" icon="🎮" onClick={() => setIsOpen(false)}>Clubhouse Credits</MenuLink>
               <MenuLink href="/security" icon="🔒" onClick={() => setIsOpen(false)}>Security</MenuLink>
-              <MenuLink href="/notifications" icon="🔔" onClick={() => setIsOpen(false)}>Notifications</MenuLink>
               <MenuLink href="/help" icon="❓" onClick={() => setIsOpen(false)}>Help & Support</MenuLink>
 
               <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.1)', margin: '8px 0' }} />

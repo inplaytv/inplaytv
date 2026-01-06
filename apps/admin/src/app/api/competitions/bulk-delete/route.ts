@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
           const entryIds = entries.map(e => e.id);
           console.log(`   Found ${entries.length} entries, deleting picks...`);
           
-          // Delete picks
+          // Delete picks (using correct table name: entry_picks)
           const { error: picksError } = await supabase
-            .from('competition_entry_picks')
+            .from('entry_picks')
             .delete()
             .in('entry_id', entryIds);
           
