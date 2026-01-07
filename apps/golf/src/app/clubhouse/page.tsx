@@ -19,6 +19,7 @@ interface Club {
 interface ClubhouseEvent {
   id: string;
   name: string;
+  venue?: string;
   slug: string;
   description: string | null;
   location: string;
@@ -317,7 +318,12 @@ export default function ClubhousePage() {
                   {/* Event Header */}
                   <div className={styles.tournamentHeader}>
                     <div className={styles.tournamentInfo}>
-                      <h2>{event.name}</h2>
+                      <h2>{event.venue || event.name}</h2>
+                      {event.venue && (
+                        <h3 style={{ margin: '0.25rem 0', color: 'rgba(255, 255, 255, 0.85)', fontSize: '1rem', fontWeight: 500 }}>
+                          {event.name}
+                        </h3>
+                      )}
                       <p>
                         <i className="fas fa-map-marker-alt"></i>
                         {event.location || 'Location TBD'}

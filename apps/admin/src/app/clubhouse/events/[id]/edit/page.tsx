@@ -30,6 +30,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
   const masterTournamentId = process.env.NEXT_PUBLIC_CLUBHOUSE_MASTER_TOURNAMENT_ID || '00000000-0000-0000-0000-000000000001';
   
   const [formData, setFormData] = useState({
+    venue: '',
     name: '',
     slug: '', // From API response, read-only
     description: '',
@@ -110,6 +111,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
       setHasRoundTimes(usesRoundTimes);
 
       setFormData({
+        venue: event.venue || '',
         name: event.name,
         slug: event.slug || '', // From API, read-only in UI
         description: event.description || '',
@@ -191,6 +193,31 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.875rem', fontWeight: 500 }}>
+                Golf Club Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.venue}
+                onChange={(e) => setFormData({...formData, venue: e.target.value})}
+                placeholder="Augusta National Golf Club"
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  background: '#0a0f1a',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                }}
+              />
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                💡 The venue/golf course where this event is held
+              </div>
+            </div>
+
+            <div style={{ gridColumn: '1 / -1' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.875rem' }}>
                 Event Name *
               </label>
@@ -210,6 +237,9 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                   fontSize: '0.875rem',
                 }}
               />
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                💡 The tournament name (usually matches the InPlay tournament)
+              </div>
             </div>
 
             <div style={{ gridColumn: '1 / -1' }}>

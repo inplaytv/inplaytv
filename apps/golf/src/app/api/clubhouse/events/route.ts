@@ -24,6 +24,7 @@ export async function GET() {
       .select(`
         id,
         name,
+        venue,
         slug,
         description,
         status,
@@ -36,13 +37,13 @@ export async function GET() {
           max_entries,
           id,
           assigned_golfer_group_id,
-          golfer_groups!assigned_golfer_group_id (
+          golfer_groups (
             id,
             name
           )
         )
       `)
-      .order('created_at', { ascending: false });
+      .order('updated_at', { ascending: false });
 
     if (error) throw error;
 
@@ -69,13 +70,32 @@ export async function GET() {
         currentEntries = count || 0;
       }
 
+      // Calculate actual status based on dates
+      const now = new Date();
+      const regOpens = new Date(event.registration_opens_at);
+      const regCloses = new Date(event.registration_closes_at);
+      const startDate = new Date(event.start_date);
+      const endDate = new Date(event.end_date);
+
+      let calculatedStatus = event.status;
+      if (now >= endDate) {
+        calculatedStatus = 'completed';
+      } else if (now >= startDate) {
+        calculatedStatus = 'active';
+      } else if (now >= regOpens && now < regCloses) {
+        calculatedStatus = 'open';
+      } else if (now < regOpens) {
+        calculatedStatus = 'upcoming';
+      }
+
       return {
         __system: 'clubhouse' as const, // System discriminator
         id: event.id,
         name: event.name,
+        venue: event.venue,
         slug: event.slug,
         description: event.description,
-        status: event.status,
+        status: calculatedStatus, // Use calculated status
         entry_credits: firstComp?.entry_credits || 0,
         max_entries: firstComp?.max_entries || 0,
         current_entries: currentEntries,
@@ -90,6 +110,7 @@ export async function GET() {
         start_at: event.start_date,
         end_at: event.end_date,
         competitions_count: competitions.length, // Show how many competitions
+        assigned_golfer_group_id: firstComp?.assigned_golfer_group_id || null, // Include for re-editing
         golfer_group: firstComp?.golfer_groups || null, // Include golfer group info
       };
     }));
@@ -162,6 +183,7 @@ export async function POST(req: NextRequest) {
     const { data: event, error: eventError } = await supabase
       .from('clubhouse_events')
       .insert({
+        venue: body.venue || null,
         name: body.name,
         slug: slug,
         description: body.description || null,
@@ -187,34 +209,34 @@ export async function POST(req: NextRequest) {
     // Create 5 competitions automatically
     const competitions = [
       {
-        name: `${body.name} - All Four Rounds`,
-        rounds_covered: [1, 2, 3, 4],
+        name: 'All 4 Rounds',
         starts_at: toISO(body.round1_tee_time),
         closes_at: subtract15Minutes(body.round1_tee_time),
+        ends_at: toISO(body.round4_tee_time),
       },
       {
-        name: `${body.name} - Round 1`,
-        rounds_covered: [1],
+        name: 'Round 1',
         starts_at: toISO(body.round1_tee_time),
         closes_at: subtract15Minutes(body.round1_tee_time),
+        ends_at: toISO(body.round1_tee_time),
       },
       {
-        name: `${body.name} - Round 2`,
-        rounds_covered: [2],
+        name: 'Round 2',
         starts_at: toISO(body.round2_tee_time),
         closes_at: subtract15Minutes(body.round2_tee_time),
+        ends_at: toISO(body.round2_tee_time),
       },
       {
-        name: `${body.name} - Round 3`,
-        rounds_covered: [3],
+        name: 'Round 3',
         starts_at: toISO(body.round3_tee_time),
         closes_at: subtract15Minutes(body.round3_tee_time),
+        ends_at: toISO(body.round3_tee_time),
       },
       {
-        name: `${body.name} - Round 4`,
-        rounds_covered: [4],
+        name: 'Round 4',
         starts_at: toISO(body.round4_tee_time),
         closes_at: subtract15Minutes(body.round4_tee_time),
+        ends_at: toISO(body.round4_tee_time),
       },
     ];
 
@@ -223,13 +245,15 @@ export async function POST(req: NextRequest) {
       name: comp.name,
       description: body.description || null,
       entry_credits: body.entry_credits || 0,
-      prize_credits: null,
       max_entries: body.max_entries || 100,
+      prize_pool_credits: 0, // Default to 0, can be updated later
+      prize_distribution: { "1": 50, "2": 30, "3": 20 }, // Standard 50/30/20 split
       opens_at: toISO(body.registration_opens),
       closes_at: comp.closes_at,
       starts_at: comp.starts_at,
-      rounds_covered: comp.rounds_covered,
-      assigned_golfer_group_id: body.assigned_golfer_group_id || null,
+      ends_at: comp.ends_at,
+      status: 'open', // New competitions start in open status
+      assigned_golfer_group_id: body.assigned_golfer_group_id && body.assigned_golfer_group_id !== '' ? body.assigned_golfer_group_id : null,
     }));
 
     const { error: compError } = await supabase

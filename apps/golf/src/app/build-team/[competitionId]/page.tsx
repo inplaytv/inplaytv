@@ -4,6 +4,7 @@ import { use, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RequireAuth from '@/components/RequireAuth';
 import InsufficientFundsModal from '@/components/InsufficientFundsModal';
+import EntryUpdateSuccessModal from '@/components/EntryUpdateSuccessModal';
 import { createClient } from '@/lib/supabaseClient';
 import { fetchCompetitionDetails, fetchAvailableGolfers, canEditEntry, getCompetitionType } from '@/lib/unified-competition';
 import styles from './build-team.module.css';
@@ -68,16 +69,17 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
     { slotNumber: 6, golfer: null, isCaptain: false },
   ]);
   
-  const [totalBudget] = useState(60000); // £600 salary cap in pennies
+  const [totalBudget] = useState(6000000); // £60,000 salary cap in pennies (DraftKings standard)
   const [searchQuery, setSearchQuery] = useState('');
   const [salaryFilter, setSalaryFilter] = useState<'all' | 'premium' | 'mid' | 'value'>('all');
-  const [sortBy, setSortBy] = useState<'salary' | 'ranking' | 'points' | 'name'>('ranking');
+  const [sortBy, setSortBy] = useState<'salary' | 'ranking' | 'points' | 'name'>('salary'); // Default to salary sort (low to high)
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [entryName, setEntryName] = useState('');
   const [existingEntryId, setExistingEntryId] = useState<string | null>(null);
   const [userBalance, setUserBalance] = useState<number | null>(null);
+  const [showUpdateSuccessModal, setShowUpdateSuccessModal] = useState(false);
   const [insufficientFunds, setInsufficientFunds] = useState(false);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [requiredAmount, setRequiredAmount] = useState(0);
@@ -397,9 +399,9 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
       }
 
       // Salary filter
-      if (salaryFilter === 'premium' && golfer.salary < 10000) return false;
-      if (salaryFilter === 'mid' && (golfer.salary < 7000 || golfer.salary >= 10000)) return false;
-      if (salaryFilter === 'value' && golfer.salary >= 7000) return false;
+      if (salaryFilter === 'premium' && golfer.salary < 1400000) return false;
+      if (salaryFilter === 'mid' && (golfer.salary < 900000 || golfer.salary >= 1400000)) return false;
+      if (salaryFilter === 'value' && golfer.salary >= 900000) return false;
 
       // Affordability filter - Don't filter if no players selected yet
       if (playersSelected > 0 && golfer.salary > remainingBudget) return false;
@@ -409,7 +411,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
     .sort((a, b) => {
       switch (sortBy) {
         case 'salary':
-          return b.salary - a.salary;
+          return b.salary - a.salary; // Highest to lowest (most expensive first)
         case 'ranking':
           return (a.world_ranking || 999) - (b.world_ranking || 999);
         case 'name':
@@ -595,8 +597,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
           { slotNumber: 6, golfer: null, isCaptain: false },
         ]);
 
-        alert('Entry updated successfully!');
-        router.push('/entries');
+        setShowUpdateSuccessModal(true);
         return;
       }
 
@@ -798,7 +799,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                 color: budgetStatus?.color || '#10b981',
                 marginBottom: '8px'
               }}>
-                £{((remainingBudget || 0) / 100).toLocaleString()} left
+                £{Math.floor((remainingBudget || 0) / 100).toLocaleString()} left
               </div>
               <div style={{
                 fontSize: '13px',
@@ -817,7 +818,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                 color: 'rgba(255,255,255,0.6)',
                 marginBottom: '8px'
               }}>
-                Used: £{((usedBudget || 0) / 100).toLocaleString()}
+                Used: £{Math.floor((usedBudget || 0) / 100).toLocaleString()}
               </div>
 
               {/* Progress Bar with Player Count */}
@@ -943,92 +944,12 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                   color: 'rgba(255,255,255,0.6)',
                   marginBottom: '14px'
                 }}>
-                  £{(remainingBudget || 0).toLocaleString()} remaining for {spotsLeft} player{spotsLeft !== 1 ? 's' : ''}
+                  £{Math.floor((remainingBudget || 0) / 100).toLocaleString()} remaining for {spotsLeft} player{spotsLeft !== 1 ? 's' : ''}
                 </div>
-
-                {/* Top Tier Players (£10k-£12k) */}
-                {topTierPlayers.length > 0 && (
-                  <div style={{ marginBottom: (midTierPlayers.length > 0 || valuePickPlayers.length > 0) ? '14px' : '0' }}>
-                    <div style={{
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: '#a855f7',
-                      marginBottom: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}>
-                      <span>🌟</span>
-                      <span>Top 5 Players (£10k-£12k):</span>
-                    </div>
-                    {topTierPlayers.map((golfer) => (
-                      <div
-                        key={golfer.id}
-                        style={{
-                          fontSize: '10px',
-                          color: 'rgba(255,255,255,0.8)',
-                          marginBottom: '4px',
-                          paddingLeft: '18px',
-                          cursor: 'pointer',
-                          transition: 'color 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = '#a855f7';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
-                        }}
-                        onClick={() => addGolfer(golfer)}
-                      >
-                        {golfer.full_name} (£{golfer.salary.toLocaleString()})
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Mid Tier Players (£7k-£9.9k) */}
-                {midTierPlayers.length > 0 && (
-                  <div style={{ marginBottom: valuePickPlayers.length > 0 ? '14px' : '0' }}>
-                    <div style={{
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: '#3b82f6',
-                      marginBottom: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}>
-                      <span>⭐</span>
-                      <span>Mid Tier Players (£7k-£10k):</span>
-                    </div>
-                    {midTierPlayers.map((golfer) => (
-                      <div
-                        key={golfer.id}
-                        style={{
-                          fontSize: '10px',
-                          color: 'rgba(255,255,255,0.8)',
-                          marginBottom: '4px',
-                          paddingLeft: '18px',
-                          cursor: 'pointer',
-                          transition: 'color 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = '#3b82f6';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
-                        }}
-                        onClick={() => addGolfer(golfer)}
-                      >
-                        {golfer.full_name} (£{golfer.salary.toLocaleString()})
-                      </div>
-                    ))}
-                  </div>
-                )}
 
                 {/* Value Pick Players (Under £7k) */}
                 {valuePickPlayers.length > 0 && (
-                  <div>
+                  <div style={{ marginBottom: (midTierPlayers.length > 0 || topTierPlayers.length > 0) ? '14px' : '0' }}>
                     <div style={{
                       fontSize: '11px',
                       fontWeight: 600,
@@ -1060,7 +981,87 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                         }}
                         onClick={() => addGolfer(golfer)}
                       >
-                        {golfer.full_name} (£{golfer.salary?.toLocaleString() || '0'})
+                        {golfer.full_name} (£{Math.floor((golfer.salary || 0) / 100).toLocaleString()})
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Mid Tier Players (£7k-£9.9k) */}
+                {midTierPlayers.length > 0 && (
+                  <div style={{ marginBottom: topTierPlayers.length > 0 ? '14px' : '0' }}>
+                    <div style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#3b82f6',
+                      marginBottom: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <span>⭐</span>
+                      <span>Mid Tier Players (£7k-£10k):</span>
+                    </div>
+                    {midTierPlayers.map((golfer) => (
+                      <div
+                        key={golfer.id}
+                        style={{
+                          fontSize: '10px',
+                          color: 'rgba(255,255,255,0.8)',
+                          marginBottom: '4px',
+                          paddingLeft: '18px',
+                          cursor: 'pointer',
+                          transition: 'color 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = '#3b82f6';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                        }}
+                        onClick={() => addGolfer(golfer)}
+                      >
+                        {golfer.full_name} (£{Math.floor(golfer.salary / 100).toLocaleString()})
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Top Tier Players (£10k-£12k) */}
+                {topTierPlayers.length > 0 && (
+                  <div style={{ marginBottom: '0' }}>
+                    <div style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#a855f7',
+                      marginBottom: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <span>🌟</span>
+                      <span>Top 5 Players (£10k-£12k):</span>
+                    </div>
+                    {topTierPlayers.map((golfer) => (
+                      <div
+                        key={golfer.id}
+                        style={{
+                          fontSize: '10px',
+                          color: 'rgba(255,255,255,0.8)',
+                          marginBottom: '4px',
+                          paddingLeft: '18px',
+                          cursor: 'pointer',
+                          transition: 'color 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = '#a855f7';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                        }}
+                        onClick={() => addGolfer(golfer)}
+                      >
+                        {golfer.full_name} (£{Math.floor(golfer.salary / 100).toLocaleString()})
                       </div>
                     ))}
                   </div>
@@ -1250,7 +1251,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                     <small style={{ fontSize: '12px', opacity: 0.7 }}>Assign golfers in the admin panel</small>
                   </div>
                 ) : (
-                  availableGolfers.map(golfer => {
+                  filteredGolfers.map(golfer => {
                     const isSelected = lineup.some(slot => slot.golfer?.id === golfer.id);
                     const canAfford = golfer.salary <= remainingBudget;
                     const isExpensive = isExpensivePlayer(golfer.salary);
@@ -1323,7 +1324,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                             color: '#fbbf24',
                             marginRight: '4px'
                           }}>
-                            £{((golfer.salary || 0) / 100).toLocaleString()}
+                            £{Math.floor((golfer.salary || 0) / 100).toLocaleString()}
                           </div>
                           {isExpensive && !isSelected && (
                             <div style={{
@@ -1514,7 +1515,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
                             color: '#fbbf24',
                             marginRight: '6px'
                           }}>
-                            £{((slot.golfer.salary || 0) / 100).toLocaleString()}
+                            £{Math.floor((slot.golfer.salary || 0) / 100).toLocaleString()}
                           </div>
                           {!slot.isCaptain && (
                             <button
@@ -1671,6 +1672,15 @@ export default function BuildTeamPage({ params }: { params: Promise<{ competitio
           </div>
         </div>
       </div>
+
+      {/* Entry Update Success Modal */}
+      <EntryUpdateSuccessModal
+        isOpen={showUpdateSuccessModal}
+        onClose={() => {
+          setShowUpdateSuccessModal(false);
+          router.push('/entries');
+        }}
+      />
     </RequireAuth>
   );
 }

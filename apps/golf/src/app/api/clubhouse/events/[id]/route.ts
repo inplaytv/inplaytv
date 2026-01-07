@@ -41,7 +41,8 @@ export async function GET(
           max_entries,
           opens_at,
           closes_at,
-          starts_at
+          starts_at,
+          assigned_golfer_group_id
         )
       `)
       .eq('id', id)
@@ -66,6 +67,7 @@ export async function GET(
     // Map to consistent format with both old and new fields
     return NextResponse.json({
       id: event.id,
+      venue: event.venue,
       name: event.name,
       slug: event.slug,
       description: event.description,
@@ -91,6 +93,7 @@ export async function GET(
       round4_tee_time: event.round4_tee_time || null,
       // Option A: Tournament linking for DataGolf integration
       linked_tournament_id: event.linked_tournament_id || null,
+      assigned_golfer_group_id: competition?.assigned_golfer_group_id || null,
       // CRITICAL: Include competitions array for frontend
       competitions: event.clubhouse_competitions || [],
     }, { headers: corsHeaders });
@@ -123,12 +126,22 @@ export async function PUT(
       return new Date(dateStr).toISOString();
     };
 
+    // Helper to subtract 15 minutes from tee time
+    const subtract15Minutes = (dateStr: string) => {
+      if (!dateStr) return null;
+      const date = new Date(dateStr);
+      date.setMinutes(date.getMinutes() - 15);
+      return date.toISOString();
+    };
+
     // Build update object conditionally based on what fields are provided
     const updateData: any = {
+      venue: body.venue || null,
       name: body.name,
       description: body.description,
       location: body.location,
       linked_tournament_id: body.linked_tournament_id || null, // Option A: Tournament linking
+      updated_at: new Date().toISOString(), // Update timestamp so sort order reflects recent edits
     };
 
     // Allow manual status override
@@ -212,27 +225,99 @@ export async function PUT(
     if (eventError) throw eventError;
 
     // Update ALL associated competitions (there are 5 per event)
-    const { data: competitions } = await supabase
+    const { data: competitions, error: fetchError } = await supabase
       .from('clubhouse_competitions')
       .select('id, name')
-      .eq('event_id', id); // Get ALL competitions with names
+      .eq('event_id', id);
+
+    if (fetchError) throw fetchError;
 
     console.log('📋 Found competitions for event:', competitions);
 
-    if (competitions && competitions.length > 0) {
-      console.log('🔧 Updating ALL', competitions.length, 'competitions with per-round timing');
+    // If no competitions exist, create them (fallback for broken events)
+    if (!competitions || competitions.length === 0) {
+      console.warn('⚠️ No competitions found for event:', id);
+      console.log('🔧 Creating missing competitions (fallback)...');
       
-      // All competitions open at the same time (5 days before Round 1)
-      const opensAt = toISO(body.registration_opens);
+      // Create 5 competitions (matching POST endpoint logic)
+      const competitionTemplates = [
+        {
+          name: 'All 4 Rounds',
+          starts_at: toISO(body.round1_tee_time),
+          closes_at: subtract15Minutes(body.round1_tee_time),
+          ends_at: toISO(body.round4_tee_time),
+        },
+        {
+          name: 'Round 1',
+          starts_at: toISO(body.round1_tee_time),
+          closes_at: subtract15Minutes(body.round1_tee_time),
+          ends_at: toISO(body.round1_tee_time),
+        },
+        {
+          name: 'Round 2',
+          starts_at: toISO(body.round2_tee_time),
+          closes_at: subtract15Minutes(body.round2_tee_time),
+          ends_at: toISO(body.round2_tee_time),
+        },
+        {
+          name: 'Round 3',
+          starts_at: toISO(body.round3_tee_time),
+          closes_at: subtract15Minutes(body.round3_tee_time),
+          ends_at: toISO(body.round3_tee_time),
+        },
+        {
+          name: 'Round 4',
+          starts_at: toISO(body.round4_tee_time),
+          closes_at: subtract15Minutes(body.round4_tee_time),
+          ends_at: toISO(body.round4_tee_time),
+        },
+      ];
+
+      const competitionsToInsert = competitionTemplates.map(comp => ({
+        event_id: id,
+        name: comp.name,
+        description: body.description || null,
+        entry_credits: body.entry_credits || 0,
+        max_entries: body.max_entries || 100,
+        prize_pool_credits: 0,
+        prize_distribution: { "1": 50, "2": 30, "3": 20 },
+        opens_at: toISO(body.registration_opens),
+        closes_at: comp.closes_at,
+        starts_at: comp.starts_at,
+        ends_at: comp.ends_at,
+        status: 'open',
+        assigned_golfer_group_id: body.assigned_golfer_group_id && body.assigned_golfer_group_id !== '' ? body.assigned_golfer_group_id : null,
+      }));
+
+      const { error: compError } = await supabase
+        .from('clubhouse_competitions')
+        .insert(competitionsToInsert);
+
+      if (compError) {
+        console.error('❌ Error creating competitions:', compError);
+        throw compError;
+      }
+
+      console.log('✅ Created 5 competitions successfully');
       
-      // Calculate round tee times (15 min before each round)
-      const round1 = body.round1_tee_time ? new Date(body.round1_tee_time) : null;
-      const round2 = body.round2_tee_time ? new Date(body.round2_tee_time) : null;
-      const round3 = body.round3_tee_time ? new Date(body.round3_tee_time) : null;
-      const round4 = body.round4_tee_time ? new Date(body.round4_tee_time) : null;
-      
-      // Update each competition individually with its own closing time
-      for (const comp of competitions) {
+      // Return early - competitions were just created with correct values
+      return NextResponse.json({ success: true, created_competitions: true }, { headers: corsHeaders });
+    }
+
+    // If we reach here, competitions exist - proceed with update logic
+    console.log('🔧 Updating ALL', competitions.length, 'competitions with per-round timing');
+    
+    // All competitions open at the same time (5 days before Round 1)
+    const opensAt = toISO(body.registration_opens);
+    
+    // Calculate round tee times (15 min before each round)
+    const round1 = body.round1_tee_time ? new Date(body.round1_tee_time) : null;
+    const round2 = body.round2_tee_time ? new Date(body.round2_tee_time) : null;
+    const round3 = body.round3_tee_time ? new Date(body.round3_tee_time) : null;
+    const round4 = body.round4_tee_time ? new Date(body.round4_tee_time) : null;
+    
+    // Update each competition individually with its own closing time
+    for (const comp of competitions) {
         let closesAt: string | null = null;
         let startsAt: string | null = null;
         let endsAt: string | null = null;
@@ -292,7 +377,7 @@ export async function PUT(
             closes_at: closesAt,
             starts_at: startsAt,
             ends_at: endsAt,
-            assigned_golfer_group_id: body.assigned_golfer_group_id || null,
+            assigned_golfer_group_id: body.assigned_golfer_group_id && body.assigned_golfer_group_id !== '' ? body.assigned_golfer_group_id : null,
           })
           .eq('id', comp.id);
 
@@ -310,9 +395,6 @@ export async function PUT(
         .select('id, assigned_golfer_group_id')
         .eq('event_id', id);
       console.log('🔍 Verification - competitions after update:', verifyComps);
-    } else {
-      console.warn('⚠️ No competitions found for event:', id);
-    }
 
     return NextResponse.json({ success: true }, { headers: corsHeaders });
   } catch (error: any) {

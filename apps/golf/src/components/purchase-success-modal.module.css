@@ -54,6 +54,7 @@
 
 .actions {
   display: flex;
+  gap: 0.75rem;
   justify-content: center;
 }
 
@@ -72,4 +73,21 @@
 .primaryBtn:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+}
+
+.secondaryBtn {
+  padding: 1rem 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.secondaryBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
 }

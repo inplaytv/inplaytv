@@ -29,6 +29,7 @@ export default function CreateEventPage() {
   const masterTournamentId = process.env.NEXT_PUBLIC_CLUBHOUSE_MASTER_TOURNAMENT_ID || '00000000-0000-0000-0000-000000000001';
   
   const [formData, setFormData] = useState({
+    venue: '',
     name: '',
     slug: '', // Auto-generated from name
     description: '',
@@ -268,6 +269,31 @@ export default function CreateEventPage() {
         }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.875rem', fontWeight: 500 }}>
+                Golf Club Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.venue}
+                onChange={(e) => setFormData({...formData, venue: e.target.value})}
+                placeholder="Augusta National Golf Club"
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  background: '#0a0f1a',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.875rem',
+                }}
+              />
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                💡 The venue/golf course where this event is held (main header)
+              </div>
+            </div>
+
+            <div style={{ gridColumn: '1 / -1' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', color: '#fff', fontSize: '0.875rem' }}>
                 Event Name *
               </label>
@@ -287,6 +313,9 @@ export default function CreateEventPage() {
                   fontSize: '0.875rem',
                 }}
               />
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem' }}>
+                💡 The tournament name (sub-header, usually matches InPlay tournament)
+              </div>
             </div>
 
             <div style={{ gridColumn: '1 / -1' }}>
@@ -807,6 +836,7 @@ export default function CreateEventPage() {
                 if (confirm('Clear all form data?')) {
                   localStorage.removeItem('clubhouse_event_draft');
                   setFormData({
+                    venue: '',
                     name: '',
                     slug: '',
                     description: '',

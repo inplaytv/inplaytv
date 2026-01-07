@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
@@ -31,8 +32,10 @@ interface Entry {
   };
 }
 
-export default function MyEntriesPage() {
+function MyEntriesContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const updatedEntryId = searchParams.get('updated');
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
@@ -40,13 +43,20 @@ export default function MyEntriesPage() {
   const [backgroundImage, setBackgroundImage] = useState<string>('');
   const [backgroundOpacity, setBackgroundOpacity] = useState<number>(0.15);
   const [backgroundOverlay, setBackgroundOverlay] = useState<number>(0.4);
+  const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchEntries();
     }
     loadBackground();
-  }, [user]);
+    
+    // Show success message if redirected after update
+    if (updatedEntryId) {
+      setShowUpdateSuccess(true);
+      setTimeout(() => setShowUpdateSuccess(false), 3000);
+    }
+  }, [user, updatedEntryId]);
 
   async function loadBackground() {
     try {
@@ -173,6 +183,40 @@ export default function MyEntriesPage() {
 
     setEntries(enrichedEntries as any);
     setLoading(false);
+    
+    // Scroll to updated entry after data is loaded
+    if (updatedEntryId) {
+      // Find the competition and index of the updated entry
+      const groupedEntries = enrichedEntries.reduce((acc, entry) => {
+        const compId = entry.competition_id;
+        if (!acc[compId]) acc[compId] = [];
+        acc[compId].push(entry);
+        return acc;
+      }, {} as Record<string, typeof enrichedEntries>);
+      
+      // Find which competition contains this entry and what index it is
+      for (const [competitionId, compEntries] of Object.entries(groupedEntries)) {
+        const entryIndex = (compEntries as typeof enrichedEntries).findIndex(e => e.id === updatedEntryId);
+        if (entryIndex !== -1) {
+          // Set the active index for this competition to show the updated entry
+          setActiveEntryIndex(prev => ({
+            ...prev,
+            [competitionId]: entryIndex
+          }));
+          
+          // Now scroll after a delay to ensure render is complete
+          setTimeout(() => {
+            const entryElement = document.getElementById(`entry-${updatedEntryId}`);
+            if (entryElement) {
+              entryElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              entryElement.style.animation = 'pulse 1s ease-in-out';
+            }
+          }, 1000);
+          
+          break;
+        }
+      }
+    }
   }
 
   const filteredEntries = entries.filter(entry => {
@@ -221,6 +265,28 @@ export default function MyEntriesPage() {
   return (
     <RequireAuth>
       <div className={styles.container}>
+        {/* Success Message */}
+        {showUpdateSuccess && (
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: 'white',
+            padding: '1rem 1.5rem',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            animation: 'slideInRight 0.3s ease-out'
+          }}>
+            <i className="fas fa-check-circle" style={{ fontSize: '1.2rem' }}></i>
+            <span style={{ fontWeight: 600 }}>Entry updated successfully!</span>
+          </div>
+        )}
+
         {/* Background Image */}
         {backgroundImage && (
           <>
@@ -304,7 +370,11 @@ export default function MyEntriesPage() {
                 const totalEntries = compEntries.length;
 
                 return (
-                  <div key={competitionId} className={styles.entryCard}>
+                  <div 
+                    key={competitionId} 
+                    id={`entry-${entry.id}`}
+                    className={styles.entryCard}
+                  >
                     <div className={styles.cardContainer}>
                       {/* Left Side - Event/Competition Details */}
                       <div className={styles.detailsPanel}>
@@ -351,10 +421,13 @@ export default function MyEntriesPage() {
                             <i className="fas fa-users"></i>
                             Your Team
                           </h4>
-                          <button className={styles.editBtn} disabled title="Edit coming soon">
+                          <Link 
+                            href={`/clubhouse/build-team/${entry.competition.id}?entryId=${entry.id}`}
+                            className={styles.editBtn}
+                          >
                             <i className="fas fa-edit"></i>
                             Edit
-                          </button>
+                          </Link>
                         </div>
 
                         <div className={styles.golferGrid}>
@@ -427,5 +500,13 @@ export default function MyEntriesPage() {
         )}
       </div>
     </RequireAuth>
+  );
+}
+
+export default function MyEntriesPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MyEntriesContent />
+    </Suspense>
   );
 }

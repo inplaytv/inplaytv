@@ -149,7 +149,7 @@ export default function ConfirmLineupPage({ params }: { params: Promise<{ compet
   }
 
   const formatCurrency = (pennies: number) => {
-    return `£${(pennies / 100).toLocaleString()}`;
+    return `£${Math.floor(pennies / 100).toLocaleString()}`;
   };
 
   if (loading) {
@@ -294,7 +294,7 @@ export default function ConfirmLineupPage({ params }: { params: Promise<{ compet
                       )}
                     </div>
                     <span style={{ fontSize: '13px', fontWeight: 700, color: '#fbbf24' }}>
-                      £{pick.salary_at_selection.toLocaleString()}
+                      £{Math.floor(pick.salary_at_selection / 100).toLocaleString()}
                     </span>
                   </div>
                 ))}

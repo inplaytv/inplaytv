@@ -35,14 +35,11 @@ interface Competition {
 
 interface ExistingEntry {
   id: string;
-  entry_name: string | null;
-  total_salary: number;
-  captain_golfer_id: string | null;
   status: string;
-  picks: Array<{
+  clubhouse_entry_picks: Array<{
     golfer_id: string;
-    slot_position: number;
-    salary_at_selection: number;
+    pick_order: number;
+    is_captain: boolean;
   }>;
 }
 
@@ -65,7 +62,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
     { slotNumber: 6, golfer: null, isCaptain: false },
   ]);
   
-  const [totalBudget] = useState(60000); // £600 salary cap in pennies
+  const [totalBudget] = useState(6000000); // £60,000 salary cap in pennies (DraftKings standard)
   const [searchQuery, setSearchQuery] = useState('');
   const [salaryFilter, setSalaryFilter] = useState<'all' | 'premium' | 'mid' | 'value'>('all');
   const [sortBy, setSortBy] = useState<'salary' | 'ranking' | 'points' | 'name'>('salary');
@@ -78,8 +75,17 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
 
   // Load competition details and golfers
   useEffect(() => {
+    // Clear lineup when loading new data (important for edit mode)
+    setLineup([
+      { slotNumber: 1, golfer: null, isCaptain: false },
+      { slotNumber: 2, golfer: null, isCaptain: false },
+      { slotNumber: 3, golfer: null, isCaptain: false },
+      { slotNumber: 4, golfer: null, isCaptain: false },
+      { slotNumber: 5, golfer: null, isCaptain: false },
+      { slotNumber: 6, golfer: null, isCaptain: false },
+    ]);
     fetchCompetitionData();
-  }, [eventId]);
+  }, [eventId, editEntryId]);
 
   // Warn user before leaving if they have selected golfers
   useEffect(() => {
@@ -123,7 +129,6 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
       }
 
       // Fetch competition from clubhouse_competitions table
-      console.log('🔍 Fetching clubhouse competition with ID:', eventId);
       const { data: competition, error: compError } = await supabase
         .from('clubhouse_competitions')
         .select(`
@@ -141,8 +146,6 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         `)
         .eq('id', eventId)
         .single();
-      
-      console.log('📋 Competition query result:', { competition, compError });
       
       if (compError) {
         console.error('❌ Competition fetch error:', compError);
@@ -186,14 +189,11 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
         
-        console.log('💰 Checking wallet for user:', user.id);
         const { data: walletData, error: walletError } = await supabase
           .from('clubhouse_wallets')
           .select('balance_credits')
           .eq('user_id', user.id)
           .single();
-        
-        console.log('💰 Wallet query result:', { walletData, walletError });
         
         if (walletError) {
           console.error('❌ Wallet error:', walletError);
@@ -207,7 +207,6 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         
         const userCredits = walletData?.balance_credits || 0;
         setUserBalance(userCredits);
-        console.log('💰 User credits:', userCredits, 'Entry cost:', mappedCompetition.entry_credits);
 
         // Check if user has enough credits
         if (userCredits < mappedCompetition.entry_credits) {
@@ -219,7 +218,6 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
       
       // Set competition data
       setCompetition(mappedCompetition);
-      console.log('🎯 Competition data set:', mappedCompetition);
 
       // Fetch golfers assigned to this competition via golfer group
       // We already have assigned_golfer_group_id from the competition query above
@@ -262,8 +260,6 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
             if (b.world_ranking === null) return -1;
             return a.world_ranking - b.world_ranking;
           });
-        
-        console.log(`✅ Loaded ${golfers.length} golfers from group ${competition.assigned_golfer_group_id}`);
       } else {
         // No golfer group assigned - fetch all golfers (fallback)
         const { data: allGolfers, error: golfersError } = await supabase
@@ -276,26 +272,21 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         }
 
         golfers = allGolfers || [];
-        console.log(`⚠️ No golfer group assigned - loaded all ${golfers.length} golfers`);
       }
 
       setAvailableGolfers(golfers);
 
       // EDIT MODE: Load existing entry
       if (isEditMode && editEntryId) {
-        console.log('📝 Loading entry for edit:', editEntryId);
         const { data: existingEntry, error: entryError } = await supabase
           .from('clubhouse_entries')
           .select(`
             id,
-            entry_name,
-            total_salary,
-            captain_golfer_id,
             status,
             clubhouse_entry_picks(
               golfer_id,
-              slot_position,
-              salary_at_selection
+              pick_order,
+              is_captain
             )
           `)
           .eq('id', editEntryId)
@@ -306,20 +297,8 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
           throw new Error('Failed to load entry: ' + entryError.message);
         }
         if (existingEntry) {
-          console.log('✅ Loading entry into lineup:', existingEntry);
           setError(''); // Clear any previous errors
-          loadExistingEntry({
-            id: existingEntry.id,
-            entry_name: existingEntry.entry_name,
-            total_salary: existingEntry.total_salary,
-            captain_golfer_id: existingEntry.captain_golfer_id,
-            status: existingEntry.status,
-            picks: existingEntry.clubhouse_entry_picks.map((pick: any) => ({
-              golfer_id: pick.golfer_id,
-              slot_position: pick.slot_position,
-              salary_at_selection: pick.salary_at_selection
-            }))
-          }, golfers || []);
+          loadExistingEntry(existingEntry, golfers || []);
         }
       }
 
@@ -333,19 +312,32 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
 
   function loadExistingEntry(entry: ExistingEntry, golfers: Golfer[]) {
     setExistingEntryId(entry.id);
-    setEntryName(entry.entry_name || '');
+    // Clubhouse entries don't have custom names
     
-    const newLineup = [...lineup];
-    entry.picks.forEach(pick => {
+    // Create fresh lineup slots
+    const newLineup: LineupSlot[] = [
+      { slotNumber: 1, golfer: null, isCaptain: false },
+      { slotNumber: 2, golfer: null, isCaptain: false },
+      { slotNumber: 3, golfer: null, isCaptain: false },
+      { slotNumber: 4, golfer: null, isCaptain: false },
+      { slotNumber: 5, golfer: null, isCaptain: false },
+      { slotNumber: 6, golfer: null, isCaptain: false },
+    ];
+    
+    // Populate with saved picks using pick_order
+    entry.clubhouse_entry_picks.forEach(pick => {
       const golfer = golfers.find(g => g.id === pick.golfer_id);
       if (golfer) {
-        const slot = newLineup.find(s => s.slotNumber === pick.slot_position);
+        const slot = newLineup.find(s => s.slotNumber === pick.pick_order);
         if (slot) {
           slot.golfer = golfer;
-          slot.isCaptain = (pick.golfer_id === entry.captain_golfer_id);
+          slot.isCaptain = pick.is_captain; // Use is_captain from the pick itself
         }
+      } else {
+        console.warn(`⚠️ Golfer not found: ${pick.golfer_id}`);
       }
     });
+    
     setLineup(newLineup);
   }
 
@@ -414,7 +406,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
   const getTopTierPlayers = (count: number = 3) => {
     const selectedIds = lineup.filter(slot => slot.golfer).map(slot => slot.golfer!.id);
     return availableGolfers
-      .filter(g => !selectedIds.includes(g.id) && (g.salary_pennies || 0) >= 10000 && (g.salary_pennies || 0) <= remainingBudget)
+      .filter(g => !selectedIds.includes(g.id) && (g.salary_pennies || 0) >= 1400000 && (g.salary_pennies || 0) <= remainingBudget)
       .sort((a, b) => (b.salary_pennies || 0) - (a.salary_pennies || 0)) // Highest salary first
       .slice(0, count);
   };
@@ -422,7 +414,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
   const getMidTierPlayers = (count: number = 3) => {
     const selectedIds = lineup.filter(slot => slot.golfer).map(slot => slot.golfer!.id);
     return availableGolfers
-      .filter(g => !selectedIds.includes(g.id) && (g.salary_pennies || 0) >= 7000 && (g.salary_pennies || 0) < 10000 && (g.salary_pennies || 0) <= remainingBudget)
+      .filter(g => !selectedIds.includes(g.id) && (g.salary_pennies || 0) >= 900000 && (g.salary_pennies || 0) < 1400000 && (g.salary_pennies || 0) <= remainingBudget)
       .sort((a, b) => (b.salary_pennies || 0) - (a.salary_pennies || 0))
       .slice(0, count);
   };
@@ -430,7 +422,7 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
   const getValuePickPlayers = (count: number = 3) => {
     const selectedIds = lineup.filter(slot => slot.golfer).map(slot => slot.golfer!.id);
     return availableGolfers
-      .filter(g => !selectedIds.includes(g.id) && (g.salary_pennies || 0) < 7000 && (g.salary_pennies || 0) <= remainingBudget)
+      .filter(g => !selectedIds.includes(g.id) && (g.salary_pennies || 0) < 900000 && (g.salary_pennies || 0) <= remainingBudget)
       .sort((a, b) => (b.salary_pennies || 0) - (a.salary_pennies || 0))
       .slice(0, count);
   };
@@ -453,9 +445,9 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
       }
 
       // Salary filter
-      if (salaryFilter === 'premium' && (golfer.salary_pennies || 0) < 10000) return false;
-      if (salaryFilter === 'mid' && ((golfer.salary_pennies || 0) < 7000 || (golfer.salary_pennies || 0) >= 10000)) return false;
-      if (salaryFilter === 'value' && (golfer.salary_pennies || 0) >= 7000) return false;
+      if (salaryFilter === 'premium' && (golfer.salary_pennies || 0) < 1400000) return false;
+      if (salaryFilter === 'mid' && ((golfer.salary_pennies || 0) < 900000 || (golfer.salary_pennies || 0) >= 1400000)) return false;
+      if (salaryFilter === 'value' && (golfer.salary_pennies || 0) >= 900000) return false;
 
       // Affordability filter - Don't filter if no players selected yet
       if (playersSelected > 0 && (golfer.salary_pennies || 0) > remainingBudget) return false;
@@ -504,6 +496,20 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         : slot
     );
     setLineup(newLineup);
+  };
+
+  // Clear all golfers from lineup
+  const clearAllGolfers = () => {
+    if (confirm('Clear all players from your lineup?')) {
+      setLineup([
+        { slotNumber: 1, golfer: null, isCaptain: false },
+        { slotNumber: 2, golfer: null, isCaptain: false },
+        { slotNumber: 3, golfer: null, isCaptain: false },
+        { slotNumber: 4, golfer: null, isCaptain: false },
+        { slotNumber: 5, golfer: null, isCaptain: false },
+        { slotNumber: 6, golfer: null, isCaptain: false },
+      ]);
+    }
   };
 
   // Set captain
@@ -604,10 +610,58 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
         .filter(slot => slot.golfer !== null)
         .map(slot => slot.golfer!.id);
 
-      // EDIT MODE: Not supported for clubhouse yet
+      // Get captain
+      const captain = lineup.find(slot => slot.isCaptain);
+      if (!captain || !captain.golfer) {
+        throw new Error('No captain selected');
+      }
+
+      // EDIT MODE: Update existing entry
       if (isEditMode && editEntryId) {
-        alert('Edit mode not yet implemented for clubhouse entries.');
-        setSaving(false);
+        // Delete old picks and verify deletion
+        const { error: deleteError, count: deleteCount } = await supabase
+          .from('clubhouse_entry_picks')
+          .delete({ count: 'exact' })
+          .eq('entry_id', editEntryId);
+
+        if (deleteError) {
+          throw new Error('Failed to delete old picks: ' + deleteError.message);
+        }
+
+        // Wait a moment to ensure database consistency
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Insert new picks
+        const newPicks = lineup
+          .filter(slot => slot.golfer !== null)
+          .map(slot => ({
+            entry_id: editEntryId,
+            golfer_id: slot.golfer!.id,
+            pick_order: slot.slotNumber,
+            is_captain: slot.isCaptain
+          }));
+
+        const { error: insertError } = await supabase
+          .from('clubhouse_entry_picks')
+          .insert(newPicks);
+
+        if (insertError) {
+          console.error('Insert error details:', insertError);
+          throw new Error('Failed to insert new picks: ' + insertError.message);
+        }
+
+        // Clear lineup to prevent beforeunload warning
+        setLineup([
+          { slotNumber: 1, golfer: null, isCaptain: false },
+          { slotNumber: 2, golfer: null, isCaptain: false },
+          { slotNumber: 3, golfer: null, isCaptain: false },
+          { slotNumber: 4, golfer: null, isCaptain: false },
+          { slotNumber: 5, golfer: null, isCaptain: false },
+          { slotNumber: 6, golfer: null, isCaptain: false },
+        ]);
+
+        // Success - redirect with updated flag
+        router.push(`/clubhouse/my-entries?updated=${editEntryId}`);
         return;
       }
 
@@ -660,9 +714,10 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
     }
   };
 
-  // Format currency
+  // Format currency (amount in pennies, display in pounds - no decimals)
   const formatCurrency = (amount: number) => {
-    return `£${amount.toLocaleString()}`;
+    const pounds = Math.floor(amount / 100);
+    return `£${pounds.toLocaleString('en-GB')}`;
   };
 
   if (loading) {
@@ -895,6 +950,11 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
             }}>
               <div style={{ fontSize: '15px', fontWeight: 600, color: '#fbbf24' }}>
                 {competition?.event_name}
+                {competition?.name && (
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: 'rgba(251, 191, 36, 0.7)', marginLeft: '8px' }}>
+                    • {competition.name}
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: '12px', fontWeight: 600, color: '#10b981' }}>
                 Entry: {competition?.entry_credits}c
@@ -1036,8 +1096,36 @@ export default function BuildTeamPage({ params }: { params: Promise<{ eventId: s
                 paddingBottom: '16px',
                 borderBottom: '1px solid rgba(255,255,255,0.1)'
               }}>
-                <div style={{ fontSize: '18px', fontWeight: 600, color: '#fbbf24', marginBottom: '4px' }}>
-                  🏌️ Your Lineup
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '18px', fontWeight: 600, color: '#fbbf24' }}>
+                    🏌️ Your Lineup
+                  </div>
+                  {playersSelected > 0 && (
+                    <button
+                      onClick={clearAllGolfers}
+                      style={{
+                        padding: '6px 12px',
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        borderRadius: '8px',
+                        color: '#ef4444',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                      }}
+                    >
+                      Clear All
+                    </button>
+                  )}
                 </div>
                 <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
                   {playersSelected}/6 players selected

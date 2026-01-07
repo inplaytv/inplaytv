@@ -241,9 +241,10 @@ export const LEADERBOARD_RULES = {
  */
 export const LINEUP_RULES = {
   /**
-   * Total salary cap (pennies)
+   * Total salary cap in pennies
+   * DraftKings industry standard: £60,000
    */
-  SALARY_CAP_PENNIES: 5000000, // £50,000
+  SALARY_CAP_PENNIES: 6000000, // £60,000 in pennies
 
   /**
    * Number of golfers in a lineup

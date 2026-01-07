@@ -8,6 +8,7 @@ import RequireAuth from '@/components/RequireAuth';
 interface Event {
   id: string;
   name: string;
+  venue?: string;
   description: string | null;
   entry_credits: number;
   max_entries: number;
@@ -19,7 +20,7 @@ interface Event {
   end_date: string;
 }
 
-// Helper function to calculate time remaining
+// Helper function to calculate time remaining (countdown only for last 24 hours)
 function getTimeRemaining(dateString: string): string {
   const now = new Date();
   const target = new Date(dateString);
@@ -31,7 +32,15 @@ function getTimeRemaining(dateString: string): string {
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   
-  if (days > 0) return `${days}d ${hours}h`;
+  // Show countdown only for last 24 hours
+  if (days > 1) {
+    return target.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+  if (days === 1) return `${days} day ${hours}h`;
   if (hours > 0) return `${hours}h ${minutes}m`;
   return `${minutes}m`;
 }
@@ -213,22 +222,24 @@ export default function ClubhouseEventsPage() {
                       flexWrap: 'wrap',
                     }}>
                       <div>
+                        {/* ✅ NEW CODE LOADED - v2.0 */}
                         <h2 style={{ 
                           color: '#fff', 
-                          margin: '0 0 0.5rem 0',
+                          margin: '0 0 0.25rem 0',
                           fontSize: '1.5rem',
                           fontWeight: 700,
                         }}>
-                          {event.name}
+                          {event.venue || event.name}
                         </h2>
-                        {event.description && (
-                          <p style={{ 
-                            color: '#94a3b8', 
-                            margin: 0,
-                            fontSize: '0.95rem',
+                        {event.venue && event.name && (
+                          <h3 style={{ 
+                            color: 'rgba(255, 255, 255, 0.8)', 
+                            margin: '0 0 0.5rem 0',
+                            fontSize: '1.1rem',
+                            fontWeight: 500,
                           }}>
-                            {event.description}
-                          </p>
+                            {event.name}
+                          </h3>
                         )}
                       </div>
                       <div style={{ 

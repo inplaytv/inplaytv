@@ -21,7 +21,7 @@ BEGIN
   -- Lock the wallet row for update (prevents concurrent modifications)
   SELECT balance_cents
   INTO v_current_balance
-  FROM wallets
+  FROM public.wallets
   WHERE user_id = p_user_id
   FOR UPDATE;
 
@@ -39,13 +39,13 @@ BEGIN
   v_new_balance := v_current_balance - p_amount_cents;
 
   -- Update wallet atomically
-  UPDATE wallets
+  UPDATE public.wallets
   SET balance_cents = v_new_balance,
       updated_at = NOW()
   WHERE user_id = p_user_id;
 
   -- Create transaction record
-  INSERT INTO wallet_transactions (
+  INSERT INTO public.wallet_transactions (
     user_id,
     change_cents,
     reason,

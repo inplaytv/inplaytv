@@ -12,6 +12,7 @@ import CountdownClock from '@/components/CountdownClock';
 interface Event {
   id: string;
   name: string;
+  venue?: string;
   description: string | null;
   entry_credits: number;
   max_entries: number;
@@ -197,8 +198,17 @@ export default function EventDetailPage() {
               boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h1 style={{ margin: 0, color: 'white', fontSize: '1.75rem', fontWeight: 700 }}>{event.name}</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+              <div>
+                <h1 style={{ margin: 0, color: 'white', fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+                  {event.venue || event.name}
+                </h1>
+                {event.venue && (
+                  <h2 style={{ margin: 0, color: 'rgba(255, 255, 255, 0.8)', fontSize: '1.1rem', fontWeight: 500 }}>
+                    {event.name}
+                  </h2>
+                )}
+              </div>
               <div
                 style={{
                   padding: '0.5rem 1rem',

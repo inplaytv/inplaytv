@@ -9,6 +9,7 @@ import styles from './events-list.module.css';
 interface ClubhouseEvent {
   id: string;
   name: string;
+  venue?: string;
   description: string;
   status: 'upcoming' | 'open' | 'active' | 'completed';
   entry_credits: number;
@@ -135,7 +136,16 @@ export default function EventsListPage() {
             {events.map(event => (
               <div key={event.id} className={styles.card}>
                 <div className={styles.cardHeader}>
-                  <h3>{event.name}</h3>
+                  <div>
+                    <h3 style={{ margin: 0, marginBottom: event.venue && event.name ? '4px' : 0 }}>
+                      {event.venue || event.name}
+                    </h3>
+                    {event.venue && event.name && (
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500, color: '#64748b' }}>
+                        {event.name}
+                      </h4>
+                    )}
+                  </div>
                   <span 
                     className={styles.status}
                     style={{ background: getStatusColor(event.status) }}
