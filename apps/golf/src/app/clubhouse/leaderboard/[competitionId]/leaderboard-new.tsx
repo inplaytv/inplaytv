@@ -61,6 +61,7 @@ export default function ModernLeaderboardPage() {
   const [allCompetitions, setAllCompetitions] = useState<Competition[]>([]);
   const [selectedRound, setSelectedRound] = useState<string>(competitionId);
   const [allEvents, setAllEvents] = useState<Array<{id: string, name: string, slug: string}>>([]);
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [backgroundImage, setBackgroundImage] = useState<string>('');
   const [backgroundOpacity, setBackgroundOpacity] = useState<number>(0.15);
   const [backgroundOverlay, setBackgroundOverlay] = useState<number>(0.4);
@@ -126,9 +127,9 @@ export default function ModernLeaderboardPage() {
       const { data: eventsData } = await supabase
         .from('clubhouse_events')
         .select('id, name, slug')
-        .in('status', ['open', 'live', 'completed'])
+        .in('status', ['draft', 'upcoming', 'open', 'live', 'completed'])
         .order('start_date', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (eventsData) {
         setAllEvents(eventsData);
@@ -313,22 +314,36 @@ export default function ModernLeaderboardPage() {
             </Link>
             
             {/* Event Selector Dropdown */}
-            {allEvents.length > 1 ? (
-              <select 
-                className={styles.eventSelector}
-                value={competition?.event?.id || ''}
-                onChange={(e) => {
-                  const event = allEvents.find(ev => ev.id === e.target.value);
-                  if (event) window.location.href = `/clubhouse/events/${event.slug}`;
-                }}
-              >
-                {allEvents.map(ev => (
+            <select 
+              className={styles.eventSelector}
+              value={competition?.event?.id || ''}
+              onChange={async (e) => {
+                const selectedEventId = e.target.value;
+                if (selectedEventId && selectedEventId !== competition?.event?.id) {
+                  // Fetch first competition for selected event
+                  const supabase = createClient();
+                  const { data: comp } = await supabase
+                    .from('clubhouse_competitions')
+                    .select('id')
+                    .eq('event_id', selectedEventId)
+                    .order('created_at')
+                    .limit(1)
+                    .single();
+                  
+                  if (comp) {
+                    window.location.href = `/clubhouse/leaderboard/${comp.id}`;
+                  }
+                }
+              }}
+            >
+              {allEvents.length > 0 ? (
+                allEvents.map(ev => (
                   <option key={ev.id} value={ev.id}>{ev.name}</option>
-                ))}
-              </select>
-            ) : (
-              <h1 className={styles.eventTitle}>{competition?.event?.name || 'Loading...'}</h1>
-            )}
+                ))
+              ) : (
+                <option value={competition?.event?.id || ''}>{competition?.event?.name || 'Loading...'}</option>
+              )}
+            </select>
 
             <Link href="/how-to-play" className={styles.rulesLink} target="_blank">
               <i className="fas fa-info-circle"></i>
@@ -345,15 +360,23 @@ export default function ModernLeaderboardPage() {
         </div>
 
         {/* Current User Card (if entered) */}
-        {currentUserEntry && (
+        {currentUserEntry && (() => {
+          const displayEntry = selectedEntryId 
+            ? entries.find(e => e.id === selectedEntryId) || currentUserEntry
+            : currentUserEntry;
+          return (
           <div className={styles.yourEntryCard}>
             <div className={styles.yourEntryHeader}>
-              <span className={styles.yourBadge}>YOUR TEAM</span>
+              <span className={styles.yourBadge}>
+                {selectedEntryId && displayEntry.id !== currentUserEntry.id 
+                  ? displayEntry.user.display_name.toUpperCase() + "'S TEAM"
+                  : 'YOUR TEAM'}
+              </span>
               <div className={styles.yourPosition}>
-                {currentUserEntry.position === 1 ? '🥇' : 
-                 currentUserEntry.position === 2 ? '🥈' :
-                 currentUserEntry.position === 3 ? '🥉' : 
-                 `#${currentUserEntry.position}`}
+                {displayEntry.position === 1 ? '🥇' : 
+                 displayEntry.position === 2 ? '🥈' :
+                 displayEntry.position === 3 ? '🥉' : 
+                 `#${displayEntry.position}`}
               </div>
               
               {/* Round Tabs Inline with Your Team */}
@@ -374,20 +397,20 @@ export default function ModernLeaderboardPage() {
               <div className={styles.yourScore}>
                 <div className={styles.scoreGroup}>
                   <div className={styles.scoreLabel}>Golf Score</div>
-                  <span className={currentUserEntry.total_score < 0 ? styles.scoreUnder : styles.scoreOver}>
-                    {currentUserEntry.total_score > 0 ? '+' : ''}{currentUserEntry.total_score}
+                  <span className={displayEntry.total_score < 0 ? styles.scoreUnder : styles.scoreOver}>
+                    {displayEntry.total_score > 0 ? '+' : ''}{displayEntry.total_score}
                   </span>
                 </div>
                 <div className={styles.scoreGroup}>
                   <div className={styles.scoreLabel}>Fantasy Points</div>
                   <span className={styles.fantasyPoints}>
-                    {currentUserEntry.total_fantasy_points.toLocaleString()}
+                    {displayEntry.total_fantasy_points.toLocaleString()}
                   </span>
                 </div>
               </div>
             </div>
             <div className={styles.yourGolfers}>
-              {currentUserEntry.golfers.map(g => (
+              {displayEntry.golfers.map(g => (
                 <div key={g.id} className={`${styles.golferPill} ${g.isCaptain ? styles.captain : ''}`}>
                   <span className={styles.golferName}>{g.name}</span>
                   <span className={styles.golferPos}>T{g.position}</span>
@@ -399,7 +422,8 @@ export default function ModernLeaderboardPage() {
               ))}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* Round Selector - Show when no user entry */}
         {!currentUserEntry && allCompetitions.length > 1 && (
@@ -441,10 +465,10 @@ export default function ModernLeaderboardPage() {
                 </div>
               ) : (
               entries.map(entry => (
-                <div 
+                <div
                   key={entry.id}
-                  className={`${styles.entryRow} ${entry.isCurrentUser ? styles.highlightUser : ''} ${expandedEntry === entry.id ? styles.expanded : ''}`}
-                  onClick={() => setExpandedEntry(expandedEntry === entry.id ? null : entry.id)}
+                  className={`${styles.entryRow} ${entry.isCurrentUser ? styles.highlightUser : ''} ${selectedEntryId === entry.id ? styles.selectedEntry : ''}`}
+                  onClick={() => setSelectedEntryId(entry.id)}
                 >
                   <div className={styles.entryMain}>
                     <div className={styles.positionCell}>
@@ -475,37 +499,6 @@ export default function ModernLeaderboardPage() {
                     </div>
                   </div>
 
-                  {/* Expanded Details */}
-                  {expandedEntry === entry.id && (
-                    <div className={styles.entryDetails}>
-                      {entry.golfers.map(g => (
-                        <div key={g.id} className={styles.golferDetailCard}>
-                          <div className={styles.golferDetailRow}>
-                            <span className={styles.golferDetailName}>
-                              {g.name}
-                              {g.isCaptain && <span className={styles.captainBadge}>C</span>}
-                            </span>
-                            <span className={styles.golferDetailPos}>T{g.position}</span>
-                            <span className={styles.golferDetailThru}>Thru {g.thru}</span>
-                            <span className={g.score < 0 ? styles.scoreUnder : styles.scoreOver}>
-                              {g.score > 0 ? '+' : ''}{g.score}
-                            </span>
-                            <span className={styles.golferFantasy}>
-                              {g.fantasyPoints} pts{g.isCaptain ? ' (x2)' : ''}
-                            </span>
-                          </div>
-                          <div className={styles.holeScores}>
-                            {Array.from({length: 18}, (_, i) => (
-                              <div key={i} className={styles.holeBox}>
-                                <div className={styles.holeNumber}>{i + 1}</div>
-                                <div className={styles.holeScore}>—</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               ))
             )}
