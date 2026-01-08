@@ -304,9 +304,30 @@
 }
 
 .quickAccessGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
   gap: 1rem;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.quickAccessGrid::-webkit-scrollbar {
+  height: 6px;
+}
+
+.quickAccessGrid::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.quickAccessGrid::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.3);
+  border-radius: 3px;
+}
+
+.quickAccessGrid::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.5);
 }
 
 .quickAccessCard {
@@ -319,6 +340,8 @@
   border-radius: 12px;
   text-decoration: none;
   transition: all 0.3s ease;
+  min-width: 240px;
+  flex-shrink: 0;
 }
 
 .quickAccessCard:hover {
@@ -656,7 +679,11 @@
   }
 
   .quickAccessGrid {
-    grid-template-columns: repeat(2, 1fr);
+    gap: 0.875rem;
+  }
+  
+  .quickAccessCard {
+    min-width: 220px;
   }
 }
 
@@ -724,8 +751,11 @@
   }
 
   .quickAccessGrid {
-    grid-template-columns: 1fr;
     gap: 0.75rem;
+  }
+  
+  .quickAccessCard {
+    min-width: 200px;
   }
 
   .tournamentsGrid {

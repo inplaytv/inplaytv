@@ -219,7 +219,7 @@ export default function LobbyPage() {
               <i className="fas fa-users"></i>
             </div>
             <div className={styles.mainNavContent}>
-              <h2>Clubhouse Challenges</h2>
+              <h2>Clubhouse Events</h2>
               <p>Private events and exclusive competitions</p>
               <div className={styles.mainNavBadge}>
                 <i className="fas fa-star"></i>
@@ -267,8 +267,18 @@ export default function LobbyPage() {
                 <i className="fas fa-ranking-star"></i>
               </div>
               <div className={styles.quickAccessContent}>
-                <h3>Leaderboards</h3>
-                <p>View standings</p>
+                <h3>InPlay Leaderboard</h3>
+                <p>Tournament standings</p>
+              </div>
+            </Link>
+
+            <Link href="/clubhouse/events" className={styles.quickAccessCard}>
+              <div className={styles.quickAccessIcon}>
+                <i className="fas fa-chart-line"></i>
+              </div>
+              <div className={styles.quickAccessContent}>
+                <h3>Clubhouse Leaderboard</h3>
+                <p>Event standings</p>
               </div>
             </Link>
 
