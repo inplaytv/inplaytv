@@ -92,28 +92,37 @@ export default function LobbyPage() {
             e.status === 'active' || e.status === 'submitted'
           ).length;
           
-          // Get InPlay entries count
+          // Get InPlay entries count (don't filter by status)
           let inplayCount = 0;
           let clubhouseCount = 0;
           
           if (user?.id) {
-            const { count: inplayResult } = await supabase
+            console.log('🔍 Fetching entry counts for user:', user.id);
+            
+            const { count: inplayResult, error: inplayError } = await supabase
               .from('competition_entries')
               .select('*', { count: 'exact', head: true })
-              .eq('user_id', user.id)
-              .eq('status', 'active');
+              .eq('user_id', user.id);
             
+            console.log('📊 InPlay count result:', inplayResult, 'Error:', inplayError);
             inplayCount = inplayResult || 0;
             
-            // Get Clubhouse entries count
-            const { count: clubhouseResult } = await supabase
+            // Get Clubhouse entries count (don't filter by status)
+            const { count: clubhouseResult, error: clubhouseError } = await supabase
               .from('clubhouse_entries')
               .select('*', { count: 'exact', head: true })
-              .eq('user_id', user.id)
-              .eq('status', 'active');
+              .eq('user_id', user.id);
             
+            console.log('🏛️ Clubhouse count result:', clubhouseResult, 'Error:', clubhouseError);
             clubhouseCount = clubhouseResult || 0;
+          } else {
+            console.warn('⚠️ No user ID found when fetching entry counts');
           }
+          
+          console.log('✅ Setting userStats:', {
+            inplayEntries: inplayCount,
+            clubhouseEntries: clubhouseCount
+          });
           
           setUserStats({
             totalEntries: entries.length,
@@ -125,17 +134,25 @@ export default function LobbyPage() {
           });
         }
         
-        // Get active clubhouse competition for leaderboard link
-        const { data: clubhouseComp } = await supabase
-          .from('clubhouse_competitions')
-          .select('id')
-          .in('status', ['open', 'live'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-        
-        if (clubhouseComp) {
-          setClubhouseLeaderboardUrl(`/clubhouse/leaderboard/${clubhouseComp.id}`);
+        // Get user's most recent clubhouse competition for leaderboard link
+        if (user?.id) {
+          console.log('🔍 Fetching user\'s most recent clubhouse competition for leaderboard link...');
+          const { data: userEntries, error: userEntriesError } = await supabase
+            .from('clubhouse_entries')
+            .select('competition_id')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          console.log('🏛️ User\'s most recent entry:', userEntries, 'Error:', userEntriesError);
+          
+          if (userEntries && userEntries.length > 0 && userEntries[0].competition_id) {
+            const newUrl = `/clubhouse/leaderboard/${userEntries[0].competition_id}`;
+            console.log('✅ Setting clubhouse leaderboard URL to:', newUrl);
+            setClubhouseLeaderboardUrl(newUrl);
+          } else {
+            console.warn('⚠️ No clubhouse entries found, using default /clubhouse/events');
+          }
         }
       } catch (error) {
         console.error('Error fetching lobby data:', error);
@@ -325,7 +342,13 @@ export default function LobbyPage() {
               </div>
             </Link>
 
-            <Link href={clubhouseLeaderboardUrl} className={styles.quickAccessCard}>
+            <Link 
+              href={clubhouseLeaderboardUrl} 
+              className={styles.quickAccessCard}
+              onClick={(e) => {
+                console.log('🔗 Clubhouse Leaderboard clicked! URL:', clubhouseLeaderboardUrl);
+              }}
+            >
               <div className={styles.quickAccessIcon}>
                 <i className="fas fa-chart-line"></i>
               </div>
