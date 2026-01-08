@@ -25,6 +25,8 @@ interface Tournament {
 interface UserStats {
   totalEntries: number;
   activeEntries: number;
+  inplayEntries: number;
+  clubhouseEntries: number;
   totalWinnings: number;
   winRate: number;
 }
@@ -37,6 +39,8 @@ export default function LobbyPage() {
   const [userStats, setUserStats] = useState<UserStats>({
     totalEntries: 0,
     activeEntries: 0,
+    inplayEntries: 0,
+    clubhouseEntries: 0,
     totalWinnings: 0,
     winRate: 0
   });
@@ -87,9 +91,25 @@ export default function LobbyPage() {
             e.status === 'active' || e.status === 'submitted'
           ).length;
           
+          // Get InPlay entries count
+          const { count: inplayCount } = await supabase
+            .from('competition_entries')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user?.id)
+            .eq('status', 'active');
+          
+          // Get Clubhouse entries count
+          const { count: clubhouseCount } = await supabase
+            .from('clubhouse_entries')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user?.id)
+            .eq('status', 'active');
+          
           setUserStats({
             totalEntries: entries.length,
             activeEntries,
+            inplayEntries: inplayCount || 0,
+            clubhouseEntries: clubhouseCount || 0,
             totalWinnings: 0, // TODO: Calculate from wins
             winRate: entries.length > 0 ? 0 : 0 // TODO: Calculate win rate
           });
@@ -254,11 +274,21 @@ export default function LobbyPage() {
           <div className={styles.quickAccessGrid}>
             <Link href="/entries" className={styles.quickAccessCard}>
               <div className={styles.quickAccessIcon}>
-                <i className="fas fa-clipboard-list"></i>
+                <i className="fas fa-trophy"></i>
               </div>
               <div className={styles.quickAccessContent}>
-                <h3>My Entries</h3>
-                <p>{userStats.activeEntries} active</p>
+                <h3>InPlay Entries</h3>
+                <p>{userStats.inplayEntries} active</p>
+              </div>
+            </Link>
+
+            <Link href="/clubhouse/events" className={styles.quickAccessCard}>
+              <div className={styles.quickAccessIcon}>
+                <i className="fas fa-users"></i>
+              </div>
+              <div className={styles.quickAccessContent}>
+                <h3>Clubhouse Entries</h3>
+                <p>{userStats.clubhouseEntries} active</p>
               </div>
             </Link>
 
@@ -279,16 +309,6 @@ export default function LobbyPage() {
               <div className={styles.quickAccessContent}>
                 <h3>Clubhouse Leaderboard</h3>
                 <p>Event standings</p>
-              </div>
-            </Link>
-
-            <Link href="/wallet" className={styles.quickAccessCard}>
-              <div className={styles.quickAccessIcon}>
-                <i className="fas fa-wallet"></i>
-              </div>
-              <div className={styles.quickAccessContent}>
-                <h3>Wallet</h3>
-                <p>{formatCurrency(balance)}</p>
               </div>
             </Link>
 
