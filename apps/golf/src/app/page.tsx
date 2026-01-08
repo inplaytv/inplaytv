@@ -97,32 +97,21 @@ export default function LobbyPage() {
           let clubhouseCount = 0;
           
           if (user?.id) {
-            console.log('🔍 Fetching entry counts for user:', user.id);
-            
-            const { count: inplayResult, error: inplayError } = await supabase
+            const { count: inplayResult } = await supabase
               .from('competition_entries')
               .select('*', { count: 'exact', head: true })
               .eq('user_id', user.id);
             
-            console.log('📊 InPlay count result:', inplayResult, 'Error:', inplayError);
             inplayCount = inplayResult || 0;
             
             // Get Clubhouse entries count (don't filter by status)
-            const { count: clubhouseResult, error: clubhouseError } = await supabase
+            const { count: clubhouseResult } = await supabase
               .from('clubhouse_entries')
               .select('*', { count: 'exact', head: true })
               .eq('user_id', user.id);
             
-            console.log('🏛️ Clubhouse count result:', clubhouseResult, 'Error:', clubhouseError);
             clubhouseCount = clubhouseResult || 0;
-          } else {
-            console.warn('⚠️ No user ID found when fetching entry counts');
           }
-          
-          console.log('✅ Setting userStats:', {
-            inplayEntries: inplayCount,
-            clubhouseEntries: clubhouseCount
-          });
           
           setUserStats({
             totalEntries: entries.length,
@@ -136,22 +125,15 @@ export default function LobbyPage() {
         
         // Get user's most recent clubhouse competition for leaderboard link
         if (user?.id) {
-          console.log('🔍 Fetching user\'s most recent clubhouse competition for leaderboard link...');
-          const { data: userEntries, error: userEntriesError } = await supabase
+          const { data: userEntries } = await supabase
             .from('clubhouse_entries')
             .select('competition_id')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
             .limit(1);
           
-          console.log('🏛️ User\'s most recent entry:', userEntries, 'Error:', userEntriesError);
-          
           if (userEntries && userEntries.length > 0 && userEntries[0].competition_id) {
-            const newUrl = `/clubhouse/leaderboard/${userEntries[0].competition_id}`;
-            console.log('✅ Setting clubhouse leaderboard URL to:', newUrl);
-            setClubhouseLeaderboardUrl(newUrl);
-          } else {
-            console.warn('⚠️ No clubhouse entries found, using default /clubhouse/events');
+            setClubhouseLeaderboardUrl(`/clubhouse/leaderboard/${userEntries[0].competition_id}`);
           }
         }
       } catch (error) {
@@ -345,9 +327,6 @@ export default function LobbyPage() {
             <Link 
               href={clubhouseLeaderboardUrl} 
               className={styles.quickAccessCard}
-              onClick={(e) => {
-                console.log('🔗 Clubhouse Leaderboard clicked! URL:', clubhouseLeaderboardUrl);
-              }}
             >
               <div className={styles.quickAccessIcon}>
                 <i className="fas fa-chart-line"></i>
