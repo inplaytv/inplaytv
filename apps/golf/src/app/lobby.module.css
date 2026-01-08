@@ -1,8 +1,10 @@
 /* Lobby Container */
 .container {
   min-height: 100vh;
-  padding: 2rem;
+  padding: 1.5rem;
   position: relative;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 /* Background layers */
@@ -55,24 +57,22 @@
   color: #10b981;
 }
 
-/* Hero Section */
+/* Compact Hero Section */
 .hero {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: 22px;
-  padding: 2.275rem;
-  margin-bottom: 1.82rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.04));
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
   backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
 .heroContent {
-  max-width: 1400px;
-  margin: 0 auto;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 1.82rem;
+  align-items: center;
+  gap: 2rem;
 }
 
 .welcomeSection {
@@ -80,10 +80,10 @@
 }
 
 .welcomeTitle {
-  font-size: 2.275rem;
+  font-size: 1.75rem;
   font-weight: 800;
   color: #fff;
-  margin: 0 0 0.455rem 0;
+  margin: 0 0 0.5rem 0;
   line-height: 1.2;
 }
 
@@ -95,142 +95,268 @@
 }
 
 .welcomeSubtitle {
-  font-size: 1.001rem;
+  font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.6);
   margin: 0;
 }
 
-/* Balance Card */
-.balanceCard {
+/* Compact Stats */
+.compactStats {
   display: flex;
+  gap: 1.5rem;
   align-items: center;
-  gap: 0.975rem;
-  background: rgba(0, 0, 0, 0.3);
+}
+
+.compactStatItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
-  padding: 0.975rem 1.3rem;
-  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
 }
 
-.balanceIcon {
-  width: 39px;
-  height: 39px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #10b981, #059669);
-  border-radius: 8px;
-  font-size: 1.17rem;
+.compactStatItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+.compactStatItem i {
+  font-size: 1.2rem;
+  color: #10b981;
+  margin-bottom: 0.25rem;
+}
+
+.compactStatValue {
+  font-size: 1.5rem;
+  font-weight: 800;
   color: #fff;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  line-height: 1;
 }
 
-.balanceContent {
-  flex: 1;
-}
-
-.balanceLabel {
-  font-size: 0.553rem;
+.compactStatLabel {
+  font-size: 0.7rem;
   color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 600;
-  margin-bottom: 0.163rem;
 }
 
-.balanceAmount {
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: #10b981;
-  line-height: 1;
+/* Main Navigation Cards */
+.mainNav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
-.topUpButton {
+.mainNavCard {
   display: flex;
   align-items: center;
-  gap: 0.325rem;
-  padding: 0.569rem 0.975rem;
-  background: linear-gradient(135deg, #10b981, #059669);
-  border: none;
-  border-radius: 7px;
-  color: #fff;
-  font-size: 0.618rem;
-  font-weight: 700;
-  cursor: pointer;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   text-decoration: none;
   transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.mainNavCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.05));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mainNavCard:hover::before {
+  opacity: 1;
+}
+
+.mainNavCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.mainNavCardPrimary {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+}
+
+.mainNavCardSecondary {
+  border-color: rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+}
+
+.mainNavCardAccent {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.05));
+}
+
+.mainNavIcon {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 1.75rem;
+  color: #fff;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.mainNavCardPrimary .mainNavIcon {
+  background: linear-gradient(135deg, #10b981, #059669);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-.topUpButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+.mainNavCardSecondary .mainNavIcon {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-/* Stats Grid */
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.546rem;
-  width: 100%;
+.mainNavCardAccent .mainNavIcon {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
-.statCard {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 0.455rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  padding: 1.229rem 0.546rem;
+.mainNavCard:hover .mainNavIcon {
+  transform: scale(1.1);
+}
+
+.mainNavContent {
+  flex: 1;
+}
+
+.mainNavContent h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.2;
+}
+
+.mainNavContent p {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.4;
+}
+
+.mainNavBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.mainNavBadge i {
+  font-size: 0.7rem;
+}
+
+.mainNavCard > i {
+  font-size: 1.5rem;
+  color: rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
 }
 
-.statCard:hover {
+.mainNavCard:hover > i {
+  color: rgba(255, 255, 255, 0.6);
+  transform: translateX(4px);
+}
+
+/* Quick Access Section */
+.quickAccessSection {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem 0;
+}
+
+.sectionTitle i {
+  color: #10b981;
+}
+
+.quickAccessGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.quickAccessCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.quickAccessCard:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.15);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
-.statIcon {
-  width: 20px;
-  height: 20px;
+.quickAccessIcon {
+  width: 45px;
+  height: 45px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  font-size: 0.546rem;
-  color: #fff;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 10px;
+  font-size: 1.25rem;
+  color: #10b981;
   flex-shrink: 0;
 }
 
-.statContent {
-  flex: 1;
-}
-
-.statValue {
-  font-size: 0.956rem;
-  font-weight: 800;
+.quickAccessContent h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
   color: #fff;
-  line-height: 1;
-  margin-bottom: 0.091rem;
+  margin: 0 0 0.25rem 0;
 }
 
-.statLabel {
-  font-size: 0.464rem;
+.quickAccessContent p {
+  font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
+  margin: 0;
 }
 
 /* Section Styles */
-.quickActions,
 .tournamentsSection {
-  max-width: 1400px;
-  margin: 0 auto 1.95rem;
+  margin-bottom: 2rem;
 }
 
 .sectionHeader {
@@ -238,16 +364,6 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
-}
-
-.sectionTitle {
-  font-size: 0.975rem;
-  font-weight: 700;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 0.488rem;
-  margin: 0 0 0.975rem 0;
 }
 
 .sectionTitle i {
@@ -535,13 +651,12 @@
 
 /* Responsive Design */
 @media (max-width: 1200px) {
-  .heroContent {
-    flex-direction: column;
-    align-items: stretch;
+  .mainNav {
+    grid-template-columns: 1fr;
   }
 
-  .balanceCard {
-    justify-content: space-between;
+  .quickAccessGrid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -551,28 +666,66 @@
   }
 
   .hero {
-    padding: 1.5rem;
+    padding: 1.25rem;
+  }
+
+  .heroContent {
+    flex-direction: column;
+    gap: 1rem;
   }
 
   .welcomeTitle {
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
 
-  .balanceCard {
-    flex-direction: column;
-    text-align: center;
+  .compactStats {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.5rem;
   }
 
-  .balanceContent {
-    text-align: center;
+  .compactStatItem {
+    padding: 0.5rem 0.75rem;
+    flex: 1;
   }
 
-  .statsGrid {
-    grid-template-columns: repeat(2, 1fr);
+  .compactStatItem i {
+    font-size: 1rem;
   }
 
-  .actionGrid {
+  .compactStatValue {
+    font-size: 1.25rem;
+  }
+
+  .compactStatLabel {
+    font-size: 0.65rem;
+  }
+
+  .mainNav {
+    gap: 0.75rem;
+  }
+
+  .mainNavCard {
+    padding: 1.25rem;
+  }
+
+  .mainNavIcon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+
+  .mainNavContent h2 {
+    font-size: 1.1rem;
+  }
+
+  .mainNavContent p {
+    font-size: 0.8rem;
+  }
+
+  .quickAccessGrid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .tournamentsGrid {
@@ -581,19 +734,57 @@
 }
 
 @media (max-width: 480px) {
-  .statsGrid {
-    grid-template-columns: 1fr;
-  }
-
   .welcomeTitle {
-    font-size: 1.75rem;
+    font-size: 1.25rem;
   }
 
-  .balanceAmount {
-    font-size: 1.75rem;
+  .compactStats {
+    flex-direction: column;
+    width: 100%;
   }
 
-  .statValue {
-    font-size: 1.5rem;
+  .compactStatItem {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  .compactStatItem i {
+    margin-bottom: 0;
+  }
+
+  .mainNavIcon {
+    width: 45px;
+    height: 45px;
+    font-size: 1.25rem;
+  }
+
+  .mainNavContent h2 {
+    font-size: 1rem;
+  }
+
+  .mainNavContent p {
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .mainNavBadge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+  }
+
+  .quickAccessCard {
+    padding: 0.875rem;
+  }
+
+  .quickAccessIcon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+
+  .quickAccessContent h3 {
+    font-size: 0.85rem;
   }
 }

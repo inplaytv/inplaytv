@@ -166,104 +166,131 @@ export default function LobbyPage() {
           '--bg-overlay': backgroundSettings.overlay
         } as React.CSSProperties}
       >
-        {/* Hero Section with Stats */}
+        {/* Compact Hero with Welcome */}
         <div className={styles.hero}>
           <div className={styles.heroContent}>
             <div className={styles.welcomeSection}>
               <h1 className={styles.welcomeTitle}>
                 Welcome back, <span className={styles.username}>{username || 'Player'}</span>
               </h1>
-              <p className={styles.welcomeSubtitle}>Are you ready to dominate the greens?</p>
+              <p className={styles.welcomeSubtitle}>Choose your next challenge</p>
             </div>
             
-            {/* Cards container on the right */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.546rem', width: '60%', flexShrink: 0 }}>
-              {/* Stats Grid inside Hero */}
-              <div className={styles.statsGrid}>
-              <div className={styles.statCard}>
-                <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
-                  <i className="fas fa-trophy"></i>
-                </div>
-                <div className={styles.statContent}>
-                  <div className={styles.statValue}>{userStats.activeEntries}</div>
-                  <div className={styles.statLabel}>Active Entries</div>
-                </div>
+            {/* Compact Stats */}
+            <div className={styles.compactStats}>
+              <div className={styles.compactStatItem}>
+                <i className="fas fa-trophy"></i>
+                <span className={styles.compactStatValue}>{userStats.activeEntries}</span>
+                <span className={styles.compactStatLabel}>Active</span>
               </div>
-
-              <div className={styles.statCard}>
-                <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}>
-                  <i className="fas fa-clipboard-list"></i>
-                </div>
-                <div className={styles.statContent}>
-                  <div className={styles.statValue}>{userStats.totalEntries}</div>
-                  <div className={styles.statLabel}>Total Entries</div>
-                </div>
+              <div className={styles.compactStatItem}>
+                <i className="fas fa-clipboard-list"></i>
+                <span className={styles.compactStatValue}>{userStats.totalEntries}</span>
+                <span className={styles.compactStatLabel}>Total</span>
               </div>
-
-              <div className={styles.statCard}>
-                <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
-                  <i className="fas fa-coins"></i>
-                </div>
-                <div className={styles.statContent}>
-                  <div className={styles.statValue}>{formatCurrency(userStats.totalWinnings)}</div>
-                  <div className={styles.statLabel}>Total Winnings</div>
-                </div>
-              </div>
-
-              <div className={styles.statCard}>
-                <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}>
-                  <i className="fas fa-percentage"></i>
-                </div>
-                <div className={styles.statContent}>
-                  <div className={styles.statValue}>{userStats.winRate}%</div>
-                  <div className={styles.statLabel}>Win Rate</div>
-                </div>
+              <div className={styles.compactStatItem}>
+                <i className="fas fa-coins"></i>
+                <span className={styles.compactStatValue}>{formatCurrency(userStats.totalWinnings)}</span>
+                <span className={styles.compactStatLabel}>Winnings</span>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Quick Actions inside Hero */}
-            <div className={styles.actionGrid}>
-              <Link href="/tournaments" className={styles.actionCard}>
-                <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
-                  <i className="fas fa-trophy"></i>
-                </div>
-                <div className={styles.actionContent}>
-                  <h3>Browse Tournaments</h3>
-                  <p>Enter competitions & win prizes</p>
-                </div>
-              </Link>
-
-              <Link href="/one-2-one" className={styles.actionCard}>
-                <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
-                  <i className="fas fa-swords"></i>
-                </div>
-                <div className={styles.actionContent}>
-                  <h3>1-2-1 Matchmaker</h3>
-                  <p>Challenge players head-to-head</p>
-                </div>
-              </Link>
-
-              <Link href="/entries" className={styles.actionCard}>
-                <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}>
-                  <i className="fas fa-clipboard-list"></i>
-                </div>
-                <div className={styles.actionContent}>
-                  <h3>My Scorecards</h3>
-                  <p>Track your active entries</p>
-                </div>
-              </Link>
-
-              <Link href="/leaderboards" className={styles.actionCard}>
-                <div className={styles.actionIcon} style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}>
-                  <i className="fas fa-ranking-star"></i>
-                </div>
-                <div className={styles.actionContent}>
-                  <h3>Leaderboards</h3>
-                  <p>Check competition standings</p>
-                </div>
-              </Link>
+        {/* Main Navigation Cards - Featured */}
+        <div className={styles.mainNav}>
+          <Link href="/tournaments" className={`${styles.mainNavCard} ${styles.mainNavCardPrimary}`}>
+            <div className={styles.mainNavIcon}>
+              <i className="fas fa-trophy"></i>
             </div>
+            <div className={styles.mainNavContent}>
+              <h2>InPlay Tournaments</h2>
+              <p>Full course competitions with big prize pools</p>
+              <div className={styles.mainNavBadge}>
+                <i className="fas fa-fire"></i>
+                Live Now
+              </div>
             </div>
+            <i className="fas fa-arrow-right"></i>
+          </Link>
+
+          <Link href="/clubhouse/events" className={`${styles.mainNavCard} ${styles.mainNavCardSecondary}`}>
+            <div className={styles.mainNavIcon}>
+              <i className="fas fa-users"></i>
+            </div>
+            <div className={styles.mainNavContent}>
+              <h2>Clubhouse Challenges</h2>
+              <p>Private events and exclusive competitions</p>
+              <div className={styles.mainNavBadge}>
+                <i className="fas fa-star"></i>
+                Exclusive
+              </div>
+            </div>
+            <i className="fas fa-arrow-right"></i>
+          </Link>
+
+          <Link href="/one-2-one" className={`${styles.mainNavCard} ${styles.mainNavCardAccent}`}>
+            <div className={styles.mainNavIcon}>
+              <i className="fas fa-swords"></i>
+            </div>
+            <div className={styles.mainNavContent}>
+              <h2>1-2-1 Challenges</h2>
+              <p>Head-to-head matchups for instant action</p>
+              <div className={styles.mainNavBadge}>
+                <i className="fas fa-bolt"></i>
+                Quick Play
+              </div>
+            </div>
+            <i className="fas fa-arrow-right"></i>
+          </Link>
+        </div>
+
+        {/* Quick Access Grid */}
+        <div className={styles.quickAccessSection}>
+          <h2 className={styles.sectionTitle}>
+            <i className="fas fa-bolt"></i>
+            Quick Access
+          </h2>
+          <div className={styles.quickAccessGrid}>
+            <Link href="/entries" className={styles.quickAccessCard}>
+              <div className={styles.quickAccessIcon}>
+                <i className="fas fa-clipboard-list"></i>
+              </div>
+              <div className={styles.quickAccessContent}>
+                <h3>My Entries</h3>
+                <p>{userStats.activeEntries} active</p>
+              </div>
+            </Link>
+
+            <Link href="/leaderboards" className={styles.quickAccessCard}>
+              <div className={styles.quickAccessIcon}>
+                <i className="fas fa-ranking-star"></i>
+              </div>
+              <div className={styles.quickAccessContent}>
+                <h3>Leaderboards</h3>
+                <p>View standings</p>
+              </div>
+            </Link>
+
+            <Link href="/wallet" className={styles.quickAccessCard}>
+              <div className={styles.quickAccessIcon}>
+                <i className="fas fa-wallet"></i>
+              </div>
+              <div className={styles.quickAccessContent}>
+                <h3>Wallet</h3>
+                <p>{formatCurrency(balance)}</p>
+              </div>
+            </Link>
+
+            <Link href="/profile" className={styles.quickAccessCard}>
+              <div className={styles.quickAccessIcon}>
+                <i className="fas fa-user-circle"></i>
+              </div>
+              <div className={styles.quickAccessContent}>
+                <h3>Profile</h3>
+                <p>Settings</p>
+              </div>
+            </Link>
           </div>
         </div>
 
