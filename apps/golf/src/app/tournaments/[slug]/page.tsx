@@ -27,7 +27,6 @@ interface Competition {
   end_at: string | null;
   status: string;
   competition_types: CompetitionType;
-  hasGolfers?: boolean; // Whether golfers are available for selection
 }
 
 interface Tournament {
@@ -279,30 +278,16 @@ function CompetitionCard({
         {/* CTA Button */}
         <div className={styles.cardActions}>
           {canRegister ? (
-            competition.hasGolfers === false ? (
-              <Link 
-                href={`/reserve-place/${competition.id}`}
-                className={styles.btnPlay}
-                style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}
-              >
-                <span className={styles.btnContent}>
-                  <i className="fas fa-bookmark"></i>
-                  <span>Reserve My Place</span>
-                </span>
-                <div className={styles.btnShine}></div>
-              </Link>
-            ) : (
-              <Link 
-                href={`/build-team/${competition.id}`}
-                className={styles.btnPlay}
-              >
-                <span className={styles.btnContent}>
-                  <i className="fas fa-users"></i>
-                  <span>Build Your Team</span>
-                </span>
-                <div className={styles.btnShine}></div>
-              </Link>
-            )
+            <Link 
+              href={`/build-team/${competition.id}`}
+              className={styles.btnPlay}
+            >
+              <span className={styles.btnContent}>
+                <i className="fas fa-users"></i>
+                <span>Build Your Team</span>
+              </span>
+              <div className={styles.btnShine}></div>
+            </Link>
           ) : isRegClosed ? (
             <Link 
               href={`/leaderboards`}
@@ -521,21 +506,9 @@ export default function TournamentDetailPage() {
       
       const data = await res.json();
       
-      // Check if golfers are available for this tournament
-      const golfersRes = await fetch(`/api/tournaments/${data.id}/golfers-count`, {
-        cache: 'no-store'
-      });
-      const hasGolfers = golfersRes.ok ? (await golfersRes.json()).count > 0 : false;
-      
-      // Add hasGolfers flag to all competitions
-      const competitionsWithGolfers = data.competitions.map((comp: Competition) => ({
-        ...comp,
-        hasGolfers
-      }));
-      
       // Sort competitions: maintain type order, but closed ones drop to bottom
       const now = new Date();
-      const sortedCompetitions = [...competitionsWithGolfers].sort((a, b) => {
+      const sortedCompetitions = [...data.competitions].sort((a, b) => {
         // Competition type order (how they're played during tournament)
         const typeOrder: Record<string, number> = {
           'full-course': 1,      // Main competition - all 4 rounds (closes start of round 1)
