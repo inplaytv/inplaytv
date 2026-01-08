@@ -45,6 +45,7 @@ export default function LobbyPage() {
     winRate: 0
   });
   const [loading, setLoading] = useState(true);
+  const [clubhouseLeaderboardUrl, setClubhouseLeaderboardUrl] = useState<string>('/clubhouse/events');
   const supabase = createClient();
   const backgroundSettings = usePageBackground('lobby_page_background');
 
@@ -92,27 +93,49 @@ export default function LobbyPage() {
           ).length;
           
           // Get InPlay entries count
-          const { count: inplayCount } = await supabase
-            .from('competition_entries')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user?.id)
-            .eq('status', 'active');
+          let inplayCount = 0;
+          let clubhouseCount = 0;
           
-          // Get Clubhouse entries count
-          const { count: clubhouseCount } = await supabase
-            .from('clubhouse_entries')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user?.id)
-            .eq('status', 'active');
+          if (user?.id) {
+            const { count: inplayResult } = await supabase
+              .from('competition_entries')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', user.id)
+              .eq('status', 'active');
+            
+            inplayCount = inplayResult || 0;
+            
+            // Get Clubhouse entries count
+            const { count: clubhouseResult } = await supabase
+              .from('clubhouse_entries')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', user.id)
+              .eq('status', 'active');
+            
+            clubhouseCount = clubhouseResult || 0;
+          }
           
           setUserStats({
             totalEntries: entries.length,
             activeEntries,
-            inplayEntries: inplayCount || 0,
-            clubhouseEntries: clubhouseCount || 0,
+            inplayEntries: inplayCount,
+            clubhouseEntries: clubhouseCount,
             totalWinnings: 0, // TODO: Calculate from wins
             winRate: entries.length > 0 ? 0 : 0 // TODO: Calculate win rate
           });
+        }
+        
+        // Get active clubhouse competition for leaderboard link
+        const { data: clubhouseComp } = await supabase
+          .from('clubhouse_competitions')
+          .select('id')
+          .in('status', ['open', 'live'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (clubhouseComp) {
+          setClubhouseLeaderboardUrl(`/clubhouse/leaderboard/${clubhouseComp.id}`);
         }
       } catch (error) {
         console.error('Error fetching lobby data:', error);
@@ -302,7 +325,7 @@ export default function LobbyPage() {
               </div>
             </Link>
 
-            <Link href="/clubhouse/events" className={styles.quickAccessCard}>
+            <Link href={clubhouseLeaderboardUrl} className={styles.quickAccessCard}>
               <div className={styles.quickAccessIcon}>
                 <i className="fas fa-chart-line"></i>
               </div>
