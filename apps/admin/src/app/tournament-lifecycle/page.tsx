@@ -435,9 +435,9 @@ export default function TournamentLifecyclePage() {
             setShowStatusModal(false);
             setSelectedTournament(null);
           }}
-          onSuccess={() => {
+          onSuccess={async () => {
             setLastModifiedId(selectedTournament.id);
-            fetchTournaments();
+            await fetchTournaments(); // Wait for fresh data
             setShowStatusModal(false);
             setSelectedTournament(null);
             // Clear highlight after 3 seconds
@@ -454,9 +454,9 @@ export default function TournamentLifecyclePage() {
             setShowRegistrationModal(false);
             setSelectedTournament(null);
           }}
-          onSuccess={() => {
+          onSuccess={async () => {
             setLastModifiedId(selectedTournament.id);
-            fetchTournaments();
+            await fetchTournaments(); // Wait for fresh data
             setShowRegistrationModal(false);
             setSelectedTournament(null);
             // Clear highlight after 3 seconds
