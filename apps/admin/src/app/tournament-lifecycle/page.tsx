@@ -37,6 +37,7 @@ export default function TournamentLifecyclePage() {
   const [processing, setProcessing] = useState(false);
   const [countdowns, setCountdowns] = useState<{ [key: string]: string }>({});
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [lastModifiedId, setLastModifiedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTournaments();
@@ -361,6 +362,7 @@ export default function TournamentLifecyclePage() {
                       tournament={tournament}
                       countdown={countdowns[tournament.id]}
                       currentTime={currentTime}
+                      isHighlighted={tournament.id === lastModifiedId}
                       onStatusChange={() => {
                         setSelectedTournament(tournament);
                         setShowStatusModal(true);
@@ -408,6 +410,7 @@ export default function TournamentLifecyclePage() {
                       tournament={tournament}
                       countdown={countdowns[tournament.id]}
                       currentTime={currentTime}
+                      isHighlighted={tournament.id === lastModifiedId}
                       onStatusChange={() => {
                         setSelectedTournament(tournament);
                         setShowStatusModal(true);
@@ -433,9 +436,12 @@ export default function TournamentLifecyclePage() {
             setSelectedTournament(null);
           }}
           onSuccess={() => {
+            setLastModifiedId(selectedTournament.id);
             fetchTournaments();
             setShowStatusModal(false);
             setSelectedTournament(null);
+            // Clear highlight after 3 seconds
+            setTimeout(() => setLastModifiedId(null), 3000);
           }}
         />
       )}
@@ -449,9 +455,12 @@ export default function TournamentLifecyclePage() {
             setSelectedTournament(null);
           }}
           onSuccess={() => {
+            setLastModifiedId(selectedTournament.id);
             fetchTournaments();
             setShowRegistrationModal(false);
             setSelectedTournament(null);
+            // Clear highlight after 3 seconds
+            setTimeout(() => setLastModifiedId(null), 3000);
           }}
         />
       )}
@@ -464,12 +473,14 @@ function TournamentCard({
   tournament, 
   countdown, 
   currentTime,
+  isHighlighted,
   onStatusChange,
   onRegistrationChange 
 }: {
   tournament: Tournament;
   countdown: string;
   currentTime: Date;
+  isHighlighted?: boolean;
   onStatusChange: () => void;
   onRegistrationChange: () => void;
 }) {
@@ -563,7 +574,11 @@ function TournamentCard({
   return (
     <div
       className={styles.card}
-      style={{ borderLeft: `4px solid ${getStatusColor(tournament.status)}` }}
+      style={{ 
+        borderLeft: `4px solid ${getStatusColor(tournament.status)}`,
+        boxShadow: isHighlighted ? '0 0 0 3px #10b981, 0 10px 30px rgba(0,0,0,0.3)' : undefined,
+        transition: 'box-shadow 0.3s ease'
+      }}
     >
       {/* Card Header */}
       <div className={styles.cardHeader}>
