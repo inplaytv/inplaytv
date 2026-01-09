@@ -142,6 +142,7 @@ function CompetitionCard({
   isWinnerTakesAll,
   statusBadge,
   canRegister,
+  hasGolfers,
   formatCurrency,
   formatDateRange
 }: any) {
@@ -277,7 +278,7 @@ function CompetitionCard({
 
         {/* CTA Button */}
         <div className={styles.cardActions}>
-          {canRegister ? (
+          {canRegister && hasGolfers ? (
             <Link 
               href={`/build-team/${competition.id}`}
               className={styles.btnPlay}
@@ -285,6 +286,18 @@ function CompetitionCard({
               <span className={styles.btnContent}>
                 <i className="fas fa-users"></i>
                 <span>Build Your Team</span>
+              </span>
+              <div className={styles.btnShine}></div>
+            </Link>
+          ) : canRegister && !hasGolfers ? (
+            <Link 
+              href={`/reserve/${competition.id}`}
+              className={styles.btnPlay}
+              style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
+            >
+              <span className={styles.btnContent}>
+                <i className="fas fa-bookmark"></i>
+                <span>Reserve My Place</span>
               </span>
               <div className={styles.btnShine}></div>
             </Link>
@@ -464,6 +477,7 @@ export default function TournamentDetailPage() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [one2OneTemplates, setOne2OneTemplates] = useState<One2OneTemplate[]>([]);
   const [allTournaments, setAllTournaments] = useState<{id: string; name: string; slug: string}[]>([]);
+  const [competitionGolfers, setCompetitionGolfers] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -535,11 +549,38 @@ export default function TournamentDetailPage() {
       });
       
       setTournament({ ...data, competitions: sortedCompetitions });
+      
+      // Fetch hasGolfers status for each competition
+      fetchCompetitionGolfers(sortedCompetitions);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchCompetitionGolfers = async (competitions: Competition[]) => {
+    const golfersStatus: Record<string, boolean> = {};
+    
+    await Promise.all(
+      competitions.map(async (comp) => {
+        try {
+          const res = await fetch(`/api/competitions/${comp.id}/has-golfers`, {
+            cache: 'no-store'
+          });
+          if (res.ok) {
+            const data = await res.json();
+            golfersStatus[comp.id] = data.hasGolfers;
+          }
+        } catch (err) {
+          console.error(`Error checking golfers for competition ${comp.id}:`, err);
+          // Default to false - show Reserve button if we can't check
+          golfersStatus[comp.id] = false;
+        }
+      })
+    );
+    
+    setCompetitionGolfers(golfersStatus);
   };
 
   const fetchOne2OneTemplates = async () => {
@@ -598,7 +639,7 @@ export default function TournamentDetailPage() {
       upcoming: { label: 'Upcoming', icon: 'fa-clock', color: '#3b82f6' },
       registration_open: { label: 'Registration Open', icon: 'fa-door-open', color: '#10b981' },
       reg_open: { label: 'Registration Open', icon: 'fa-door-open', color: '#10b981' },
-      reg_closed: { label: 'Registration Closed', icon: 'fa-door-closed', color: '#f59e0b' },
+      reg_closed: { label: 'Registration Closed', icon: 'fa-door-closed', color: '#ef4444' },
       awaiting_start: { label: 'Awaiting Start', icon: 'fa-hourglass-half', color: '#3b82f6' },
       live: { label: 'Live', icon: 'fa-circle', color: '#ef4444' },
       completed: { label: 'Completed', icon: 'fa-check-circle', color: '#8b5cf6' },
@@ -882,6 +923,7 @@ export default function TournamentDetailPage() {
                 
                 // Check if registration is actually open (based on status badge which already handles status field + dates)
                 const canRegister = statusBadge.label === 'Registration Open';
+                const hasGolfers = competitionGolfers[competition.id] ?? false; // Default to false - safer to show Reserve button
 
                 return (
                   <CompetitionCard
@@ -893,6 +935,7 @@ export default function TournamentDetailPage() {
                     isWinnerTakesAll={isWinnerTakesAll}
                     statusBadge={statusBadge}
                     canRegister={canRegister}
+                    hasGolfers={hasGolfers}
                     formatCurrency={formatCurrency}
                     formatDateRange={formatDateRange}
                   />

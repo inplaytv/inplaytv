@@ -201,6 +201,28 @@ export async function POST(request: Request) {
           });
         } else {
           console.log(`[Auto-Transition] ✅ ${tournament.name}: ${tournament.status} → ${newStatus} (${reason})`);
+          
+          // 🆕 AUTO-SYNC: Update competition dates after status transition
+          try {
+            const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002';
+            const syncResponse = await fetch(`${baseUrl}/api/tournaments/${tournament.id}/competitions/calculate-times`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (syncResponse.ok) {
+              const syncData = await syncResponse.json();
+              console.log(`[Auto-Transition] 🔄 Synced competition dates: ${syncData.updated} competitions updated`);
+            } else {
+              console.warn(`[Auto-Transition] ⚠️ Failed to sync competition dates for ${tournament.name}`);
+            }
+          } catch (syncError) {
+            console.error(`[Auto-Transition] ❌ Error syncing competition dates:`, syncError);
+            // Don't fail the transition if sync fails - just log the error
+          }
+          
           transitions.push({
             tournamentId: tournament.id,
             tournamentName: tournament.name,

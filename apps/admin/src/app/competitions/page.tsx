@@ -23,7 +23,7 @@ interface Competition {
   competition_types: {
     id: string;
     name: string;
-  };
+  } | null;
 }
 
 function getStatusBadge(status: string) {
@@ -321,7 +321,7 @@ export default function CompetitionsPage() {
                     )}
                   </td>
                   <td style={{ padding: '0.875rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
-                    {comp.competition_types.name}
+                    {comp.competition_types?.name || 'ONE 2 ONE Challenge'}
                   </td>
                   <td style={{ padding: '0.875rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem' }}>
                     {formatPennies(comp.entry_fee_pennies)}

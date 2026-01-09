@@ -39,13 +39,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           reg_close_at: tournament.registration_closes_at,
           start_at: null,
           end_at: tournament.end_date,
-          status: "reg_open",
+          status: "registration_open",
         });
         continue;
       }
 
       const regCloseAt = new Date(new Date(teeTime as string).getTime() - REGISTRATION_CLOSE_BUFFER_MS);
-      const status = now >= regCloseAt ? "reg_closed" : (tournament.registration_opens_at && now >= new Date(tournament.registration_opens_at)) ? "reg_open" : "upcoming";
+      // 🔄 STANDARDIZED: Use same status values as Lifecycle Manager
+      const status = now >= regCloseAt ? "live" : (tournament.registration_opens_at && now >= new Date(tournament.registration_opens_at)) ? "registration_open" : "upcoming";
 
       updates.push({
         id: comp.id,
