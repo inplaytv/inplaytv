@@ -30,10 +30,18 @@ export async function GET(request: NextRequest) {
         status,
         image_url,
         created_at,
-        featured_competition_id
+        featured_competition_id,
+        test_only
       `)
       .eq('is_visible', true)
       .neq('status', 'draft'); // Exclude draft tournaments from public API
+
+    // 🧪 TEST TOURNAMENT FILTER: Hide test tournaments in production
+    // Use VERCEL_ENV to properly detect production (NODE_ENV is always 'production' on Vercel)
+    const isProduction = process.env.VERCEL_ENV === 'production';
+    if (isProduction) {
+      query = query.eq('test_only', false);
+    }
 
     // For leaderboard context: Show only upcoming or live tournaments
     if (context === 'leaderboard') {
