@@ -278,7 +278,21 @@ function CompetitionCard({
 
         {/* CTA Button */}
         <div className={styles.cardActions}>
-          {canRegister && hasGolfers ? (
+          {hasGolfers === undefined ? (
+            <div 
+              className={styles.btnPlay}
+              style={{ 
+                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                opacity: 0.6,
+                cursor: 'wait'
+              }}
+            >
+              <span className={styles.btnContent}>
+                <i className="fas fa-spinner fa-spin"></i>
+                <span>Loading...</span>
+              </span>
+            </div>
+          ) : canRegister && hasGolfers ? (
             <Link 
               href={`/build-team/${competition.id}`}
               className={styles.btnPlay}
@@ -477,7 +491,7 @@ export default function TournamentDetailPage() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [one2OneTemplates, setOne2OneTemplates] = useState<One2OneTemplate[]>([]);
   const [allTournaments, setAllTournaments] = useState<{id: string; name: string; slug: string}[]>([]);
-  const [competitionGolfers, setCompetitionGolfers] = useState<Record<string, boolean>>({});
+  const [competitionGolfers, setCompetitionGolfers] = useState<Record<string, boolean | undefined>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -560,7 +574,7 @@ export default function TournamentDetailPage() {
   };
 
   const fetchCompetitionGolfers = async (competitions: Competition[]) => {
-    const golfersStatus: Record<string, boolean> = {};
+    const golfersStatus: Record<string, boolean | undefined> = {};
     
     await Promise.all(
       competitions.map(async (comp) => {
@@ -571,10 +585,13 @@ export default function TournamentDetailPage() {
           if (res.ok) {
             const data = await res.json();
             golfersStatus[comp.id] = data.hasGolfers;
+          } else {
+            // API error - default to false (show Reserve button)
+            golfersStatus[comp.id] = false;
           }
         } catch (err) {
           console.error(`Error checking golfers for competition ${comp.id}:`, err);
-          // Default to false - show Reserve button if we can't check
+          // Network error - default to false (show Reserve button)
           golfersStatus[comp.id] = false;
         }
       })
@@ -923,7 +940,7 @@ export default function TournamentDetailPage() {
                 
                 // Check if registration is actually open (based on status badge which already handles status field + dates)
                 const canRegister = statusBadge.label === 'Registration Open';
-                const hasGolfers = competitionGolfers[competition.id] ?? false; // Default to false - safer to show Reserve button
+                const hasGolfers = competitionGolfers[competition.id]; // undefined = loading, true/false = loaded
 
                 return (
                   <CompetitionCard
